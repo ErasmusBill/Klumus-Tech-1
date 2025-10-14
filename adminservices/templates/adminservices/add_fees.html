@@ -1,0 +1,397 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Add Fees{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+  .page-wrapper {
+    background: #f8f9fa;
+    padding: 30px;
+    min-height: 100vh;
+  }
+
+  .page-header {
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eaeaea;
+  }
+
+  .page-header h3 {
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 5px;
+  }
+
+  .breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+  }
+
+  .breadcrumb-item.active {
+    color: #2c3e50;
+    font-weight: 500;
+  }
+
+  .form-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+    border: 1px solid #eef2f7;
+  }
+
+  .form-group {
+    margin-bottom: 25px;
+  }
+
+  label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #eef2f7;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+  }
+
+  .form-control:focus, .form-select:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.15);
+    outline: none;
+  }
+
+  .btn {
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+  }
+
+  .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+  }
+
+  .alert {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 15px 20px;
+  }
+
+  .text-danger {
+    font-size: 13px;
+    margin-top: 5px;
+  }
+
+  /* Select2 Custom Styling */
+  .select2-container--default .select2-selection--single {
+    height: 48px;
+    border: 2px solid #eef2f7;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #fff;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 46px;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 30px;
+    color: #495057;
+    font-size: 14px;
+  }
+
+  .select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.15);
+  }
+
+  .select2-dropdown {
+    border: 2px solid #eef2f7;
+    border-radius: 8px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+  }
+
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  }
+
+  .form-section {
+    margin-bottom: 30px;
+  }
+
+  .section-title {
+    color: #2c3e50;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f4ff;
+    font-size: 18px;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .page-wrapper {
+      padding: 20px 15px;
+    }
+    
+    .form-card {
+      padding: 20px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Add New Fee</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-fees' %}">Fee Management</a></li>
+            <li class="breadcrumb-item active">Add Fee</li>
+          </ul>
+        </div>
+        <div class="col-auto">
+          <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Fees
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            <span class="flex-grow-1">{{ message }}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Form Card -->
+    <div class="form-card">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        
+        <!-- Student Information Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-user-graduate me-2 text-primary"></i>Student Information
+          </h5>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="form-group">
+                <label for="{{ form.student.id_for_label }}">
+                  <i class="fas fa-search me-2 text-success"></i>{{ form.student.label }}
+                </label>
+                {{ form.student }}
+                {% if form.student.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.student.errors }}
+                  </div>
+                {% endif %}
+                <small class="form-text text-muted mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Start typing to search for students by name or student ID
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fee Details Section -->
+        <div class="form-section">
+          <h5 class="section-title">
+            <i class="fas fa-receipt me-2 text-warning"></i>Fee Details
+          </h5>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.fee_type.id_for_label }}">
+                  <i class="fas fa-tag me-2 text-info"></i>{{ form.fee_type.label }}
+                </label>
+                {{ form.fee_type }}
+                {% if form.fee_type.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.fee_type.errors }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.amount.id_for_label }}">
+                  <i class="fas fa-money-bill-wave me-2 text-success"></i>{{ form.amount.label }}
+                </label>
+                {{ form.amount }}
+                {% if form.amount.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.amount.errors }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.due_date.id_for_label }}">
+                  <i class="fas fa-calendar-alt me-2 text-danger"></i>{{ form.due_date.label }}
+                </label>
+                {{ form.due_date }}
+                {% if form.due_date.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.due_date.errors }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.status.id_for_label }}">
+                  <i class="fas fa-check-circle me-2 text-primary"></i>{{ form.status.label }}
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.status.errors }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">
+                  <i class="fas fa-sticky-note me-2 text-secondary"></i>{{ form.notes.label }}
+                </label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                  <div class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    {{ form.notes.errors }}
+                  </div>
+                {% endif %}
+                <small class="form-text text-muted mt-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Optional notes or description about this fee
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="d-flex justify-content-end gap-3 btn-group">
+              <a href="{% url 'adminservices:list-fees' %}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>Save Fee
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery + Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2 on the student field
+    $('#id_student').select2({
+        placeholder: "Type student name or ID...",
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 1,
+        theme: 'default',
+        dropdownParent: $('.form-card')
+    });
+    
+    // Debug: Check if Select2 is working
+    console.log('Select2 initialized on student field');
+    
+    // Add loading state to form submission
+    $('form').on('submit', function() {
+        const submitBtn = $(this).find('button[type="submit"]');
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+    });
+    
+    // Enhance form controls with additional styling
+    $('select:not(.select2-hidden-accessible)').addClass('form-select');
+    $('textarea').addClass('form-control');
+    $('input[type="number"]').addClass('form-control');
+    $('input[type="date"]').addClass('form-control');
+    
+    // Auto-focus on student search field
+    setTimeout(function() {
+        $('#id_student').select2('focus');
+    }, 500);
+});
+</script>
+{% endblock %}

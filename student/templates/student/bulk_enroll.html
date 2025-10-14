@@ -1,0 +1,300 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}Bulk Class Enrollment{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Bulk Class Enrollment</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'adminservices:dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'adminservices:enrollment-management' %}">Enrollment Management</a></li>
+                        <li class="breadcrumb-item active">Bulk Enroll</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row">
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-primary">
+                                <i class="fas fa-users"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ total_students }}</h3>
+                                <h6 class="text-muted">Total Students</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-success">
+                                <i class="fas fa-book"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ total_subjects }}</h3>
+                                <h6 class="text-muted">Total Subjects</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-info">
+                                <i class="fas fa-user-graduate"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ total_enrollments }}</h3>
+                                <h6 class="text-muted">Total Enrollments</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-warning">
+                                <i class="fas fa-school"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ students_by_class|length }}</h3>
+                                <h6 class="text-muted">Active Classes</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enrollment Form -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title text-white mb-0">
+                            <i class="fas fa-users-cog"></i> Bulk Enroll Class
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>How it works:</strong> Select a class below, and all students in that class will be automatically enrolled in all subjects for that class level.
+                        </div>
+
+                        <form method="POST">
+                            {% csrf_token %}
+                            
+                            <div class="form-group">
+                                <label for="{{ form.student_class.id_for_label }}">
+                                    {{ form.student_class.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.student_class }}
+                                {% if form.student_class.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.student_class.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    All students in the selected class will be enrolled
+                                </small>
+                            </div>
+
+                            {{ form.school }}
+
+                            <div class="form-group mb-0">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-check"></i> Enroll All Students in Selected Class
+                                </button>
+                                <a href="{% url 'adminservices:enrollment-management' %}" class="btn btn-outline-secondary btn-block">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="{% url 'adminservices:manual-enrollment' %}" class="btn btn-outline-primary btn-block mb-2">
+                            <i class="fas fa-user-plus"></i> Manual Enrollment
+                        </a>
+                        <a href="{% url 'adminservices:sync-enrollments' %}" class="btn btn-outline-warning btn-block mb-2">
+                            <i class="fas fa-sync"></i> Sync All Enrollments
+                        </a>
+                        <a href="{% url 'adminservices:enrollment-management' %}" class="btn btn-outline-info btn-block">
+                            <i class="fas fa-list"></i> View All Enrollments
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students by Class -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Students by Class</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if students_by_class %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Class</th>
+                                            <th>Number of Students</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for class_data in students_by_class %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ class_data.student_class }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-primary badge-pill">{{ class_data.count }}</span>
+                                            </td>
+                                            <td>
+                                                <form method="POST" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="student_class" value="{{ class_data.student_class }}">
+                                                    <button type="submit" class="btn btn-sm btn-success" 
+                                                            onclick="return confirm('Enroll all {{ class_data.count }} students in this class?')">
+                                                        <i class="fas fa-check"></i> Enroll
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No students found</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Information Card -->
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-white">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Important Notes</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li class="mb-2">Bulk enrollment will <strong>deactivate</strong> all existing enrollments for students in the selected class</li>
+                            <li class="mb-2">Students will be enrolled in <strong>all subjects</strong> matching their class level</li>
+                            <li class="mb-2">This action ensures students are enrolled in the correct subjects for their current class</li>
+                            <li class="mb-0">If no subjects exist for a class, no enrollments will be created</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process Flow Guide -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title text-white mb-0">
+                            <i class="fas fa-list-ol"></i> Enrollment Process
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="process-step">
+                                    <div class="process-icon bg-primary text-white rounded-circle mx-auto mb-2" style="width: 60px; height: 60px; line-height: 60px;">
+                                        <i class="fas fa-clipboard-list fa-2x"></i>
+                                    </div>
+                                    <h6>Step 1</h6>
+                                    <p class="text-muted">Select Class</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="process-step">
+                                    <div class="process-icon bg-success text-white rounded-circle mx-auto mb-2" style="width: 60px; height: 60px; line-height: 60px;">
+                                        <i class="fas fa-search fa-2x"></i>
+                                    </div>
+                                    <h6>Step 2</h6>
+                                    <p class="text-muted">Find Students & Subjects</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="process-step">
+                                    <div class="process-icon bg-warning text-white rounded-circle mx-auto mb-2" style="width: 60px; height: 60px; line-height: 60px;">
+                                        <i class="fas fa-sync fa-2x"></i>
+                                    </div>
+                                    <h6>Step 3</h6>
+                                    <p class="text-muted">Auto-Enroll Students</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center mb-3">
+                                <div class="process-step">
+                                    <div class="process-icon bg-info text-white rounded-circle mx-auto mb-2" style="width: 60px; height: 60px; line-height: 60px;">
+                                        <i class="fas fa-check-circle fa-2x"></i>
+                                    </div>
+                                    <h6>Step 4</h6>
+                                    <p class="text-muted">Confirmation</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .process-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .dash-widget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dash-widget-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    .dash-widget-icon i {
+        font-size: 30px;
+        color: white;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,407 @@
+<!-- teacher/templates/teacher/bulk_grade_entry.html -->
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}Enter Grades: {{ subject.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .student-row {
+    transition: background-color 0.2s;
+  }
+  .student-row:hover {
+    background-color: #f8f9fa;
+  }
+  .score-cell {
+    width: 100px;
+    text-align: center;
+  }
+  .comment-cell {
+    width: 200px;
+  }
+  .student-name {
+    font-weight: 500;
+  }
+  .calculated-field {
+    background-color: #e9ecef !important;
+    font-weight: bold;
+    color: #495057;
+  }
+  .grade-display {
+    font-weight: bold;
+    text-align: center;
+    padding: 5px;
+    border-radius: 4px;
+  }
+  .grade-A { 
+    color: #28a745; 
+    background-color: rgba(40, 167, 69, 0.1);
+  }
+  .grade-B { 
+    color: #17a2b8; 
+    background-color: rgba(23, 162, 184, 0.1);
+  }
+  .grade-C { 
+    color: #ffc107; 
+    background-color: rgba(255, 193, 7, 0.1);
+  }
+  .grade-D { 
+    color: #fd7e14; 
+    background-color: rgba(253, 126, 20, 0.1);
+  }
+  .grade-F { 
+    color: #dc3545; 
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+  .score-input:valid {
+    border-color: #28a745;
+  }
+  .score-input:invalid {
+    border-color: #dc3545;
+  }
+  .table th {
+    font-size: 0.85rem;
+  }
+  .table td {
+    vertical-align: middle;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h3 class="page-title">Enter Grades - {{ subject.name }}</h3>
+      <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:my-subjects' %}">My Subjects</a></li>
+        <li class="breadcrumb-item active">{{ subject.name }}</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row">
+  <div class="col-sm-12">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" id="gradeForm">
+          {% csrf_token %}
+          
+          <!-- Basic Information -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label><strong>Subject</strong></label>
+                <input type="text" class="form-control bg-light" value="{{ subject.name }} ({{ subject.get_subject_class_display }})" readonly>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label><strong>Term</strong></label>
+                {{ form.term }}
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label><strong>Academic Year</strong></label>
+                {{ form.academic_year }}
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label><strong>Exam Date</strong></label>
+                {{ form.exam_date }}
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label><strong>Total Students</strong></label>
+                <input type="text" class="form-control bg-light" value="{{ students.count }} students" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Grades Table -->
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+              <thead class="thead-dark">
+                <tr>
+                  <th style="width: 15%">Student Name</th>
+                  <th class="score-cell">Class Score<br><small>(0-20 marks)</small></th>
+                  <th class="score-cell">Mid-Semester<br><small>(0-30 marks)</small></th>
+                  <th class="score-cell">End of Term<br><small>(0-50 marks)</small></th>
+                  <th class="score-cell">Total<br><small>(Auto 100 marks)</small></th>
+                  <th class="score-cell">Percentage</th>
+                  <th class="score-cell">Grade</th>
+                  <th class="score-cell">Remark</th>
+                  <th class="comment-cell">Teacher Comment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %}
+                <tr class="student-row" data-student-id="{{ student.id }}">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar mr-2">
+                        {% if student.user.profile_picture %}
+                          <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                        {% else %}
+                          <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ student.user.get_full_name|urlencode }}&background=007bff&color=fff" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                        {% endif %}
+                      </div>
+                      <div>
+                        <strong class="student-name">{{ student.user.get_full_name }}</strong><br>
+                        <small class="text-muted">{{ student.student_id }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <!-- Class Score Field -->
+                  <td class="score-cell">
+                    <input type="number" 
+                           name="class_score_{{ student.id }}" 
+                           class="form-control score-input" 
+                           min="0" 
+                           max="20" 
+                           step="0.01"
+                           placeholder="0-20"
+                           data-student="{{ student.id }}"
+                           value="0"
+                           oninput="calculateTotals('{{ student.id }}')">
+                  </td>
+                  
+                  <!-- Mid-Semester Field -->
+                  <td class="score-cell">
+                    <input type="number" 
+                           name="mid_semester_{{ student.id }}" 
+                           class="form-control score-input" 
+                           min="0" 
+                           max="30" 
+                           step="0.01"
+                           placeholder="0-30"
+                           data-student="{{ student.id }}"
+                           value="0"
+                           oninput="calculateTotals('{{ student.id }}')">
+                  </td>
+                  
+                  <!-- End of Term Exams Field -->
+                  <td class="score-cell">
+                    <input type="number" 
+                           name="end_of_term_exams_{{ student.id }}" 
+                           class="form-control score-input" 
+                           min="0" 
+                           max="50" 
+                           step="0.01"
+                           placeholder="0-50"
+                           data-student="{{ student.id }}"
+                           value="0"
+                           oninput="calculateTotals('{{ student.id }}')">
+                  </td>
+                  
+                  <!-- Auto-calculated Total (Read-only) -->
+                  <td class="score-cell">
+                    <input type="number" 
+                           class="form-control calculated-field" 
+                           readonly
+                           id="total_{{ student.id }}"
+                           value="0">
+                  </td>
+                  
+                  <!-- Auto-calculated Percentage -->
+                  <td class="score-cell">
+                    <span id="percentage_{{ student.id }}" class="grade-display calculated-field" style="display: block; padding: 8px; border-radius: 4px;">0%</span>
+                  </td>
+                  
+                  <!-- Auto-calculated Grade -->
+                  <td class="score-cell">
+                    <span id="grade_{{ student.id }}" class="grade-display">-</span>
+                  </td>
+                  
+                  <!-- Auto-calculated Remark -->
+                  <td class="score-cell">
+                    <span id="remark_{{ student.id }}" class="grade-display">-</span>
+                  </td>
+                  
+                  <!-- Teacher Comment -->
+                  <td class="comment-cell">
+                    <textarea name="comment_{{ student.id }}" class="form-control" rows="1" placeholder="Optional comment..."></textarea>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="fas fa-users fa-2x mb-2"></i>
+                      <p>No students enrolled in this subject.</p>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Form Actions -->
+          <div class="form-actions mt-4">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="alert alert-info">
+                  <small>
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Note:</strong> 
+                    <ul class="mb-0 pl-3">
+                      <li>Enter all three scores: Class Score (20%), Mid-Semester (30%), and End of Term Exams (50%)</li>
+                      <li>Total, Percentage, Grade, and Remark are calculated automatically</li>
+                      <li>Grades: A+ (90-100%), A (80-89%), B+ (70-79%), B (65-69%), C+ (55-64%), C (50-54%), D (40-49%), F (0-39%)</li>
+                    </ul>
+                  </small>
+                </div>
+              </div>
+              <div class="col-md-6 text-right">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="fas fa-save"></i> Save All Grades
+                </button>
+                <a href="{% url 'teacher:my-subjects' %}" class="btn btn-secondary btn-lg ml-2">
+                  <i class="fas fa-times"></i> Cancel
+                </a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calculateTotals(studentId) {
+    const classScore = parseFloat(document.querySelector(`input[name="class_score_${studentId}"]`).value) || 0;
+    const midSemester = parseFloat(document.querySelector(`input[name="mid_semester_${studentId}"]`).value) || 0;
+    const endOfTermExams = parseFloat(document.querySelector(`input[name="end_of_term_exams_${studentId}"]`).value) || 0;
+    
+    // Calculate Total (sum of all three components)
+    const total = classScore + midSemester + endOfTermExams;
+    
+    // Calculate Percentage (out of 100)
+    const percentage = (total / 100) * 100;
+    
+    // Update the calculated fields
+    document.getElementById(`total_${studentId}`).value = total.toFixed(2);
+    document.getElementById(`percentage_${studentId}`).textContent = percentage.toFixed(1) + '%';
+    
+    // Calculate and display grade and remark
+    calculateGradeAndRemark(studentId, percentage);
+}
+
+function calculateGradeAndRemark(studentId, percentage) {
+    let grade = '';
+    let remark = '';
+    let gradeClass = '';
+    
+    if (percentage >= 90) {
+        grade = 'A+'; remark = 'Excellent'; gradeClass = 'grade-A';
+    } else if (percentage >= 80) {
+        grade = 'A'; remark = 'Excellent'; gradeClass = 'grade-A';
+    } else if (percentage >= 75) {
+        grade = 'A-'; remark = 'Excellent'; gradeClass = 'grade-A';
+    } else if (percentage >= 70) {
+        grade = 'B+'; remark = 'Very Good'; gradeClass = 'grade-B';
+    } else if (percentage >= 65) {
+        grade = 'B'; remark = 'Very Good'; gradeClass = 'grade-B';
+    } else if (percentage >= 60) {
+        grade = 'B-'; remark = 'Very Good'; gradeClass = 'grade-B';
+    } else if (percentage >= 55) {
+        grade = 'C+'; remark = 'Good'; gradeClass = 'grade-C';
+    } else if (percentage >= 50) {
+        grade = 'C'; remark = 'Good'; gradeClass = 'grade-C';
+    } else if (percentage >= 45) {
+        grade = 'C-'; remark = 'Good'; gradeClass = 'grade-C';
+    } else if (percentage >= 40) {
+        grade = 'D'; remark = 'Fair'; gradeClass = 'grade-D';
+    } else {
+        grade = 'F'; remark = 'Fail'; gradeClass = 'grade-F';
+    }
+    
+    const gradeElement = document.getElementById(`grade_${studentId}`);
+    const remarkElement = document.getElementById(`remark_${studentId}`);
+    
+    gradeElement.textContent = grade;
+    gradeElement.className = `grade-display ${gradeClass}`;
+    remarkElement.textContent = remark;
+    remarkElement.className = `grade-display ${gradeClass}`;
+}
+
+// Initialize calculations when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to all score inputs
+    const scoreInputs = document.querySelectorAll('.score-input');
+    scoreInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const studentId = this.getAttribute('data-student');
+            calculateTotals(studentId);
+        });
+    });
+    
+    // Validate inputs on blur
+    const numberInputs = document.querySelectorAll('input[type="number"]');
+    numberInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            const max = parseFloat(this.max) || 100;
+            const min = parseFloat(this.min) || 0;
+            let value = parseFloat(this.value) || 0;
+            
+            if (value > max) {
+                this.value = max;
+                this.classList.add('is-invalid');
+            } else if (value < min) {
+                this.value = min;
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+            
+            // Recalculate totals after validation
+            const studentId = this.getAttribute('data-student');
+            if (studentId) {
+                calculateTotals(studentId);
+            }
+        });
+        
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid', 'is-valid');
+        });
+    });
+    
+    // Add keyboard shortcut for form submission
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            document.getElementById('gradeForm').submit();
+        }
+    });
+    
+    // Initialize calculations for any pre-filled values
+    scoreInputs.forEach(input => {
+        const studentId = input.getAttribute('data-student');
+        if (studentId && input.value) {
+            calculateTotals(studentId);
+        }
+    });
+});
+</script>
+{% endblock %}

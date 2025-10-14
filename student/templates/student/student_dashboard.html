@@ -1,0 +1,258 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Welcome, {{ request.user.first_name }}!</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Overview</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Cards -->
+        <div class="row">
+            <!-- Enrolled Courses -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-4">
+                <div class="card bg-secondary text-white shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-book-reader fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1">Enrolled Courses</h6>
+                            <h3 class="mb-0">{{ enrolled_courses_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Rate -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-4">
+                <div class="card bg-success text-white shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1">Attendance Rate</h6>
+                            <h3 class="mb-0">{{ attendance_rate|floatformat:1 }}%</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Assignments -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-4">
+                <div class="card bg-warning text-white shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-tasks fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1">Pending Assignments</h6>
+                            <h3 class="mb-0">{{ pending_assignments_count|default:"0" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average Grade -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-4">
+                <div class="card bg-info text-white shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-subtitle mb-1">Average Grade</h6>
+                            <h3 class="mb-0">{{ average_grade|default:"N/A" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Row -->
+        <div class="row">
+            <!-- Student Profile -->
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">My Profile</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if student.student_image %}
+                            <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" 
+                                 class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Profile" 
+                                 class="rounded-circle mb-3" style="width: 120px; height: 120px;">
+                        {% endif %}
+                        <h4 class="mb-1">{{ student.user.get_full_name }}</h4>
+                        <p class="text-muted mb-2">{{ student.student_id }}</p>
+                        <div class="mt-3 text-start">
+                            <p class="mb-1"><strong>Class:</strong> {{ student.get_student_class_display }}</p>
+                            <p class="mb-1"><strong>Admission No:</strong> {{ student.admission_number }}</p>
+                            {% comment %} <p class="mb-1"><strong>Status:</strong>
+                                <span class="badge 
+                                    {% if student.promotion_status == 'promoted' %}bg-success
+                                    {% elif student.promotion_status == 'repeated' %}bg-warning
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {{ student.get_promotion_status_display }}
+                                </span> {% endcomment %}
+                            </p>
+                        </div>
+                        <!-- Removed invalid 'profile' link -->
+                        {% comment %} <!-- <a href="{% url 'student:profile' %}" class="btn btn-primary mt-3">View Full Profile</a> --> {% endcomment %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Assignments -->
+            <div class="col-xl-4 col-lg-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Upcoming Assignments</h5>
+                        <!-- Removed invalid 'assignments' link -->
+                        {% comment %} <!-- <a href="{% url 'student:assignments' %}" class="text-primary small">View All</a> --> {% endcomment %}
+                    </div>
+                    <div class="card-body">
+                        {% if upcoming_assignments %}
+                            <ul class="list-unstyled activity-feed">
+                                {% for assignment in upcoming_assignments %}
+                                <li class="mb-3 pb-2 border-bottom">
+                                    <h6 class="mb-1">{{ assignment.title }}</h6>
+                                    <p class="text-muted small mb-1">
+                                        <i class="fas fa-book me-1"></i> {{ assignment.subject.name }}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i> Due: {{ assignment.due_date|date:"M d, Y" }}
+                                        </small>
+                                        {% if assignment.is_overdue %}
+                                            <span class="badge bg-danger">Overdue</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard-check fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">No upcoming assignments</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Announcements -->
+            <div class="col-xl-4 col-lg-12 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Recent Announcements</h5>
+                        <a href="#" class="text-primary small">View All</a> <!-- Keep if you add later -->
+                    </div>
+                    <div class="card-body">
+                        {% if announcements %}
+                            <ul class="list-unstyled">
+                                {% for announcement in announcements %}
+                                <li class="mb-3 pb-2 border-bottom">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">{{ announcement.title }}</h6>
+                                        <span class="badge 
+                                            {% if announcement.priority == 'urgent' %}bg-danger
+                                            {% elif announcement.priority == 'high' %}bg-warning text-dark
+                                            {% else %}bg-info
+                                            {% endif %} fs-6">
+                                            {{ announcement.get_priority_display }}
+                                        </span>
+                                    </div>
+                                    <p class="text-muted small mb-1">{{ announcement.content|truncatewords:15 }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i> {{ announcement.created_at|timesince }} ago
+                                    </small>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-bullhorn fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">No announcements available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enrolled Courses Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">My Enrolled Courses</h5>
+                        <a href="{% url 'student:enrolled-courses' %}" class="text-primary small">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if enrolled_courses %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Teacher</th>
+                                            <th>Department</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for enrollment in enrolled_courses %}
+                                        <tr>
+                                            <td><strong>{{ enrollment.subject.name }}</strong></td>
+                                            <td>
+                                                {% if enrollment.subject.teacher %}
+                                                    {{ enrollment.subject.teacher.user.get_full_name }}
+                                                {% else %}
+                                                    <span class="text-muted">Not Assigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if enrollment.subject.department %}
+                                                    {{ enrollment.subject.department.name }}
+                                                {% else %}
+                                                    <span class="text-muted">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-book-open fa-2x text-muted mb-2"></i>
+                                <p class="text-muted">You are not enrolled in any courses yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

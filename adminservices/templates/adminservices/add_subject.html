@@ -1,0 +1,106 @@
+
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Add Subject{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Add Subject</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-subjects' %}">Subject</a></li>
+            <li class="breadcrumb-item active">Add Subject</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Subject Form -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+
+              <div class="row">
+                <div class="col-12">
+                  <h5 class="form-title"><span>Subject Information</span></h5>
+                </div>
+
+                <!-- Subject Name -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                      <div class="text-danger mt-1">{{ form.name.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Teacher -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.teacher.label }}</label>
+                    {{ form.teacher }}
+                    {% if form.teacher.errors %}
+                      <div class="text-danger mt-1">{{ form.teacher.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Department -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.department.label }}</label>
+                    {{ form.department }}
+                    {% if form.department.errors %}
+                      <div class="text-danger mt-1">{{ form.department.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                {% comment %} Class  {% endcomment %}
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.subject_class.label }}</label>
+                    {{ form.subject_class }}
+                    {% if form.subject_class.errors %}
+                      <div class="text-danger mt-1">{{ form.subject_class.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  <a href="{% url 'adminservices:list-subjects' %}" class="btn btn-secondary ml-2">Cancel</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

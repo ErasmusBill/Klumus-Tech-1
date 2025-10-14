@@ -1,0 +1,283 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Add Student</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'adminservices:list-students' %}">Students</a></li>
+                        <li class="breadcrumb-item active">Add Student</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Student Form -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Student Information</span></h5>
+                                </div>
+
+                                <!-- Basic Info -->
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>First Name</label>
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                            <div class="text-danger mt-1">{{ form.first_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Last Name</label>
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                            <div class="text-danger mt-1">{{ form.last_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Email</label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                            <div class="text-danger mt-1">{{ form.email.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Username</label>
+                                        {{ form.username }}
+                                        {% if form.username.errors %}
+                                            <div class="text-danger mt-1">{{ form.username.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Password</label>
+                                        {{ form.password }}
+                                        {% if form.password.help_text %}
+                                            <small class="text-muted d-block mt-1">{{ form.password.help_text|safe }}</small>
+                                        {% endif %}
+                                        {% if form.password.errors %}
+                                            <div class="text-danger mt-1">{{ form.password.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Gender</label>
+                                        {{ form.gender }}
+                                        {% if form.gender.errors %}
+                                            <div class="text-danger mt-1">{{ form.gender.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Date of Birth</label>
+                                        {{ form.date_of_birth }}
+                                        {% if form.date_of_birth.errors %}
+                                            <div class="text-danger mt-1">{{ form.date_of_birth.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mobile Number</label>
+                                        {{ form.phone_number }}
+                                        {% if form.phone_number.errors %}
+                                            <div class="text-danger mt-1">{{ form.phone_number.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Address</label>
+                                        {{ form.address }}
+                                        {% if form.address.errors %}
+                                            <div class="text-danger mt-1">{{ form.address.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Profile Picture</label>
+                                        {{ form.profile_picture }}
+                                        {% if form.profile_picture.errors %}
+                                            <div class="text-danger mt-1">{{ form.profile_picture.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Class</label>
+                                        {{ form.student_class }}
+                                        {% if form.student_class.errors %}
+                                            <div class="text-danger mt-1">{{ form.student_class.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Joining Date</label>
+                                        {{ form.joining_date }}
+                                        {% if form.joining_date.errors %}
+                                            <div class="text-danger mt-1">{{ form.joining_date.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Parent Info -->
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Parent Information</span></h5>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Father's  Name</label>
+                                        {{ form.father_name }}
+                                        {% if form.father_name.errors %}
+                                            <div class="text-danger mt-1">{{ form.father_first_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Father's Occupation</label>
+                                        {{ form.father_occupation }}
+                                        {% if form.father_occupation.errors %}
+                                            <div class="text-danger mt-1">{{ form.father_occupation.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Father's Email</label>
+                                        {{ form.fathers_email }}
+                                        {% if form.fathers_email.errors %}
+                                            <div class="text-danger mt-1">{{ form.fathers_email.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Father's Mobile</label>
+                                        {{ form.fathers_number }}
+                                        {% if form.fathers_number.errors %}
+                                            <div class="text-danger mt-1">{{ form.fathers_number.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mother's Name</label>
+                                        {{ form.mother_name }}
+                                        {% if form.mother_name.errors %}
+                                            <div class="text-danger mt-1">{{ form.mother_first_name.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mother's Occupation</label>
+                                        {{ form.mother_occupation }}
+                                        {% if form.mother_occupation.errors %}
+                                            <div class="text-danger mt-1">{{ form.mother_occupation.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mother's Email</label>
+                                        {{ form.mothers_email }}
+                                        {% if form.mothers_email.errors %}
+                                            <div class="text-danger mt-1">{{ form.mothers_email.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mother's Mobile</label>
+                                        {{ form.mother_phone_number }}
+                                        {% if form.mother_phone_number.errors %}
+                                            <div class="text-danger mt-1">{{ form.mother_phone_number.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Medical & Notes -->
+                                <div class="col-12">
+                                    <h5 class="form-title"><span>Additional Information</span></h5>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Allergies</label>
+                                        {{ form.allergies }}
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Medical Conditions</label>
+                                        {{ form.medical_conditions }}
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label>Notes</label>
+                                        {{ form.notes }}
+                                    </div>
+                                </div>
+
+                                <!-- Submit Button -->
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                    <a href="{% url 'adminservices:list-students' %}" class="btn btn-secondary ml-2">Cancel</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Optional: Auto-focus first field
+  document.addEventListener("DOMContentLoaded", function () {
+    const firstField = document.querySelector("input, textarea");
+    if (firstField) firstField.focus();
+  });
+</script>
+{% endblock %}

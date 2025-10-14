@@ -1,0 +1,519 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-8 col-lg-10 col-md-12">
+    <div class="card shadow-lg border-0">
+      <div class="card-header bg-gradient-primary text-white py-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <h4 class="card-title mb-0 text-white">
+            <i class="fas fa-clipboard-check me-2"></i>{{ title }}
+          </h4>
+          <span class="badge bg-light text-primary">Attendance</span>
+        </div>
+      </div>
+      
+      <div class="card-body p-5">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                <span>{{ message }}</span>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" class="needs-validation" novalidate>
+          {% csrf_token %}
+          
+          <div class="row g-4">
+            <!-- Left Column -->
+            <div class="col-lg-6">
+              <!-- Attendance Type -->
+              <div class="form-group">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-users me-2 text-primary"></i>{{ form.attendance_type.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-user-tag text-muted"></i>
+                  </span>
+                  {{ form.attendance_type }}
+                </div>
+                {% if form.attendance_type.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.attendance_type.errors }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Student Field with Type-to-Search -->
+              <div class="form-group" id="student-field">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-user-graduate me-2 text-success"></i>Select Student
+                </label>
+                <div class="student-search-container">
+                  <div class="input-group">
+                    <span class="input-group-text bg-light">
+                      <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" 
+                           class="form-control" 
+                           id="studentSearchInput" 
+                           placeholder="Type student name to search..."
+                           autocomplete="off">
+                    <input type="hidden" name="student" id="id_student" value="{{ form.student.value|default:'' }}">
+                  </div>
+                  
+                  <!-- Search Results Dropdown -->
+                  <div class="search-results dropdown-menu w-100" id="studentResults" style="display: none;">
+                    <div class="p-2 border-bottom">
+                      <small class="text-muted">Search results</small>
+                    </div>
+                    <div class="search-results-list" style="max-height: 250px; overflow-y: auto;">
+                      <!-- Results will be populated by JavaScript -->
+                    </div>
+                  </div>
+                  
+                  <!-- Selected Student Display -->
+                  <div class="selected-student mt-2 p-3 bg-light rounded" id="selectedStudent" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong id="selectedStudentName"></strong>
+                        <br>
+                        <small class="text-muted" id="selectedStudentInfo"></small>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-danger" id="clearStudent">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {% if form.student.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.student.errors }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Teacher Field -->
+              <div class="form-group" id="teacher-field">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-chalkboard-teacher me-2 text-warning"></i>{{ form.teacher.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-user-tie text-muted"></i>
+                  </span>
+                  {{ form.teacher }}
+                </div>
+                {% if form.teacher.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.teacher.errors }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Class Attendance -->
+              <div class="form-group">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-school me-2 text-info"></i>{{ form.class_attendance.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-book text-muted"></i>
+                  </span>
+                  {{ form.class_attendance }}
+                </div>
+                {% if form.class_attendance.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.class_attendance.errors }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-6">
+              <!-- Date Field -->
+              <div class="form-group">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-calendar-alt me-2 text-danger"></i>{{ form.date.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-calendar text-muted"></i>
+                  </span>
+                  {{ form.date }}
+                </div>
+                {% if form.date.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.date.errors }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Status Field -->
+              <div class="form-group">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-clipboard-list me-2 text-success"></i>{{ form.status.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-check-circle text-muted"></i>
+                  </span>
+                  {{ form.status }}
+                </div>
+                {% if form.status.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.status.errors }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Remarks Field -->
+              <div class="form-group">
+                <label class="form-label fw-bold text-dark mb-2">
+                  <i class="fas fa-comment-dots me-2 text-secondary"></i>{{ form.remarks.label }}
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light align-items-start">
+                    <i class="fas fa-sticky-note text-muted mt-1"></i>
+                  </span>
+                  {{ form.remarks }}
+                </div>
+                {% if form.remarks.errors %}
+                  <div class="text-danger small mt-2">
+                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.remarks.errors }}
+                  </div>
+                {% endif %}
+                <div class="form-text">Optional notes about the attendance</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="row mt-5">
+            <div class="col-12">
+              <div class="d-flex justify-content-end gap-3">
+                <a href="{% url 'teacher:attendance-list' %}" class="btn btn-lg btn-outline-secondary px-4">
+                  <i class="fas fa-arrow-left me-2"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-lg btn-primary px-4 shadow-sm">
+                  <i class="fas fa-save me-2"></i>{{ title }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Student data from Django context
+const studentData = [
+    {% for student in form.fields.student.queryset %}
+    {
+        id: "{{ student.id }}",
+        name: "{{ student.user.get_full_name|default:student.user.username }}",
+        username: "{{ student.user.username }}",
+        grade: "{{ student.grade|default:'No grade' }}",
+        email: "{{ student.user.email|default:'No email' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', function () {
+    const typeSelect = document.getElementById('id_attendance_type');
+    const studentField = document.getElementById('student-field');
+    const teacherField = document.getElementById('teacher-field');
+    
+    // Student search elements
+    const studentSearchInput = document.getElementById('studentSearchInput');
+    const studentResults = document.getElementById('studentResults');
+    const studentResultsList = studentResults.querySelector('.search-results-list');
+    const selectedStudent = document.getElementById('selectedStudent');
+    const selectedStudentName = document.getElementById('selectedStudentName');
+    const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+    const studentHiddenInput = document.getElementById('id_student');
+    const clearStudentBtn = document.getElementById('clearStudent');
+
+    // Toggle between student and teacher fields
+    function toggleFields() {
+        if (typeSelect.value === 'student') {
+            studentField.style.display = 'block';
+            teacherField.style.display = 'none';
+            document.getElementById('id_teacher').value = '';
+        } else {
+            studentField.style.display = 'none';
+            teacherField.style.display = 'block';
+            clearStudentSelection();
+        }
+    }
+
+    // Clear student selection
+    function clearStudentSelection() {
+        studentHiddenInput.value = '';
+        selectedStudent.style.display = 'none';
+        studentSearchInput.value = '';
+        hideResults();
+    }
+
+    // Show search results
+    function showResults() {
+        studentResults.style.display = 'block';
+    }
+
+    // Hide search results
+    function hideResults() {
+        studentResults.style.display = 'none';
+    }
+
+    // Search students function
+    function searchStudents(query) {
+        if (query.length < 2) {
+            hideResults();
+            return;
+        }
+
+        const searchTerm = query.toLowerCase();
+        const filteredStudents = studentData.filter(student => 
+            student.name.toLowerCase().includes(searchTerm) ||
+            student.username.toLowerCase().includes(searchTerm) ||
+            student.email.toLowerCase().includes(searchTerm)
+        );
+
+        displayResults(filteredStudents);
+    }
+
+    // Display search results
+    function displayResults(students) {
+        studentResultsList.innerHTML = '';
+
+        if (students.length === 0) {
+            studentResultsList.innerHTML = `
+                <div class="p-3 text-center text-muted">
+                    <i class="fas fa-search me-2"></i>No students found
+                </div>
+            `;
+            showResults();
+            return;
+        }
+
+        students.forEach(student => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'dropdown-item student-result';
+            resultItem.style.cursor = 'pointer';
+            resultItem.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-medium">${student.name}</div>
+                        <div class="small text-muted">
+                            <span class="me-2">${student.username}</span>
+                            <span class="me-2">•</span>
+                            <span>${student.grade}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            resultItem.addEventListener('click', () => {
+                selectStudent(student);
+            });
+
+            studentResultsList.appendChild(resultItem);
+        });
+
+        showResults();
+    }
+
+    // Select a student
+    function selectStudent(student) {
+        studentHiddenInput.value = student.id;
+        selectedStudentName.textContent = student.name;
+        selectedStudentInfo.textContent = `${student.username} • ${student.grade} • ${student.email}`;
+        selectedStudent.style.display = 'block';
+        studentSearchInput.value = '';
+        hideResults();
+    }
+
+    // Event listeners for student search
+    studentSearchInput.addEventListener('input', function(e) {
+        searchStudents(e.target.value);
+    });
+
+    studentSearchInput.addEventListener('focus', function() {
+        if (this.value.length >= 2) {
+            searchStudents(this.value);
+        }
+    });
+
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!studentSearchInput.contains(e.target) && !studentResults.contains(e.target)) {
+            hideResults();
+        }
+    });
+
+    // Clear student selection
+    clearStudentBtn.addEventListener('click', clearStudentSelection);
+
+    // Initialize with existing student value if any
+    function initializeExistingStudent() {
+        if (studentHiddenInput.value) {
+            const existingStudent = studentData.find(student => student.id == studentHiddenInput.value);
+            if (existingStudent) {
+                selectStudent(existingStudent);
+            }
+        }
+    }
+
+    // Initialize fields on load
+    if (typeSelect) {
+        typeSelect.addEventListener('change', toggleFields);
+        toggleFields();
+        initializeExistingStudent();
+    }
+
+    // Form validation
+    const forms = document.querySelector('.needs-validation');
+    if (forms) {
+        forms.addEventListener('submit', function(event) {
+            if (!forms.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            forms.classList.add('was-validated');
+        }, false);
+    }
+
+    // Keyboard navigation for search results
+    studentSearchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const firstResult = studentResultsList.querySelector('.student-result');
+            if (firstResult) firstResult.focus();
+        }
+    });
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+}
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+}
+
+.input-group-text {
+    border-radius: 10px 0 0 10px;
+    border: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+}
+
+.student-search-container {
+    position: relative;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.student-result {
+    border-radius: 8px;
+    margin: 2px 5px;
+    padding: 10px 15px;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.student-result:hover, .student-result:focus {
+    background-color: #f1f5f9;
+    outline: none;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+}
+
+.selected-student {
+    border-left: 4px solid #28a745;
+}
+
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 12px 30px;
+    transition: all 0.3s ease;
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 2rem !important;
+    }
+    
+    .btn-lg {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .search-results {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        max-height: 70vh;
+    }
+}
+</style>
+{% endblock %}

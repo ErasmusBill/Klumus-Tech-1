@@ -1,0 +1,91 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Add Department{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Add Department</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-departments' %}">Departments</a></li>
+            <li class="breadcrumb-item active">Add Department</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-12">
+                  <h5 class="form-title"><span>Department Details</span></h5>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Department Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger">{{ form.name.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Department Code</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger">{{ form.code.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Head of Department</label>
+                    {{ form.head_of_department }}
+                    {% if form.head_of_department.errors %}<div class="text-danger">{{ form.head_of_department.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Department Start Date</label>
+                    <input type="date" class="form-control" value="{{ department_start_date|date:'Y-m-d' }}" disabled>
+                    <small class="text-muted">Auto-set to today on creation</small>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-group">
+                    <label>Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger">{{ form.description.errors }}</div>{% endif %}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                  <a href="{% url 'adminservices:list-departments' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

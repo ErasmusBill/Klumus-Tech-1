@@ -1,0 +1,259 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}My Students{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<style>
+  .table-avatar a {
+    color: #495057;
+    text-decoration: none;
+  }
+  .table-avatar .avatar {
+    border-radius: 50%;
+    width: 31px;
+    height: 31px;
+    object-fit: cover;
+  }
+  .btn-sm i {
+    font-size: 12px;
+  }
+  .bg-info-light {
+    background-color: rgba(23, 162, 184, 0.1);
+    border-color: rgba(23, 162, 184, 0.2);
+    color: #17a2b8;
+  }
+  .bg-info-light:hover {
+    background-color: rgba(23, 162, 184, 0.2);
+    border-color: rgba(23, 162, 184, 0.3);
+    color: #138496;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">My Students</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'teacher-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Students</li>
+          </ul>
+        </div>
+        <div class="col-auto text-right float-right ml-auto">
+          <span class="badge badge-primary badge-lg">
+            {{ students.count }} Student{{ students.count|pluralize }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Students Table -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card card-table">
+          <div class="card-header">
+            <h4 class="card-title">Students in My Classes</h4>
+            <p class="card-text text-muted">
+              Showing students from classes you teach at {{ teacher.school.name }}
+            </p>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-center mb-0 datatable">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Age</th>
+                    <th>Parent Name</th>
+                    <th>Parent Contact</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                    <tr>
+                      <td>
+                        <strong>{{ student.student_id }}</strong>
+                      </td>
+                      <td>
+                        <h2 class="table-avatar">
+                          <a href="{% url 'teacher:student-detail' student.id %}" class="avatar avatar-sm mr-2">
+                            {% if student.user.profile_picture %}
+                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="Profile Image">
+                            {% else %}
+                              <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ student.user.get_full_name|urlencode }}&background=random" alt="Default Avatar">
+                            {% endif %}
+                          </a>
+                          <a href="{% url 'teacher:student-detail' student.id %}">
+                            {{ student.user.get_full_name|default:student.user.username }}
+                          </a>
+                        </h2>
+                      </td>
+                      <td>
+                        <span class="badge badge-info">{{ student.get_student_class_display }}</span>
+                      </td>
+                      <td>
+                        {% if student.user.age %}
+                          {{ student.user.age }} years
+                        {% else %}
+                          N/A
+                        {% endif %}
+                      </td>
+                      <td>
+                        <small>
+                          <strong>Father:</strong> {{ student.parent.father_name }}<br>
+                          <strong>Mother:</strong> {{ student.parent.mother_name }}
+                        </small>
+                      </td>
+                      <td>
+                        <small>
+                          {{ student.parent.father_phone }}<br>
+                          {{ student.parent.mother_phone }}
+                        </small>
+                      </td>
+                      <td>
+                        {% if student.is_active %}
+                          <span class="badge badge-success">Active</span>
+                        {% else %}
+                          <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-right">
+                        <div class="actions">
+                          <a href="{% url 'teacher:view-student-results' student.id %}" 
+                             class="btn btn-sm bg-info-light mr-2"
+                             title="View Results"
+                             data-toggle="tooltip">
+                            <i class="fas fa-chart-line"></i> Results
+                          </a>
+                          <a href="{% url 'teacher:student-detail' student.id %}" 
+                             class="btn btn-sm bg-success-light"
+                             title="View Profile"
+                             data-toggle="tooltip">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="8" class="text-center py-4">
+                        <div class="empty-state">
+                          <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                          <h4>No Students Found</h4>
+                          <p class="text-muted">
+                            No students are currently assigned to your classes.
+                          </p>
+                          {% if request.user.role == "teacher" %}
+                          <p class="text-muted small">
+                            Please contact the school administration if you believe this is an error.
+                          </p>
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Student Statistics -->
+            {% if students %}
+            <div class="row mt-4">
+              <div class="col-md-3 col-sm-6">
+                <div class="card bg-primary text-white">
+                  <div class="card-body">
+                    <h6>Total Students</h6>
+                    <h3>{{ students.count }}</h3>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <div class="card bg-success text-white">
+                  <div class="card-body">
+                    <h6>Active Students</h6>
+                    <h3>{{ students|length }}</h3>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <div class="card bg-info text-white">
+                  <div class="card-body">
+                    <h6>Classes</h6>
+                    <h3>
+                      {% with classes=students|dictsort:"student_class" %}
+                        {{ classes|length }}
+                      {% endwith %}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <div class="card bg-warning text-white">
+                  <div class="card-body">
+                    <h6>This Year</h6>
+                    <h3>{{ students.count }}</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Copyright © {% now "Y" %} {{ teacher.school.name }}. All rights reserved.</p>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('.datatable').DataTable({
+      "pageLength": 10,
+      "order": [[1, "asc"]], // Sort by Name by default
+      "columnDefs": [
+        { "orderable": false, "targets": [-1] } // Disable sorting on Action column
+      ],
+      "language": {
+        "emptyTable": "No students found in your classes",
+        "info": "Showing _START_ to _END_ of _TOTAL_ students",
+        "infoEmpty": "Showing 0 to 0 of 0 students",
+        "infoFiltered": "(filtered from _MAX_ total students)",
+        "search": "Search students:"
+      }
+    });
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+{% endblock %}

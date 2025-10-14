@@ -1,0 +1,255 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Teacher Dashboard - KIDDO CARE{% endblock %}</title>
+    <link rel="shortcut icon" href="{% static 'assets/img/favicon.png' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,500;0,600;0,700;1,400&display=swap">
+    <link rel="stylesheet" href="{% static 'assets/plugins/bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <a href="{% url 'teacher:teacher-dashboard' %}" class="logo">
+                    <h2>KIDDO CARE</h2>
+                </a>
+                <a href="{% url 'teacher:teacher-dashboard' %}" class="logo logo-small">
+                    <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
+                </a>
+            </div>
+
+            <!-- Mobile Toggle Button -->
+            <a href="javascript:void(0);" id="toggle_btn">
+                <i class="fas fa-align-left"></i>
+            </a>
+
+            <!-- Search Bar (Hidden on Mobile) -->
+            <div class="top-nav-search d-none d-md-block">
+                <form>
+                    <input type="text" class="form-control" placeholder="Search here">
+                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <a class="mobile_btn" id="mobile_btn">
+                <i class="fas fa-bars"></i>
+            </a>
+
+            <!-- Top Navigation User Menu -->
+            <ul class="nav user-menu">
+                <!-- Notifications Dropdown -->
+                <li class="nav-item dropdown noti-dropdown d-none d-sm-block">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <i class="far fa-bell"></i> <span class="badge badge-pill">0</span>
+                    </a>
+                    <div class="dropdown-menu notifications">
+                        <div class="topnav-dropdown-header">
+                            <span class="notification-title">Notifications</span>
+                            <a href="javascript:void(0)" class="clear-noti">Clear All</a>
+                        </div>
+                        <div class="noti-content">
+                            <ul class="notification-list">
+                                <li class="notification-message">
+                                    <p class="text-center text-muted mb-0">No new notifications</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- User Profile Dropdown -->
+                <li class="nav-item dropdown has-arrow">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <span class="user-img">
+                            <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" alt="{{ request.user.get_full_name }}">
+                        </span>
+                    </a>
+                    <div class="dropdown-menu">
+                        <div class="user-header">
+                            <div class="avatar avatar-sm">
+                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                            </div>
+                            <div class="user-text">
+                                <h6>{{ request.user.get_full_name }}</h6>
+                                <p class="text-muted mb-0">Teacher</p>
+                            </div>
+                        </div>
+                        {% if request.user.teacher_profile and request.user.teacher_profile.id %}
+                            <a class="dropdown-item" href="{% url 'adminservices:teacher-detail' request.user.teacher_profile.id %}">My Profile</a>
+                        {% endif %}
+                        <a class="dropdown-item" href="{% url 'account:change-password' %}">Change Password</a>
+                        <a class="dropdown-item" href="{% url 'account:logout' %}">Logout</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-inner slimscroll">
+                <div id="sidebar-menu" class="sidebar-menu">
+                    <ul>
+                        <li class="menu-title">
+                            <span>Main Menu</span>
+                        </li>
+
+                        <!-- Dashboard -->
+                        <li class="{% if request.resolver_match.url_name == 'teacher-dashboard' %}active{% endif %}">
+                            <a href="{% url 'teacher:teacher-dashboard' %}">
+                                <i class="fas fa-chalkboard-teacher"></i> <span>Dashboard</span>
+                            </a>
+                        </li>
+
+                        <!-- Student Management -->
+                        <li class="submenu {% if 'teacher-students' in request.resolver_match.url_name or 'teacher-subjects-overview' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-user-graduate"></i> <span>Student Management</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'teacher-students' %}active{% endif %}">
+                                    <a href="{% url 'teacher:teacher-students' %}">
+                                        <i class="fas fa-users"></i> All My Students
+                                    </a>
+                                </li>
+                                <li class="{% if 'teacher-students-by-subject' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:teacher-students' %}">
+                                        <i class="fas fa-filter"></i> Filter by Subject
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- My Subjects -->
+                        <li class="{% if request.resolver_match.url_name == 'my-subjects' %}active{% endif %}">
+                            <a href="{% url 'teacher:my-subjects' %}">
+                                <i class="fas fa-book-reader"></i> <span>My Subjects</span>
+                            </a>
+                        </li>
+
+                        <!-- Class Schedule -->
+                        <li class="{% if request.resolver_match.url_name == 'timetable' %}active{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-table"></i> <span>Class Schedule</span>
+                            </a>
+                        </li>
+
+                        <!-- Attendance Management -->
+                        <li class="submenu {% if 'attendance' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-clipboard-check"></i> <span>Attendance</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'mark-attendance' %}active{% endif %}">
+                                    <a href="{% url 'teacher:mark-attendance' %}">
+                                        <i class="fas fa-edit"></i> Take Attendance
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'attendance-list' %}active{% endif %}">
+                                    <a href="{% url 'teacher:attendance-list' %}">
+                                        <i class="fas fa-list"></i> View Records
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'attendance-update' or request.resolver_match.url_name == 'attendance-delete' %}active{% endif %}">
+                                    <a href="{% url 'teacher:attendance-list' %}">
+                                        <i class="fas fa-cog"></i> Manage Attendance
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Results & Grades Management -->
+                        <li class="submenu {% if 'result' in request.resolver_match.url_name or 'bulk-grades' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-graduation-cap"></i> <span>Results & Grades</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'enter-bulk-grades' %}active{% endif %}">
+                                    <a href="{% url 'teacher:my-subjects' %}">
+                                        <i class="fas fa-tasks"></i> Enter Grades
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'list-result' %}active{% endif %}">
+                                    <a href="{% url 'teacher:list-result' %}">
+                                        <i class="fas fa-chart-line"></i> View Results
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'edit-result' %}active{% endif %}">
+                                    <a href="{% url 'teacher:list-result' %}">
+                                        <i class="fas fa-edit"></i> Edit Results
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'delete-result' %}active{% endif %}">
+                                    <a href="{% url 'teacher:list-result' %}">
+                                        <i class="fas fa-trash"></i> Manage Results
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Profile & Settings -->
+                        <li class="submenu {% if 'profile' in request.resolver_match.url_name or 'change-password' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-user-circle"></i> <span>Profile & Settings</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'change-password' %}active{% endif %}">
+                                    <a href="{% url 'account:change-password' %}">
+                                        <i class="fas fa-key"></i> Change Password
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <i class="fas fa-cog"></i> Settings
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Logout -->
+                        <li>
+                            <a href="{% url 'account:logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content Wrapper -->
+        <div class="page-wrapper">
+            <div class="content container-fluid">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                <p>Copyright © {{ year }} {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static 'assets/js/popper.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/apexchart/apexcharts.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/apexchart/chart-data.js' %}"></script>
+    <script src="{% static 'assets/js/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,237 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}My Students{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<style>
+  .table-avatar a {
+    color: #495057;
+    text-decoration: none;
+  }
+  .table-avatar .avatar {
+    border-radius: 50%;
+    width: 31px;
+    height: 31px;
+    object-fit: cover;
+  }
+  .btn-sm i {
+    font-size: 12px;
+  }
+  .subject-badge {
+    font-size: 0.75rem;
+    margin: 1px;
+  }
+  .card-stat {
+    border-left: 4px solid #007bff;
+  }
+  .card-stat-success {
+    border-left: 4px solid #28a745;
+  }
+  @media (max-width: 768px) {
+    .table-responsive {
+      font-size: 0.875rem;
+    }
+    .btn-group .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    .page-header .col,
+    .page-header .col-auto {
+      text-align: center;
+    }
+    .page-header .col-auto {
+      margin-top: 1rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">My Students</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Students</li>
+          </ul>
+        </div>
+        <div class="col-auto text-right">
+          <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-filter"></i> Filter by Subject
+            </button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="{% url 'teacher:teacher-students' %}">All Subjects</a>
+              <div class="dropdown-divider"></div>
+              {% for subject in subjects_taught %}
+                <a class="dropdown-item" href="{% url 'teacher:teacher-students-by-subject' subject.id %}">
+                  {{ subject.name }} ({{ subject.get_subject_class_display }})
+                </a>
+              {% empty %}
+                <a class="dropdown-item text-muted">No subjects assigned</a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-xl-3 col-sm-6 col-12">
+        <div class="card card-stat">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="card-icon rounded-circle bg-primary">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="ml-3">
+                <h4>{{ total_students }}</h4>
+                <span>Total Students</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3 col-sm-6 col-12">
+        <div class="card card-stat-success">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="card-icon rounded-circle bg-success">
+                <i class="fas fa-book"></i>
+              </div>
+              <div class="ml-3">
+                <h4>{{ subjects_taught|length }}</h4>
+                <span>Subjects Teaching</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card card-table">
+          <div class="card-header">
+            <h5 class="card-title">Student List</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-center mb-0 datatable">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Subjects</th>
+                    <th>Admission No.</th>
+                    <th>Contact</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                    <tr>
+                      <td><strong>{{ student.student_id }}</strong></td>
+                      <td>
+                        <h2 class="table-avatar">
+                          <a href="#" class="avatar avatar-sm mr-2">
+                            {% if student.user.profile_picture %}
+                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="Profile Image">
+                            {% else %}
+                              {% comment %}
+                                Fixed: Properly close the URL and encode only the name
+                              {% endcomment %}
+                              <img class="avatar-img rounded-circle"
+                                   src="https://ui-avatars.com/api/?name={{ student.full_name|urlencode }}&background=random"
+                                   alt="Default Avatar">
+                            {% endif %}
+                          </a>
+                          <a href="#">
+                            {{ student.full_name }}
+                          </a>
+                        </h2>
+                      </td>
+                      <td>{{ student.student_class }}</td>
+                      <td>
+                        {% for subject in student.subjects %}
+                          <span class="badge badge-primary subject-badge">{{ subject }}</span>
+                        {% endfor %}
+                      </td>
+                      <td>{{ student.admission_number }}</td>
+                      <td>
+                        <small class="d-block">{{ student.email }}</small>
+                        <small class="text-muted">{{ student.phone }}</small>
+                      </td>
+                      <td class="text-right">
+                        <div class="actions">
+                          <a href="{% url 'teacher:view-result' student.id %}" 
+                             class="btn btn-sm bg-info-light mr-2"
+                             title="View Results"
+                             data-toggle="tooltip">
+                            <i class="fas fa-chart-line"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="7" class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>No Students Found</h5>
+                        <p class="text-muted">You don't have any students assigned to your subjects yet.</p>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('.datatable').DataTable({
+      "pageLength": 10,
+      "order": [[1, "asc"]],
+      "responsive": true,
+      "columnDefs": [
+        { "orderable": false, "targets": [3, 6] }
+      ],
+      "language": {
+        "emptyTable": "No students found for your subjects"
+      }
+    });
+
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+{% endblock %}

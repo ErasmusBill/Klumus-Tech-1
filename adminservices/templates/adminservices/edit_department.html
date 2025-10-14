@@ -1,0 +1,168 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Edit Department{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<style>
+  .form-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .form-title {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+  }
+  
+  .form-title span {
+    background: #007bff;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
+  
+  .form-group label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+  }
+  
+  .form-control, .form-select, input[type="text"], input[type="email"], 
+  input[type="password"], input[type="date"], textarea {
+    border-radius: 8px !important;
+    border: 1.5px solid #ced4da !important;
+    padding: 10px 15px !important;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary {
+    border-radius: 8px;
+    padding: 12px 40px;
+    font-weight: 500;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Edit Department</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-departments' %}">Departments</a></li>
+            <li class="breadcrumb-item active">Edit Department</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Edit Form -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+
+              <div class="form-section">
+                <h5 class="form-title"><span>Department Details</span></h5>
+                <div class="row">
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Name</label>
+                      {{ form.name }}
+                      {% if form.name.errors %}
+                        <div class="text-danger mt-1">{{ form.name.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Code</label>
+                      {{ form.code }}
+                      {% if form.code.errors %}
+                        <div class="text-danger mt-1">{{ form.code.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label>Description (Optional)</label>
+                      {{ form.description }}
+                      {% if form.description.errors %}
+                        <div class="text-danger mt-1">{{ form.description.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label>Head of Department (HOD)</label>
+                      {{ form.head_of_department }}
+                      {% if form.head_of_department.errors %}
+                        <div class="text-danger mt-1">{{ form.head_of_department.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="row">
+                <div class="col-12 text-center">
+                  <a href="{% url 'adminservices:list-departments' %}" class="btn btn-secondary mr-2">Cancel</a>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i> Update Department
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Optional: Auto-focus first field
+  document.addEventListener("DOMContentLoaded", function() {
+    const firstField = document.querySelector("input, textarea");
+    if (firstField) firstField.focus();
+  });
+</script>
+{% endblock %}

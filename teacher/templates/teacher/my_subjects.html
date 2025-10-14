@@ -1,0 +1,95 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}My Subjects{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row">
+    <div class="col-sm-12">
+      <h3 class="page-title">My Subjects</h3>
+      <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">My Subjects</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if subjects %}
+  <div class="row">
+    {% for subject in subjects %}
+      <div class="col-xl-4 col-sm-6 col-12 d-flex">
+        <div class="card flex-fill">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="card-title">{{ subject.name }}</h5>
+                <p class="text-muted mb-2">
+                  <i class="fas fa-chalkboard"></i> 
+                  Class: {{ subject.get_subject_class_display }}
+                </p>
+                <p class="text-muted mb-2">
+                  <i class="fas fa-building"></i> 
+                  Department: {{ subject.department.name }}
+                </p>
+                <p class="text-muted mb-3">
+                  <i class="fas fa-user-graduate"></i> 
+                  Students: {{ subject.enrollments.count }}
+                </p>
+              </div>
+              <div class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                  <a class="dropdown-item" href="#">
+                    <i class="fas fa-clipboard-check"></i> Take Attendance
+                  </a>
+                  <a class="dropdown-item" href="#">
+                    <i class="fas fa-users"></i> View Students
+                  </a>
+                  <!-- FIXED: Add the Enter Grades link with subject.id -->
+                  <a class="dropdown-item" href="{% url 'teacher:enter-bulk-grades' subject.id %}">
+                    <i class="fas fa-edit"></i> Enter Grades
+                  </a>
+                </div>
+              </div>
+            </div>
+            <!-- Alternative: Add buttons below the card content -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-3">
+              <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-edit"></i> Enter Grades
+              </a>
+              <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-clipboard-check"></i> Attendance
+              </a>
+              {% comment %} <a href="#" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-tasks"></i> Assignments
+              </a> {% endcomment %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info text-center">
+    <i class="fas fa-info-circle fa-2x mb-3"></i>
+    <h5>No Subjects Assigned</h5>
+    <p>You don't have any subjects assigned yet. Please contact the school administrator.</p>
+  </div>
+{% endif %}
+
+{% endblock %}

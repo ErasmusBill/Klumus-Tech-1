@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; background: #f9f9f9; border: 1px solid #ddd; }
+        .result-card { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #007bff; border-radius: 4px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px; }
+        .grade { font-weight: bold; font-size: 18px; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+        .grade-A { color: #28a745; background-color: rgba(40, 167, 69, 0.1); }
+        .grade-B { color: #17a2b8; background-color: rgba(23, 162, 184, 0.1); }
+        .grade-C { color: #ffc107; background-color: rgba(255, 193, 7, 0.1); }
+        .grade-D { color: #fd7e14; background-color: rgba(253, 126, 20, 0.1); }
+        .grade-F { color: #dc3545; background-color: rgba(220, 53, 69, 0.1); }
+        .score-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .score-label { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ school.name }}</h1>
+            <h2>Academic Results Notification</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear Parent/Guardian,</p>
+            
+            <p>We are pleased to inform you that new academic results have been published for your child:</p>
+            
+            <div class="result-card">
+                <h3>Student Information</h3>
+                <div class="score-row">
+                    <span class="score-label">Student Name:</span>
+                    <span>{{ student.user.get_full_name }}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Student ID:</span>
+                    <span>{{ student.student_id }}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Class:</span>
+                    <span>{{ student.get_student_class_display }}</span>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <h3>Subject Results - {{ subject.name }}</h3>
+                <div class="score-row">
+                    <span class="score-label">Term:</span>
+                    <span>{{ result.get_term_display }}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Academic Year:</span>
+                    <span>{{ academic_year }}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Exam Date:</span>
+                    <span>{{ result.exam_date|date:"F d, Y" }}</span>
+                </div>
+                
+                <hr style="margin: 15px 0;">
+                
+                <div class="score-row">
+                    <span class="score-label">Class Score:</span>
+                    <span>{{ result.class_score }}/20</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Mid-Semester:</span>
+                    <span>{{ result.mid_semester }}/30</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">End of Term Exams:</span>
+                    <span>{{ result.end_of_term_exams }}/50</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Total Score:</span>
+                    <span><strong>{{ result.total_marks }}/100</strong></span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Percentage:</span>
+                    <span><strong>{{ result.percentage }}%</strong></span>
+                </div>
+                
+                <div class="score-row">
+                    <span class="score-label">Grade:</span>
+                    <span class="grade grade-{{ result.grade }}">{{ result.grade }}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Remark:</span>
+                    <span><strong>{{ result.get_remark_display }}</strong></span>
+                </div>
+                
+                {% if result.teacher_comment %}
+                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <strong>Teacher's Comment:</strong><br>
+                    {{ result.teacher_comment }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="result-card">
+                <h3>Teacher Information</h3>
+                <div class="score-row">
+                    <span class="score-label">Subject Teacher:</span>
+                    <span>{{ teacher.user.get_full_name }}</span>
+                </div>
+            </div>
+            
+            <p>You can view detailed results and progress reports by logging into the parent portal.</p>
+            
+            <p>If you have any questions or concerns about these results, please don't hesitate to contact the school administration or the subject teacher.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from {{ school.name }}.</p>
+            <p>Please do not reply to this email.</p>
+            <p>School Contact: {{ school.phone_number }} | {{ school.email }}</p>
+            <p>&copy; {{ academic_year }} {{ school.name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

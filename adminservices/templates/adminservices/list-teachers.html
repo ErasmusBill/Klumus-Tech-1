@@ -1,0 +1,125 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Teachers List{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Teachers</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item active">Teachers</li>
+          </ul>
+        </div>
+        <div class="col-auto">
+          <a href="{% url 'adminservices:add-teacher' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Teacher
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card card-table">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-center mb-0 datatable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Gender</th>
+                    <th>Subject</th>
+                    <th>Mobile Number</th>
+                    <th>Address</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for teacher in page_obj %}
+                  <tr>
+                    <td>{{ teacher.user.id|default:"N/A" }}</td>
+                    <td>
+                      <h2 class="table-avatar">
+                        {% if teacher.image %}
+                          <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">
+                            <img class="avatar-img rounded-circle" src="{{ teacher.image.url }}" alt="{{ teacher.user.get_full_name }}">
+                          </a>
+                        {% else %}
+                          <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">
+                            <span class="avatar-title rounded-circle bg-primary text-white">
+                              {{ teacher.user.get_full_name|first|upper }}
+                            </span>
+                          </a>
+                        {% endif %}
+                        <a href="#">
+                          {{ teacher.user.get_full_name|default:teacher.user.username }}
+                        </a>
+                      </h2>
+                    </td>
+                    <td>N/A</td> <!-- CustomUser has no 'class_name' — remove or adjust -->
+                    <td>{{ teacher.user.get_gender_display|default:"N/A" }}</td>
+                    {% comment %} <td>{{ teacher.specialization|default:teacher.department.name|default:"N/A" }}</td> {% endcomment %}
+                    <td>N/A</td> <!-- No 'section' in CustomUser -->
+                    <td>{{ teacher.user.phone_number|default:"N/A" }}</td>
+                    <td>{{ teacher.user.address|default:"N/A" }}</td>
+                    <td class="text-right">
+                      <div class="actions">
+                        <a href="{% url 'adminservices:edit-teacher' teacher.id %}" class="btn btn-sm bg-success-light mr-2">
+                          <i class="fas fa-pen"></i>
+                        </a>
+                        <a href="{% url 'adminservices:delete-teacher' teacher.id %}" class="btn btn-sm bg-danger-light" onclick="return confirm('Delete this teacher?')">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="9" class="text-center">No teachers found.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+              <div class="pagination mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+                    </li>
+                  {% endif %}
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

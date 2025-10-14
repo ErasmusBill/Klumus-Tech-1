@@ -1,0 +1,185 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Students{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<style>
+  .table-avatar a {
+    color: #495057;
+    text-decoration: none;
+  }
+  .table-avatar .avatar {
+    border-radius: 50%;
+    width: 31px;
+    height: 31px;
+    object-fit: cover;
+  }
+  .btn-sm i {
+    font-size: 12px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Students</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Students</li>
+          </ul>
+        </div>
+        <div class="col-auto text-right float-right ml-auto">
+          <a href="#" class="btn btn-outline-primary mr-2" id="download-btn" style="display:none;">
+            <i class="fas fa-download"></i> Download
+          </a>
+          <a href="{% url 'adminservices:add-student' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Students Table -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card card-table">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-center mb-0 datatable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>DOB</th>
+                    <th>Parent Name</th>
+                    <th>Mobile Number</th>
+                    <th>Address</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in page_obj %}
+                    <tr>
+                      <td>{{ student.student_id|slice:":8"|upper }}</td>
+                      <td>
+                        <h2 class="table-avatar">
+                          <a href="{% url 'adminservices:student-detail' student.id %}" class="avatar avatar-sm mr-2">
+                            {% if student.user.profile_picture %}
+                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="Profile Image">
+                            {% else %}
+                              <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ student.user.get_full_name|urlencode }}&background=random" alt="Default Avatar">
+                            {% endif %}
+                          </a>
+                          <a href="{% url 'adminservices:student-detail' student.id %}">
+                            {{ student.user.get_full_name }}
+                          </a>
+                        </h2>
+                      </td>
+                      <td>{{ student.get_student_class_display }}</td>
+                      <td>{{ student.user.date_of_birth|date:"d M Y" }}</td>
+                      <td>
+                        {{ student.parent.father_name }} / {{ student.parent.mother_name }}
+                      </td>
+                      <td>{{ student.user.phone_number|default:"N/A" }}</td>
+                      <td>{{ student.user.address|truncatechars:20 }}</td>
+                      <td class="text-right">
+                        <div class="actions">
+                          <a href="{% url 'adminservices:edit-student' student.id %}" class="btn btn-sm bg-success-light mr-2">
+                            <i class="fas fa-pen"></i>
+                          </a>
+                          <a href="{% url 'adminservices:delete-student' student.id %}"
+                             class="btn btn-sm bg-danger-light"
+                             onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');">
+                            <i class="fas fa-trash"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="8" class="text-center">No students found.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+              <div class="pagination mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+                    </li>
+                  {% endif %}
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Copyright © {{ year }} {{ request.user.managed_school.name }}. All rights reserved.</p>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('.datatable').DataTable({
+      "pageLength": 10,
+      "order": [[1, "asc"]],
+      "columnDefs": [
+        { "orderable": false, "targets": [-1] } // Disable sorting on Action column
+      ]
+    });
+  });
+
+  // Optional: Hide download button if not implemented
+  document.getElementById('download-btn')?.remove();
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}Fee Records - {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Fee Records</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Fees</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Summary Card -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            Fees for {{ student.user.get_full_name }} 
+                            <small class="text-muted">({{ student.student_id }})</small>
+                        </h5>
+                        {% if request.user.role == "admin" %}
+                            <a href="{% url 'adminservices:manage-fees' student.id %}" class="btn btn-sm btn-outline-primary">
+                                Manage Fees
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if fees %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Fee Type</th>
+                                            <th>Amount</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Payment Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for fee in fees %}
+                                        <tr>
+                                            <td>{{ fee.fee_type|default:"General Fee" }}</td>
+                                            <td>${{ fee.amount|floatformat:2 }}</td>
+                                            <td>{{ fee.due_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if fee.paid %}
+                                                    <span class="badge bg-success">Paid</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if fee.payment_date %}
+                                                    {{ fee.payment_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    —
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No fee records found</h5>
+                                <p class="text-muted">This student has no associated fees.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

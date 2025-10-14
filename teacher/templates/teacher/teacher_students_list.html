@@ -1,0 +1,207 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}{{ subject_name }} - Students{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<style>
+  .table-avatar a {
+    color: #495057;
+    text-decoration: none;
+  }
+  .table-avatar .avatar {
+    border-radius: 50%;
+    width: 31px;
+    height: 31px;
+    object-fit: cover;
+  }
+  .btn-sm i {
+    font-size: 12px;
+  }
+  .subject-badge {
+    font-size: 0.75rem;
+  }
+  .card-stat {
+    border-left: 4px solid #007bff;
+  }
+  @media (max-width: 768px) {
+    .table-responsive {
+      font-size: 0.875rem;
+    }
+    .btn-group .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    .card-header .btn {
+      margin-top: 10px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">{{ subject_name }}</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-students' %}">Students</a></li>
+            <li class="breadcrumb-item active">{{ subject_name }}</li>
+          </ul>
+        </div>
+        <div class="col-auto text-right float-right ml-auto">
+          <a href="{% url 'teacher:teacher-students' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to All Students
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Summary Card -->
+    <div class="row mb-4">
+      <div class="col-xl-3 col-sm-6 col-12">
+        <div class="card card-stat">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <div class="card-icon rounded-circle bg-primary">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="ml-3">
+                <h4>{{ total_students }}</h4>
+                <span>Students in {{ subject_name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card card-table">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0">Students List</h5>
+            <span class="badge badge-primary badge-pill">{{ subject_name }}</span>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-center mb-0 datatable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Admission No.</th>
+                    <th>Contact</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                    <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td><strong>{{ student.student_id }}</strong></td>
+                      <td>
+                        <h2 class="table-avatar">
+                          <a href="#" class="avatar avatar-sm mr-2">
+                            {% if student.user.profile_picture %}
+                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="Profile Image">
+                            {% else %}
+                              <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ student.user.get_full_name|urlencode }}&background=random" alt="Default Avatar">
+                            {% endif %}
+                          </a>
+                          <a href="#">
+                            {{ student.user.get_full_name }}
+                          </a>
+                        </h2>
+                      </td>
+                      <td>{{ student.get_student_class_display }}</td>
+                      <td>{{ student.admission_number }}</td>
+                      <td>
+                        <small class="d-block">{{ student.user.email }}</small>
+                        <small class="text-muted">{{ student.mobile_number }}</small>
+                      </td>
+                      <td class="text-right">
+                        <div class="actions">
+                          <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" 
+                             class="btn btn-sm bg-info-light mr-2"
+                             title="Enter Results"
+                             data-toggle="tooltip">
+                            <i class="fas fa-chart-line"></i>
+                          </a>
+                          <a href="#"
+                             class="btn btn-sm bg-success-light mr-2"
+                             title="View Results"
+                             data-toggle="tooltip">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <a href="#"
+                             class="btn btn-sm bg-primary-light"
+                             title="View Profile"
+                             data-toggle="tooltip">
+                            <i class="fas fa-user"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="7" class="text-center py-5">
+                        <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+                        <h4>No Students in This Subject</h4>
+                        <p class="text-muted">There are no students enrolled in {{ subject_name }} yet.</p>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script>
+  $(document).ready(function () {
+    $('.datatable').DataTable({
+      "pageLength": 10,
+      "order": [[2, "asc"]], // Sort by name
+      "responsive": true,
+      "columnDefs": [
+        { "orderable": false, "targets": [0, 6] } // Disable sorting on # and Actions columns
+      ],
+      "language": {
+        "emptyTable": "No students found in this subject"
+      }
+    });
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
+{% endblock %}

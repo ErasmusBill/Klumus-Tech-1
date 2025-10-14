@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
+<title>Preskool - School Registration</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px 15px;
+    }
+    
+    .registration-container {
+        width: 100%;
+        max-width: 1400px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+        display: flex;
+    }
+    
+    .left-panel {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 60px 40px;
+        color: white;
+        width: 350px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    .logo-section {
+        text-align: center;
+    }
+    
+    .logo-section h1 {
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .logo-section .icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        opacity: 0.9;
+    }
+    
+    .info-section {
+        margin-top: 40px;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: start;
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .info-item i {
+        font-size: 24px;
+        margin-right: 15px;
+        margin-top: 5px;
+    }
+    
+    .info-item div h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .info-item div p {
+        font-size: 13px;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    .right-panel {
+        flex: 1;
+        padding: 50px 60px;
+        overflow-y: auto;
+        max-height: 90vh;
+    }
+    
+    .form-header {
+        margin-bottom: 35px;
+    }
+    
+    .form-header h2 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 8px;
+    }
+    
+    .form-header p {
+        color: #718096;
+        font-size: 15px;
+    }
+    
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 40px;
+        position: relative;
+    }
+    
+    .progress-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e2e8f0;
+        z-index: 0;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+        flex: 1;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #a0aec0;
+        margin-bottom: 8px;
+        transition: all 0.3s;
+    }
+    
+    .step.active .step-circle {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .step-label {
+        font-size: 13px;
+        color: #a0aec0;
+        font-weight: 500;
+    }
+    
+    .step.active .step-label {
+        color: #667eea;
+    }
+    
+    .form-section {
+        display: none;
+        animation: fadeIn 0.3s;
+    }
+    
+    .form-section.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        margin-bottom: 25px;
+    }
+    
+    .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .required::after {
+        content: ' *';
+        color: #e53e3e;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all 0.3s;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-control.is-invalid {
+        border-color: #e53e3e;
+    }
+    
+    .error-message {
+        color: #e53e3e;
+        font-size: 12px;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+    
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+    
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 16px;
+        border: 2px dashed #e2e8f0;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f7fafc;
+    }
+    
+    .file-input-label:hover {
+        border-color: #667eea;
+        background: #edf2f7;
+    }
+    
+    .file-input-label i {
+        margin-right: 8px;
+        color: #667eea;
+    }
+    
+    .file-name {
+        font-size: 12px;
+        color: #4a5568;
+        margin-top: 5px;
+    }
+    
+    .button-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 35px;
+        padding-top: 25px;
+        border-top: 2px solid #e2e8f0;
+    }
+    
+    .btn {
+        padding: 14px 30px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        flex: 1;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #e2e8f0;
+        color: #4a5568;
+    }
+    
+    .btn-secondary:hover {
+        background: #cbd5e0;
+    }
+    
+    .login-link {
+        text-align: center;
+        margin-top: 25px;
+        color: #718096;
+        font-size: 14px;
+    }
+    
+    .login-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .login-link a:hover {
+        text-decoration: underline;
+    }
+    
+    .alert {
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .alert-danger {
+        background: #fff5f5;
+        border: 1px solid #feb2b2;
+        color: #c53030;
+    }
+    
+    @media (max-width: 1200px) {
+        .form-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .registration-container {
+            flex-direction: column;
+        }
+        
+        .left-panel {
+            width: 100%;
+            padding: 40px 30px;
+        }
+        
+        .right-panel {
+            padding: 40px 30px;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .info-section {
+            display: none;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="registration-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+        <div class="logo-section">
+            <div class="icon"><i class="fas fa-school"></i></div>
+            <h1>PreSkool</h1>
+            <p style="opacity: 0.9; font-size: 14px;">School Management System</p>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-item">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <h4>Quick Setup</h4>
+                    <p>Get your school registered in minutes</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-shield-alt"></i>
+                <div>
+                    <h4>Secure Platform</h4>
+                    <p>Your data is encrypted and protected</p>
+                </div>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-headset"></i>
+                <div>
+                    <h4>24/7 Support</h4>
+                    <p>We're here to help anytime you need</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel -->
+    <div class="right-panel">
+        <div class="form-header">
+            <h2>School Registration</h2>
+            <p>Complete the form below to register your school and create an administrator account</p>
+        </div>
+        
+        <!-- Progress Steps -->
+        <div class="progress-steps">
+            <div class="step active" data-step="1">
+                <div class="step-circle">1</div>
+                <span class="step-label">School Info</span>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle">2</div>
+                <span class="step-label">Admin Account</span>
+            </div>
+        </div>
+        
+        <!-- Django Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Non-field Errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ form.non_field_errors }}</span>
+            </div>
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" id="registrationForm">
+            {% csrf_token %}
+            
+            <!-- Step 1: School Information -->
+            <div class="form-section active" data-section="1">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.school_name.id_for_label }}" class="required">{{ form.school_name.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.school_name.errors %}is-invalid{% endif %}" 
+                               id="{{ form.school_name.id_for_label }}" 
+                               name="{{ form.school_name.name }}" 
+                               value="{{ form.school_name.value|default:'' }}"
+                               placeholder="Enter school name" 
+                               required>
+                        {% if form.school_name.errors %}
+                            <span class="error-message">{{ form.school_name.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}" class="required">{{ form.email.label }}</label>
+                        <input type="email" 
+                               class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                               id="{{ form.email.id_for_label }}" 
+                               name="{{ form.email.name }}" 
+                               value="{{ form.email.value|default:'' }}"
+                               placeholder="school@example.com" 
+                               required>
+                        {% if form.email.errors %}
+                            <span class="error-message">{{ form.email.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.phone_number.id_for_label }}" class="required">{{ form.phone_number.label }}</label>
+                        <input type="tel" 
+                               class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}" 
+                               id="{{ form.phone_number.id_for_label }}" 
+                               name="{{ form.phone_number.name }}" 
+                               value="{{ form.phone_number.value|default:'' }}"
+                               placeholder="+233 XXX XXX XXX" 
+                               required>
+                        {% if form.phone_number.errors %}
+                            <span class="error-message">{{ form.phone_number.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="{{ form.location.id_for_label }}" class="required">{{ form.location.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.location.errors %}is-invalid{% endif %}" 
+                               id="{{ form.location.id_for_label }}" 
+                               name="{{ form.location.name }}" 
+                               value="{{ form.location.value|default:'' }}"
+                               placeholder="Enter full school address" 
+                               required>
+                        {% if form.location.errors %}
+                            <span class="error-message">{{ form.location.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.address.id_for_label }}" class="required">{{ form.address.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.address.errors %}is-invalid{% endif %}" 
+                               id="{{ form.address.id_for_label }}" 
+                               name="{{ form.address.name }}" 
+                               value="{{ form.address.value|default:'' }}"
+                               placeholder="Street address" 
+                               required>
+                        {% if form.address.errors %}
+                            <span class="error-message">{{ form.address.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.postal_code.id_for_label }}" class="required">{{ form.postal_code.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.postal_code.errors %}is-invalid{% endif %}" 
+                               id="{{ form.postal_code.id_for_label }}" 
+                               name="{{ form.postal_code.name }}" 
+                               value="{{ form.postal_code.value|default:'' }}"
+                               placeholder="Postal code" 
+                               required>
+                        {% if form.postal_code.errors %}
+                            <span class="error-message">{{ form.postal_code.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.school_logo.id_for_label }}">{{ form.school_logo.label }}</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" 
+                                   id="{{ form.school_logo.id_for_label }}" 
+                                   name="{{ form.school_logo.name }}" 
+                                   accept="image/*" 
+                                   onchange="updateFileName(this)">
+                            <label for="{{ form.school_logo.id_for_label }}" class="file-input-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Choose Logo</span>
+                            </label>
+                        </div>
+                        <div class="file-name" id="logo_file_name"></div>
+                        {% if form.school_logo.errors %}
+                            <span class="error-message">{{ form.school_logo.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.created_at.id_for_label }}" class="required">{{ form.created_at.label }}</label>
+                        <input type="date" 
+                               class="form-control {% if form.created_at.errors %}is-invalid{% endif %}" 
+                               id="{{ form.created_at.id_for_label }}" 
+                               name="{{ form.created_at.name }}" 
+                               value="{{ form.created_at.value|default:'' }}"
+                               required>
+                        {% if form.created_at.errors %}
+                            <span class="error-message">{{ form.created_at.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.updated_at.id_for_label }}" class="required">{{ form.updated_at.label }}</label>
+                        <input type="date" 
+                               class="form-control {% if form.updated_at.errors %}is-invalid{% endif %}" 
+                               id="{{ form.updated_at.id_for_label }}" 
+                               name="{{ form.updated_at.name }}" 
+                               value="{{ form.updated_at.value|default:'' }}"
+                               required>
+                        {% if form.updated_at.errors %}
+                            <span class="error-message">{{ form.updated_at.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Admin Account -->
+            <div class="form-section" data-section="2">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.admin_username.id_for_label }}" class="required">{{ form.admin_username.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.admin_username.errors %}is-invalid{% endif %}" 
+                               id="{{ form.admin_username.id_for_label }}" 
+                               name="{{ form.admin_username.name }}" 
+                               value="{{ form.admin_username.value|default:'' }}"
+                               placeholder="Choose username" 
+                               required>
+                        {% if form.admin_username.errors %}
+                            <span class="error-message">{{ form.admin_username.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.admin_full_name.id_for_label }}" class="required">{{ form.admin_full_name.label }}</label>
+                        <input type="text" 
+                               class="form-control {% if form.admin_full_name.errors %}is-invalid{% endif %}" 
+                               id="{{ form.admin_full_name.id_for_label }}" 
+                               name="{{ form.admin_full_name.name }}" 
+                               value="{{ form.admin_full_name.value|default:'' }}"
+                               placeholder="Enter full name" 
+                               required>
+                        {% if form.admin_full_name.errors %}
+                            <span class="error-message">{{ form.admin_full_name.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.admin_phone.id_for_label }}" class="required">{{ form.admin_phone.label }}</label>
+                        <input type="tel" 
+                               class="form-control {% if form.admin_phone.errors %}is-invalid{% endif %}" 
+                               id="{{ form.admin_phone.id_for_label }}" 
+                               name="{{ form.admin_phone.name }}" 
+                               value="{{ form.admin_phone.value|default:'' }}"
+                               placeholder="+233 XXX XXX XXX" 
+                               required>
+                        {% if form.admin_phone.errors %}
+                            <span class="error-message">{{ form.admin_phone.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.admin_email.id_for_label }}" class="required">{{ form.admin_email.label }}</label>
+                        <input type="email" 
+                               class="form-control {% if form.admin_email.errors %}is-invalid{% endif %}" 
+                               id="{{ form.admin_email.id_for_label }}" 
+                               name="{{ form.admin_email.name }}" 
+                               value="{{ form.admin_email.value|default:'' }}"
+                               placeholder="admin@example.com" 
+                               required>
+                        {% if form.admin_email.errors %}
+                            <span class="error-message">{{ form.admin_email.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.password.id_for_label }}" class="required">{{ form.password.label }}</label>
+                        <input type="password" 
+                               class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
+                               id="{{ form.password.id_for_label }}" 
+                               name="{{ form.password.name }}" 
+                               placeholder="Create strong password" 
+                               required>
+                        {% if form.password.errors %}
+                            <span class="error-message">{{ form.password.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.confirm_password.id_for_label }}" class="required">{{ form.confirm_password.label }}</label>
+                        <input type="password" 
+                               class="form-control {% if form.confirm_password.errors %}is-invalid{% endif %}" 
+                               id="{{ form.confirm_password.id_for_label }}" 
+                               name="{{ form.confirm_password.name }}" 
+                               placeholder="Re-enter password" 
+                               required>
+                        {% if form.confirm_password.errors %}
+                            <span class="error-message">{{ form.confirm_password.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+                <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                    <i class="fas fa-check"></i> Complete Registration
+                </button>
+            </div>
+        </form>
+        
+        <div class="login-link">
+            Already have an account? <a href="{% url 'account:login' %}">Login here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+
+function updateFileName(input) {
+    const fileName = input.files[0]?.name;
+    const fileNameDisplay = document.getElementById('logo_file_name');
+    if (fileName) {
+        fileNameDisplay.textContent = fileName;
+    }
+}
+
+function changeStep(direction) {
+    const totalSteps = 2;
+    const newStep = currentStep + direction;
+    
+    if (newStep < 1 || newStep > totalSteps) return;
+    
+    // Hide current section
+    document.querySelector(`.form-section[data-section="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+    
+    // Show new section
+    currentStep = newStep;
+    document.querySelector(`.form-section[data-section="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+    
+    // Update buttons
+    document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'flex';
+    document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'flex';
+    document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'flex' : 'none';
+    
+    // Scroll to top
+    document.querySelector('.right-panel').scrollTop = 0;
+}
+
+// Set today's date as default if no value exists
+document.addEventListener('DOMContentLoaded', function() {
+    const createdAtInput = document.getElementById('{{ form.created_at.id_for_label }}');
+    const updatedAtInput = document.getElementById('{{ form.updated_at.id_for_label }}');
+    
+    if (createdAtInput && !createdAtInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        createdAtInput.value = today;
+    }
+    
+    if (updatedAtInput && !updatedAtInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        updatedAtInput.value = today;
+    }
+});
+</script>
+
+</body>
+</html>

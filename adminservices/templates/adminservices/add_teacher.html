@@ -1,0 +1,340 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Add Teacher{% endblock %}
+
+{% block content %}
+<style>
+  .form-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .form-title {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+  }
+  
+  .form-title span {
+    background: #007bff;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+  }
+  
+  .form-control, .form-select, input[type="text"], input[type="email"], 
+  input[type="password"], input[type="date"], input[type="file"], select, textarea {
+    border-radius: 8px !important;
+    border: 1.5px solid #ced4da !important;
+    padding: 10px 15px !important;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control:focus, .form-select:focus, input:focus, select:focus, textarea:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
+    outline: none;
+  }
+  
+  .card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  
+  .card-body {
+    padding: 30px;
+  }
+  
+  .btn-primary {
+    border-radius: 8px;
+    padding: 12px 40px;
+    font-weight: 500;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+  }
+  
+  .page-header {
+    margin-bottom: 30px;
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+</style>
+
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Add Teacher</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-teachers' %}">Teachers</a></li>
+            <li class="breadcrumb-item active">Add Teacher</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' or message.tags == 'danger' %}danger{% elif message.tags == 'warning' %}warning{% else %}success{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <!-- Basic Details Section -->
+              <div class="form-section">
+                <h5 class="form-title"><span>Basic Details</span></h5>
+                <div class="row">
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>First Name</label>
+                      {{ form.first_name }}
+                      {% if form.first_name.errors %}
+                        <div class="text-danger mt-1">{{ form.first_name.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Last Name</label>
+                      {{ form.last_name }}
+                      {% if form.last_name.errors %}
+                        <div class="text-danger mt-1">{{ form.last_name.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Gender</label>
+                      {{ form.gender }}
+                      {% if form.gender.errors %}
+                        <div class="text-danger mt-1">{{ form.gender.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Date of Birth</label>
+                      {{ form.date_of_birth }}
+                      {% if form.date_of_birth.errors %}
+                        <div class="text-danger mt-1">{{ form.date_of_birth.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Mobile Number</label>
+                      {{ form.phone_number }}
+                      {% if form.phone_number.errors %}
+                        <div class="text-danger mt-1">{{ form.phone_number.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Joining Date</label>
+                      {{ form.hire_date }}
+                      {% if form.hire_date.errors %}
+                        <div class="text-danger mt-1">{{ form.hire_date.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Qualification</label>
+                      {{ form.qualification }}
+                      {% if form.qualification.errors %}
+                        <div class="text-danger mt-1">{{ form.qualification.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Experience (Years)</label>
+                      {{ form.experience_years }}
+                      {% if form.experience_years.errors %}
+                        <div class="text-danger mt-1">{{ form.experience_years.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <!-- NEW: Employment Type Field -->
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Employment Type</label>
+                      {{ form.employment_type }}
+                      {% if form.employment_type.errors %}
+                        <div class="text-danger mt-1">{{ form.employment_type.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Specialization</label>
+                      {{ form.specialization }}
+                      {% if form.specialization.errors %}
+                        <div class="text-danger mt-1">{{ form.specialization.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Professional & Login Section -->
+              <div class="form-section">
+                <h5 class="form-title"><span>Professional & Login Details</span></h5>
+                <div class="row">
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Department</label>
+                      {{ form.department }}
+                      {% if form.department.errors %}
+                        <div class="text-danger mt-1">{{ form.department.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Username</label>
+                      {{ form.username }}
+                      {% if form.username.errors %}
+                        <div class="text-danger mt-1">{{ form.username.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Email ID</label>
+                      {{ form.email }}
+                      {% if form.email.errors %}
+                        <div class="text-danger mt-1">{{ form.email.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Password</label>
+                      {{ form.password }}
+                      {% if form.password.errors %}
+                        <div class="text-danger mt-1">{{ form.password.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label>Profile Picture (Optional)</label>
+                      {{ form.profile_picture }}
+                      {% if form.profile_picture.errors %}
+                        <div class="text-danger mt-1">{{ form.profile_picture.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Additional Information Section -->
+              <div class="form-section">
+                <h5 class="form-title"><span>Additional Information</span></h5>
+                <div class="row">
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Salary (Optional)</label>
+                      {{ form.salary }}
+                      {% if form.salary.errors %}
+                        <div class="text-danger mt-1">{{ form.salary.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Teacher Image (Optional)</label>
+                      {{ form.image }}
+                      {% if form.image.errors %}
+                        <div class="text-danger mt-1">{{ form.image.errors }}</div>
+                      {% endif %}
+                      <small class="form-text text-muted">
+                        This is different from the profile picture. Use this for teacher-specific images.
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label>Bio (Optional)</label>
+                      {{ form.bio }}
+                      {% if form.bio.errors %}
+                        <div class="text-danger mt-1">{{ form.bio.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Address Section -->
+              <div class="form-section">
+                <h5 class="form-title"><span>Address</span></h5>
+                <div class="row">
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label>Address</label>
+                      {{ form.address }}
+                      {% if form.address.errors %}
+                        <div class="text-danger mt-1">{{ form.address.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="row">
+                <div class="col-12 text-center">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check-circle me-2"></i> Add Teacher
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ student.user.get_full_name }} - Result Sheet{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-sm-12">
+                    <div class="page-sub-header">
+                        <h3 class="page-title">Student Result Sheet</h3>
+                        <ul class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Results</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Information Card -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-2">
+                                {% if student.student_image %}
+                                    <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" class="img-fluid rounded">
+                                {% else %}
+                                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Student" class="img-fluid rounded">
+                                {% endif %}
+                            </div>
+                            <div class="col-md-10">
+                                <h4>{{ student.user.get_full_name }}</h4>
+                                <div class="row mt-3">
+                                    <div class="col-md-3">
+                                        <p><strong>Student ID:</strong> {{ student.student_id }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>Admission No:</strong> {{ student.admission_number }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>Class:</strong> {{ student.get_student_class_display }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p><strong>School:</strong> {{ student.school.name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        {% if result_summary %}
+        <div class="row">
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-primary">
+                                <i class="fas fa-book-reader"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ result_summary.total_subjects }}</h3>
+                                <h6 class="text-muted">Total Subjects</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-success">
+                                <i class="fas fa-chart-line"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ result_summary.average_percentage|floatformat:2 }}%</h3>
+                                <h6 class="text-muted">Average Percentage</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="dash-widget-header">
+                            <span class="dash-widget-icon bg-warning">
+                                <i class="fas fa-trophy"></i>
+                            </span>
+                            <div class="dash-widget-info">
+                                <h3>{{ student.get_promotion_status_display }}</h3>
+                                <h6 class="text-muted">Status</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Filter Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="GET" class="row">
+                            <div class="col-md-4">
+                                <label>Academic Year</label>
+                                <select name="academic_year" class="form-control">
+                                    <option value="">All Years</option>
+                                    {% for result in results %}
+                                        <option value="{{ result.academic_year }}">{{ result.academic_year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Term</label>
+                                <select name="term" class="form-control">
+                                    <option value="">All Terms</option>
+                                    <option value="1">First Term</option>
+                                    <option value="2">Second Term</option>
+                                    <option value="3">Third Term</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Academic Results</h5>
+                        <div class="card-header-right">
+                            <button onclick="window.print()" class="btn btn-sm btn-primary">
+                                <i class="fas fa-print"></i> Print Results
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if results %}
+                            {% regroup results by academic_year as year_results %}
+                            {% for year in year_results %}
+                                <h5 class="mt-4 mb-3">Academic Year: {{ year.grouper }}</h5>
+                                
+                                {% regroup year.list by term as term_results %}
+                                {% for term_group in term_results %}
+                                    <h6 class="mt-3 mb-2 text-primary">{{ term_group.grouper|capfirst }} Term</h6>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>Subject</th>
+                                                    <th>Class Score (20%)</th>
+                                                    <th>Mid Semester (30%)</th>
+                                                    <th>End of Term (50%)</th>
+                                                    <th>Total (100)</th>
+                                                    <th>Percentage</th>
+                                                    <th>Grade</th>
+                                                    <th>Remark</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for result in term_group.list %}
+                                                <tr>
+                                                    <td><strong>{{ result.subject.name }}</strong></td>
+                                                    <td>{{ result.class_score }}</td>
+                                                    <td>{{ result.mid_semester }}</td>
+                                                    <td>{{ result.end_of_term_exams }}</td>
+                                                    <td><strong>{{ result.total_marks }}</strong></td>
+                                                    <td>{{ result.percentage|floatformat:2 }}%</td>
+                                                    <td>
+                                                        <span class="badge 
+                                                            {% if result.grade == 'A+' or result.grade == 'A' %}badge-success
+                                                            {% elif result.grade == 'B+' or result.grade == 'B' or result.grade == 'B-' %}badge-info
+                                                            {% elif result.grade == 'C+' or result.grade == 'C' or result.grade == 'C-' %}badge-warning
+                                                            {% else %}badge-danger
+                                                            {% endif %}">
+                                                            {{ result.grade }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge 
+                                                            {% if result.remark == 'excellent' %}badge-success
+                                                            {% elif result.remark == 'very_good' %}badge-info
+                                                            {% elif result.remark == 'good' %}badge-primary
+                                                            {% elif result.remark == 'fair' %}badge-warning
+                                                            {% else %}badge-danger
+                                                            {% endif %}">
+                                                            {{ result.get_remark_display }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% if result.teacher_comment %}
+                                                <tr>
+                                                    <td colspan="8" class="bg-light">
+                                                        <strong>Teacher's Comment:</strong> {{ result.teacher_comment }}
+                                                    </td>
+                                                </tr>
+                                                {% endif %}
+                                                {% endfor %}
+                                                
+                                                <!-- Term Summary -->
+                                                <tr class="table-info">
+                                                    <td colspan="4"><strong>Term Average</strong></td>
+                                                    <td colspan="4">
+                                                        <strong>
+                                                            {% widthratio term_group.list|length|add:"0" 1 term_group.list|length as subjects_count %}
+                                                            {% for r in term_group.list %}
+                                                                {% if forloop.first %}
+                                                                    {% widthratio r.percentage 1 1 as sum %}
+                                                                {% else %}
+                                                                    {% widthratio sum|add:r.percentage 1 1 as sum %}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                            {{ sum|default:0|floatformat:2 }}%
+                                                        </strong>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info text-center">
+                                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                                <h5>No Results Available</h5>
+                                <p>Results have not been published yet. Please check back later.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        {% if results %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Performance Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Print Styles -->
+<style>
+    @media print {
+        .sidebar, .header, .page-header, .card-header-right, .breadcrumb {
+            display: none !important;
+        }
+        .page-wrapper {
+            margin: 0 !important;
+            padding: 20px !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+<!-- Chart.js for Performance Chart -->
+{% if results %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        
+        const subjects = [
+            {% for result in results %}
+                "{{ result.subject.name }}",
+            {% endfor %}
+        ];
+        
+        const percentages = [
+            {% for result in results %}
+                {{ result.percentage }},
+            {% endfor %}
+        ];
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: subjects,
+                datasets: [{
+                    label: 'Percentage Score',
+                    data: percentages,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Score: ' + context.parsed.y.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
+{% endblock %}

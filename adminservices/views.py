@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render,redirect
-from account.models import Subscription, Teacher,CustomUser,Department,School,Student,Parent,Fees,Subject
-from .forms import AddTeacherForm,AddDepartmentForm,AddStudentForm,AddFeesForm,AddSubjectForm
+from account.models import Subscription, Teacher,CustomUser,Department,School,Student,Parent,Fees,Subject,Announcement,Notification
+from .forms import AddTeacherForm,AddDepartmentForm,AddStudentForm,AddFeesForm,AddSubjectForm,AnnouncementForm
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -9,11 +9,57 @@ from django.template.context_processors import request
 from django.conf import settings
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from .utils import send_announcement_via_email_and_sms
+from django.db.models import Q
 # Create your views here.
 
-def admin_dashboard(request):
-    return render(request,'adminservices/admin_dashboard.html')
 
+
+@login_required
+def admin_dashboard(request):
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("account:login")
+    
+    try:
+        school = request.user.managed_school
+    except School.DoesNotExist:
+        messages.error(request, "You haven't registered for a school")
+        return redirect("account:login")
+    
+    # Get counts
+    students_count = Student.objects.filter(school=school).count()
+    teachers_count = Teacher.objects.filter(school=school).count()
+    departments_count = Department.objects.filter(school=school).count()
+    
+    students = Student.objects.filter(school=school).select_related('user')
+    search_query = None
+    
+    # Handle POST request for search
+    if request.method == "POST":
+        search_query = request.POST.get("search")  #
+        if search_query:
+            students = students.filter(
+                Q(user__first_name__icontains=search_query) |
+                Q(user__last_name__icontains=search_query) |
+                Q(student_id__icontains=search_query) |
+                Q(admission_number__icontains=search_query)
+            )
+            if not students.exists():
+                messages.info(request, f"No students found matching '{search_query}'")
+        else:
+            messages.error(request, "Please enter a search term")
+    
+    context = {
+        "students_count": students_count,
+        "departments_count": departments_count,
+        "teachers_count": teachers_count,
+        "students": students,
+        "search_query": search_query
+    }
+    
+    return render(request, 'adminservices/admin_dashboard.html', context)
 
 def add_teacher(request):
     if request.user.role != "admin":
@@ -495,22 +541,6 @@ def list_students(request):
         "year": 2025  
     })
     
-    
-# def teacher_detail(request,teacher_id):
-#     if not request.user.is_authenticated:
-#         messages.error(request,"You are not authorized to perform this action")
-#         return redirect("account:list-teacher")
-    
-#     if request.user.role not in ["admin","teacher"]:
-#         messages.error(request,"You are not authorized to perform this action")
-#         return redirect("account:list-teacher")
-    
-#     school = request.user.managed_school
-    
-#     teacher = get_object_or_404(Teacher,id= teacher_id,school=school)
-#     return render(request,"adminservices/teacher_detail.html",{"teacher":teacher})
-        
-
 def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id, school=request.user.managed_school)
     return render(request, "adminservices/student_detail.html", {"student": student})
@@ -773,3 +803,68 @@ def delete_subject(request, subject_id):
     subject.delete()
     messages.success(request, f"Subject '{name}' deleted successfully.")
     return redirect("adminservices:list-subjects")
+
+
+
+@login_required
+def manage_announcement(request, pk=None):
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to manage announcements.")
+        return redirect("account:home")
+
+    if not hasattr(request.user, 'managed_school'):
+        messages.error(request, "You do not manage any school.")
+        return redirect("account:home")
+
+    school = request.user.managed_school
+
+    if pk:
+        announcement = get_object_or_404(Announcement, id=pk, school=school)
+    else:
+        announcement = Announcement(school=school, author=request.user)
+
+    if request.method == "POST":
+        form = AnnouncementForm(request.POST, request.FILES, instance=announcement)
+        if form.is_valid():
+            announcement = form.save(commit=False)
+            announcement.school = school
+            announcement.author = request.user
+            announcement.save()
+
+            if announcement.published:
+                send_announcement_via_email_and_sms(announcement)
+
+            messages.success(request, "Announcement saved successfully.")
+            return redirect("adminservices:announcement_list")
+    else:
+        form = AnnouncementForm(instance=announcement,school=school)
+
+    return render(request, "adminservices/annoucement_form.html", {
+        "form": form,
+        "announcement": announcement,
+        "is_edit": pk is not None,
+    })
+    
+    
+@login_required
+def list_announcements(request):
+    """
+    Display all announcements for the current admin's school.
+    """
+    # Authorization checks
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to manage announcements.")
+        return redirect("account:home")
+
+    if not hasattr(request.user, 'managed_school'):
+        messages.error(request, "You do not manage any school.")
+        return redirect("account:home")
+
+    school = request.user.managed_school
+
+    # Fetch announcements for this school, ordered by creation date (newest first)
+    announcements = Announcement.objects.filter(school=school).select_related('author').order_by('-created_at')
+
+    return render(request, "adminservices/list_announcements.html", {
+        "announcements": announcements
+    })

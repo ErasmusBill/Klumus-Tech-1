@@ -34,8 +34,9 @@
             <i class="fas fa-align-left"></i>
             </a>
             <div class="top-nav-search">
-               <form>
-                  <input type="text" class="form-control" placeholder="Search here">
+               <form method = "POST">
+                  {% csrf_token %}
+                  <input type="text" class="form-control" placeholder="Search here" name="search">
                   <button class="btn" type="submit"><i class="fas fa-search"></i></button>
                </form>
             </div>
@@ -196,6 +197,14 @@
                            {% comment %} <li><a href="add-expenses.html">Add Expenses</a></li>
                            <li><a href="add-salary.html">Add Salary</a></li> {% endcomment %}
                         </ul>
+                     </li>
+                     <!-- ✅ ANNOUNCEMENTS MENU -->
+                     <li class="submenu">
+                     <a href="#"><i class="fas fa-bullhorn"></i> <span> Announcements</span> <span class="menu-arrow"></span></a>
+                     <ul>
+                        <li><a href="{% url 'adminservices:announcement_list' %}">Announcement List</a></li>
+                        <li><a href="{% url 'adminservices:announcement_create' %}">Add Announcement</a></li>
+                     </ul>
                      </li>
                      {% comment %} <li>
                         <a href="holiday.html"><i class="fas fa-holly-berry"></i> <span>Holiday</span></a>

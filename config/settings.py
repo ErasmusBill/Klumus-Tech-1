@@ -151,3 +151,9 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True  
 EMAIL_HOST_USER = 'erasmuschawey12345@gmail.com'
 EMAIL_HOST_PASSWORD = 'ezpa fafz ygjz mxbj'
+
+#Twilio 
+
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")  

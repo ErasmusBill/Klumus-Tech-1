@@ -205,7 +205,6 @@ def enter_bulk_grades(request, subject_id):
             }
         )
         
-        # Pre-populate with existing results if available
         for student in students:
             try:
                 # Try to get existing result for current term/year

@@ -9,6 +9,7 @@ from requests import Request
 from .utils import initialize_paystack_payment, verify_payment, send_subscription_email
 from .models import CustomUser, RequestPasswordReset, School, Subscription, Package
 from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordForm,PasswordResetForm
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 
@@ -162,7 +163,7 @@ def request_for_password_reset(request):
                 user=user,
                 email=email
             )
-            password_reset.send_reset_email(domain="http://localhost:8000")
+            password_reset.send_reset_email(domain=settings.DOMAIN_URL)
 
             messages.success(request, "A password reset link has been sent to your email.")
             return redirect("account:login")

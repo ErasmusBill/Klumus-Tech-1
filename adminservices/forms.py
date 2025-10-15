@@ -2,7 +2,7 @@ from dataclasses import field
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.forms import ModelForm
-from account.models import Student, Teacher, CustomUser,Department,Parent,Fees,Subject
+from account.models import Announcement, CustomUser, Department, Fees, Parent, Student, Subject, Teacher
 from django.core.exceptions import ObjectDoesNotExist
 from django_select2.forms import Select2Widget
 
@@ -60,7 +60,6 @@ class AddTeacherForm(forms.ModelForm):
         required=False,
         widget=forms.FileInput(attrs={'class': 'form-control'})
     )
-
     class Meta:
         model = Teacher
         fields = [
@@ -577,5 +576,40 @@ class AddSubjectForm(forms.ModelForm):
         self.fields['teacher'].empty_label = "Select Teacher"  # type: ignore
         self.fields['department'].empty_label = "Select Department"  # type: ignore
         
-        
-    
+class AnnouncementForm(forms.ModelForm):
+    class Meta:
+        model = Announcement
+        fields = [
+            "title",
+            "content",
+            "priority",
+            "target_audience",
+            "published",
+            "publish_date",
+            "expiry_date",
+            "attachment"
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'priority': forms.Select(attrs={'class': 'form-control'}),
+            'target_audience': forms.Select(attrs={'class': 'form-control'}),
+            'published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'publish_date': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'expiry_date': forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'attachment': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        school = kwargs.pop('school', None)
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.publish_date:
+            self.fields['publish_date'].initial = self.instance.publish_date.strftime('%Y-%m-%dT%H:%M')
+        if self.instance and self.instance.expiry_date:
+            self.fields['expiry_date'].initial = self.instance.expiry_date.strftime('%Y-%m-%dT%H:%M')

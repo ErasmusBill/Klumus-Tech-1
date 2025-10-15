@@ -30,8 +30,9 @@ urlpatterns = [
     path('list-subjects/', views.list_subjects, name='list-subjects'),
     path('edit-subject/<uuid:subject_id>',views.edit_subject, name='edit-subject'),
     path('subject-detial/<uuid:subject_id>',views.subject_detail, name='subject-detail'),
-    path('delete-subject/<uuid:subject_id>',views.delete_subject, name='delete-subject')
+    path('delete-subject/<uuid:subject_id>',views.delete_subject, name='delete-subject'),
     
-    
-    
+    path('announcements/', views.list_announcements, name='announcement_list'),
+    path('announcements/new/', views.manage_announcement, name='announcement_create'),
+    path('announcements/<uuid:pk>/edit/', views.manage_announcement, name='announcement_edit'),
 ]

@@ -1,0 +1,162 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Announcement{% else %}Add Announcement{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">{% if is_edit %}Edit Announcement{% else %}Add Announcement{% endif %}</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:announcement_list' %}">Announcements</a></li>
+            <li class="breadcrumb-item active">{% if is_edit %}Edit{% else %}Add{% endif %}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Announcement Form -->
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <div class="row">
+                <div class="col-12">
+                  <h5 class="form-title"><span>Announcement Details</span></h5>
+                </div>
+
+                <!-- Title -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.title.label }}</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                      <div class="text-danger mt-1">{{ form.title.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Priority -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.priority.label }}</label>
+                    {{ form.priority }}
+                    {% if form.priority.errors %}
+                      <div class="text-danger mt-1">{{ form.priority.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Target Audience -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.target_audience.label }}</label>
+                    {{ form.target_audience }}
+                    {% if form.target_audience.errors %}
+                      <div class="text-danger mt-1">{{ form.target_audience.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Published -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group form-check">
+                    {{ form.published }}
+                    <label class="form-check-label" for="{{ form.published.id_for_label }}">
+                      {{ form.published.label }}
+                    </label>
+                    {% if form.published.errors %}
+                      <div class="text-danger mt-1">{{ form.published.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Publish Date -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.publish_date.label }}</label>
+                    {{ form.publish_date }}
+                    {% if form.publish_date.errors %}
+                      <div class="text-danger mt-1">{{ form.publish_date.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Expiry Date -->
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>{{ form.expiry_date.label }}</label>
+                    {{ form.expiry_date }}
+                    {% if form.expiry_date.errors %}
+                      <div class="text-danger mt-1">{{ form.expiry_date.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Content -->
+                <div class="col-12">
+                  <div class="form-group">
+                    <label>{{ form.content.label }}</label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                      <div class="text-danger mt-1">{{ form.content.errors }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Attachment -->
+                <div class="col-12">
+                  <div class="form-group">
+                    <label>{{ form.attachment.label }}</label>
+                    {{ form.attachment }}
+                    {% if form.attachment.errors %}
+                      <div class="text-danger mt-1">{{ form.attachment.errors }}</div>
+                    {% endif %}
+                    {% if announcement.attachment %}
+                      <div class="mt-2">
+                        <small>Current file: 
+                          <a href="{{ announcement.attachment.url }}" target="_blank">
+                            {{ announcement.attachment.name|default:"Download" }}
+                          </a>
+                        </small>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary">
+                    {% if is_edit %}Update{% else %}Create{% endif %} Announcement
+                  </button>
+                  <a href="{% url 'adminservices:announcement_list' %}" class="btn btn-secondary ml-2">Cancel</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

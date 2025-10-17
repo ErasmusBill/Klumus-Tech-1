@@ -195,6 +195,22 @@ class School(models.Model):
             "F": [0, 64]
         }
 
+    def get_current_academic_year(self):
+        """Return the current academic year string like '2025/2026'."""
+        if self.academic_year_start and self.academic_year_end:
+            start_year = self.academic_year_start.year
+            end_year = self.academic_year_end.year
+            return f"{start_year}/{end_year}"
+        
+        # Fallback: infer from current date
+        now = timezone.now().date()
+        current_year = now.year
+        # Assume academic year starts in September (adjust as needed)
+        if now.month >= 9:  # Sept–Dec → academic year starts this year
+            return f"{current_year}/{current_year + 1}"
+        else:  # Jan–Aug → academic year started last year
+            return f"{current_year - 1}/{current_year}"
+    
     def save(self, *args, **kwargs):
         if not self.grade_scale:
             self.grade_scale = self.get_default_grade_scale()

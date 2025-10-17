@@ -82,6 +82,7 @@
                     <th>Amount</th>
                     <th>Paid Date</th>
                     <th class="text-right">Status</th>
+                    <th class="text-right">Actions</th> <!-- New Actions Header -->
                   </tr>
                 </thead>
                 <tbody>
@@ -125,10 +126,22 @@
                           <span class="badge badge-info">{{ fee.get_status_display }}</span>
                         {% endif %}
                       </td>
+                      <!-- Add this button in your fees list table actions -->
+                      <td class="text-right">
+                        <a href="{% url 'adminservices:print-fee-receipt' fee.id %}" 
+                           target="_blank" 
+                           class="btn btn-sm btn-outline-primary">
+                            🖨️ Print Receipt
+                        </a>
+                        <a href="{% url 'adminservices:download-fee-receipt' fee.id %}" 
+                           class="btn btn-sm btn-outline-secondary">
+                            📄 Download PDF
+                        </a>
+                      </td>
                     </tr>
                   {% empty %}
                     <tr>
-                      <td colspan="7" class="text-center">No fees found.</td>
+                      <td colspan="8" class="text-center">No fees found.</td> <!-- Updated colspan to 8 -->
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -184,7 +197,7 @@
       "pageLength": 10,
       "order": [[5, "desc"]],
       "columnDefs": [
-        { "orderable": false, "targets": [1, 6] } // Disable sorting on Name & Status
+        { "orderable": false, "targets": [1, 6, 7] } // Disable sorting on Name, Status, and Actions
       ]
     });
   });

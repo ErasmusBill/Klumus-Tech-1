@@ -1,23 +1,49 @@
+# adminservices/views.py
+import logging
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, render,redirect
-from account.models import Subscription, Teacher,CustomUser,Department,School,Student,Parent,Fees,Subject,Announcement,Notification
-from .forms import AddTeacherForm,AddDepartmentForm,AddStudentForm,AddFeesForm,AddSubjectForm,AnnouncementForm
-from django.core.mail import send_mail
-from django.conf import settings
-from django.core.paginator import Paginator
-from django.template.context_processors import request
-from django.conf import settings
-from django.db import transaction
-from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
-from .utils import *
+from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
-# Create your views here.
+from django.conf import settings
 
+from account.models import (
+    Subscription, Teacher, CustomUser, Department, School, 
+    Student, Parent, Fees, Subject, Announcement, Notification
+)
+from .forms import (
+    AddTeacherForm, AddDepartmentForm, AddStudentForm, 
+    AddFeesForm, AddSubjectForm, AnnouncementForm
+)
+from .utils import (
+    send_announcement_via_email_and_sms, send_notification,
+    get_teacher_contacts, get_student_parent_contacts,
+    get_user_contact_info, send_sms
+)
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from datetime import datetime
+import random
+import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.utils import timezone
+try:
+    from weasyprint import HTML
+except ImportError:
+    HTML = None
 
+logger = logging.getLogger(__name__)
+
+# ===== DASHBOARD VIEWS =====
 
 @login_required
 def admin_dashboard(request):
+    """Admin dashboard with school overview and student search"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("account:login")
@@ -28,14 +54,15 @@ def admin_dashboard(request):
         messages.error(request, "You haven't registered for a school")
         return redirect("account:login")
 
+    # Get basic counts
     students_count = Student.objects.filter(school=school).count()
     teachers_count = Teacher.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
     
+    # Handle student search
     students = Student.objects.filter(school=school).select_related('user')
     search_query = None
     
-    # Handle POST request for search
     if request.method == "POST":
         search_query = request.POST.get("search")  
         if search_query:
@@ -60,170 +87,123 @@ def admin_dashboard(request):
     
     return render(request, 'adminservices/admin_dashboard.html', context)
 
+# ===== TEACHER MANAGEMENT VIEWS =====
+
+@login_required
 def add_teacher(request):
+    """Add a new teacher with comprehensive notification handling"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to perform that action")
         return redirect("adminservices:list-teachers")
-
     
     school = getattr(request.user, 'managed_school', None)
     if not school:
         messages.error(request, "Your account is not linked to a school.")
         return redirect("adminservices:list-teachers")
 
-    # subscription = Subscription.objects.filter(school=school, is_active=True).first()
-    # if not subscription or not subscription.package:
-    #     messages.error(request, "You need an active subscription to add teachers.")
-    #     return redirect("adminservices:list-teachers")
-
-    # teacher_count = Teacher.objects.filter(school=school, is_active=True).count()
-    # max_teachers = subscription.package.max_teachers or float('inf')
-    # if max_teachers != float('inf') and teacher_count >= max_teachers:
-    #     messages.error(
-    #         request,
-    #         f"You have reached the teacher limit ({max_teachers}). Please upgrade your package."
-    #     )
-    #     return redirect("adminservices:upgrade_package", new_package_id=subscription.package.id)
-
     if request.method == "POST":
         form = AddTeacherForm(request.POST, request.FILES, school=school)
         
         if form.is_valid():
-            
             try:
-                
-           
-                user = CustomUser.objects.create_user(
-                    username=form.cleaned_data['username'],
-                    email=form.cleaned_data['email'],
-                    password=form.cleaned_data['password'],
-                    first_name=form.cleaned_data['first_name'],
-                    last_name=form.cleaned_data['last_name'],
-                    role="teacher",
-                    gender=form.cleaned_data['gender'],
-                    date_of_birth=form.cleaned_data['date_of_birth'],
-                    address=form.cleaned_data['address'],
-                    phone_number=form.cleaned_data.get('phone_number', ''),
-                )
-                
-                # Add profile picture if provided
-                if form.cleaned_data.get('profile_picture'):
-                    user.profile_picture = form.cleaned_data['profile_picture']
-                    user.save()
-                
-                # # Create Teacher profile
-                # teacher = form.save(commit=False)
-                # teacher.user = user
-                # teacher.school = school
-                # teacher.is_active = True
-                # teacher.save()
-                
-                # teacher = form.save()
-                # print(f"Teacher saved: {teacher}")
-                # print(f"Teacher user: {teacher.user}")
-                teacher = Teacher(
-                    user=user,
-                    school=school,
-                    qualification=form.cleaned_data['qualification'],
-                    specialization=form.cleaned_data['specialization'],
-                    experience_years=form.cleaned_data['experience_years'],
-                    employment_type=form.cleaned_data['employment_type'],
-                    hire_date=form.cleaned_data['hire_date'],
-                    department=form.cleaned_data.get('department'),
-                    salary=form.cleaned_data.get('salary'),
-                    bio=form.cleaned_data.get('bio', ''),
-                    is_active=True
-                )
-                
-                if form.cleaned_data.get('image'):
-                    teacher.image = form.cleaned_data['image']
-                teacher.save()
-                
-                
-                
-                
-                teacher_emails, teacher_phones = get_teacher_contacts(teacher)
-                
-                email_message = (
-                    f'Hello {user.first_name},\n\n'
-                    f'You have been added as a teacher at {school.name}.\n\n'
-                    f'Your login details:\n'
-                    f'Username: {user.username}\n'
-                    f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
-                    f'Please log in and change your password after first login.\n\n'
-                    f'Best regards,\n{school.name} Administration'
-                )
-                
-                sms_message = (
-                    f"Welcome to {school.name}! You've been added as a teacher. "
-                    f"Username: {user.username}. Check your email for details."
-                    f'Username: {user.username}\n'
-                    f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
-                    f'Please log in and change your password after first login.\n\n'
-                    f'Best regards,\n{school.name} Administration'
-                )
-                
-                # Send both email and SMS
-                notification_results = send_notification(
-                    emails=teacher_emails,
-                    phones=teacher_phones,
-                    subject='Welcome to the School',
-                    message=email_message
-                )
-                
-                if not notification_results['email_sent'] and not notification_results['sms_sent']:
-                    messages.warning(request, "Teacher added, but notifications could not be sent.")
-                elif not notification_results['email_sent']:
-                    messages.warning(request, "Teacher added, but email could not be sent.")
-                elif not notification_results['sms_sent']:
-                    messages.warning(request, "Teacher added, but SMS could not be sent.")
-                
-                messages.success(request, "Teacher added successfully!")
-                return redirect("adminservices:list-teachers")
-            
-                
-                # Send welcome email to the teacher
-                # try:
-                #     send_mail(
-                #         subject='Welcome to the School',
-                #         message=(
-                #             f'Hello {user.first_name},\n\n'
-                #             f'You have been added as a teacher at {school.name}.\n\n'
-                #             f'Your login details:\n'
-                #             f'Username: {user.username}\n'
-                #             f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
-                #             f'Please log in and change your password after first login.\n\n'
-                #             f'Best regards,\n{school.name} Administration'
-                #         ),
-                #         from_email=settings.DEFAULT_FROM_EMAIL,
-                #         recipient_list=[teacher.user.email],
-                #         fail_silently=False,
-                #     )
-                # except Exception as email_error:
-                #     print(f"Email error: {email_error}")
-                #     messages.warning(request, "Teacher added, but email could not be sent.")
-                
-                # messages.success(request, "Teacher added successfully!")
-                # return redirect("adminservices:list-teachers")
-            
+                with transaction.atomic():
+                    # Create user account
+                    user = CustomUser.objects.create_user(
+                        username=form.cleaned_data['username'],
+                        email=form.cleaned_data['email'],
+                        password=form.cleaned_data['password'],
+                        first_name=form.cleaned_data['first_name'],
+                        last_name=form.cleaned_data['last_name'],
+                        role="teacher",
+                        gender=form.cleaned_data['gender'],
+                        date_of_birth=form.cleaned_data['date_of_birth'],
+                        address=form.cleaned_data['address'],
+                        phone_number=form.cleaned_data.get('phone_number', ''),
+                    )
+                    
+                    # Add profile picture if provided
+                    if form.cleaned_data.get('profile_picture'):
+                        user.profile_picture = form.cleaned_data['profile_picture']
+                        user.save()
+                    
+                    # Create teacher profile
+                    teacher = Teacher(
+                        user=user,
+                        school=school,
+                        qualification=form.cleaned_data['qualification'],
+                        specialization=form.cleaned_data['specialization'],
+                        experience_years=form.cleaned_data['experience_years'],
+                        employment_type=form.cleaned_data['employment_type'],
+                        hire_date=form.cleaned_data['hire_date'],
+                        department=form.cleaned_data.get('department'),
+                        salary=form.cleaned_data.get('salary'),
+                        bio=form.cleaned_data.get('bio', ''),
+                        is_active=True
+                    )
+                    
+                    if form.cleaned_data.get('image'):
+                        teacher.image = form.cleaned_data['image']
+                    teacher.save()
+                    
+                    # Send welcome notifications
+                    teacher_emails, teacher_phones = get_teacher_contacts(teacher)
+                    password = form.cleaned_data.get('password')
+                    
+                    email_message = (
+                        f'Hello {user.first_name},\n\n'
+                        f'You have been added as a teacher at {school.name}.\n\n'
+                        f'Your login details:\n'
+                        f'Username: {user.username}\n'
+                        f'Password: {password}\n\n'
+                        f'Please log in and change your password after first login.\n\n'
+                        f'Best regards,\n{school.name} Administration'
+                    )
+                    
+                    sms_message = (
+                        f"Welcome to {school.name}! You've been added as a teacher. "
+                        f"Username: {user.username}. Check your email for details."
+                    )
+                    
+                    # Send notifications with detailed results handling
+                    notification_results = send_notification(
+                        emails=teacher_emails,
+                        phones=teacher_phones,
+                        subject='Welcome to the School',
+                        message=email_message
+                    )
+                    
+                    # Provide specific feedback based on notification results
+                    if notification_results['email_sent'] and notification_results['sms_sent']:
+                        messages.success(request, 
+                            f"Teacher added successfully! Welcome message sent via email and SMS to {user.email}"
+                        )
+                    elif notification_results['email_sent']:
+                        messages.success(request, 
+                            f"Teacher added successfully! Welcome email sent to {user.email}"
+                        )
+                    elif notification_results['sms_sent']:
+                        messages.success(request, 
+                            f"Teacher added successfully! Welcome SMS sent to {teacher_phones[0] if teacher_phones else 'user'}"
+                        )
+                    else:
+                        messages.warning(request, 
+                            f"Teacher added but notifications failed. "
+                            f"Email error: {notification_results.get('email_error', 'Unknown')}, "
+                            f"SMS error: {notification_results.get('sms_error', 'Unknown')}"
+                        )
+                    
+                    logger.info(f"Teacher {user.username} created successfully. Notifications: {notification_results}")
+                    return redirect("adminservices:list-teachers")
+                    
             except Exception as e:
-                # Rollback: If teacher creation failed but user was created, delete the user
-                # if user and user.pk:
-                #     try:
-                #         user.delete()
-                #         print(f"Rolled back user creation due to error: {str(e)}")
-                #     except Exception as delete_error:
-                #         print(f"Error deleting user during rollback: {delete_error}")   
-                 # If user was created but teacher failed, delete the user
+                # Rollback user creation if teacher creation fails
                 if 'user' in locals() and user.pk: # type: ignore
-                    user.delete() # type: ignore
-                messages.error(request, f"An error occurred: {str(e)}")
-                print(f"Full error details: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                    user.delete()
+                
+                logger.error(f"Failed to create teacher: {str(e)}", exc_info=True)
+                messages.error(request, f"An error occurred while creating the teacher: {str(e)}")
         else:
             # Display form validation errors
-            messages.error(request, "Please correct the errors below.")
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
@@ -232,54 +212,26 @@ def add_teacher(request):
     
     return render(request, "adminservices/add_teacher.html", {"form": form})
 
-def add_department(request):
+@login_required
+def list_teachers(request):
+    """List all teachers with pagination"""
     if request.user.role != "admin":
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect("adminservices:list-departments")
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("adminservices:list-teachers")
+    
+    school = request.user.managed_school
+    teachers = Teacher.objects.filter(school=school, is_active=True).select_related('user', 'department')
+    
+    paginator = Paginator(teachers, 50)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, "adminservices/list-teachers.html", {"page_obj": page_obj})
 
-
-    try:
-        school = request.user.managed_school
-    except School.DoesNotExist:
-        messages.error(request, "Your account is not linked to any school.")
-        return redirect("adminservices:admin-dashboard")
-
-    # Check subscription
-    # subscription = Subscription.objects.filter(school=school, is_active=True).first()
-    # if not subscription or not subscription.package:
-    #     messages.error(request, "You need an active subscription to add departments.")
-    #     return redirect("adminservices:select-package")
-
-
-    # if hasattr(subscription.package, 'max_departments') and subscription.package.max_departments is not None: # type: ignore
-    #     current_dept_count = Department.objects.filter(school=school).count()
-    #     if current_dept_count >= subscription.package.max_departments:  # type: ignore
-    #         messages.error(
-    #             request,
-    #             f"You have reached the department limit ({subscription.package.max_departments}). " # type: ignore
-    #             "Please upgrade your subscription."
-    #         )
-    #         return redirect("adminservices:upgrade-package", new_package_id=subscription.package.id)
-
-    # Handle form
-    if request.method == "POST":
-        form = AddDepartmentForm(request.POST)
-        if form.is_valid():
-            department = form.save(commit=False)
-            department.school = school
-            department.save()
-            messages.success(request, f"Department '{department.name}' added successfully!")
-            return redirect("adminservices:list-departments")
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = AddDepartmentForm(school=school)
-
-    return render(request, "adminservices/add_department.html", {"form": form})
-
-
+@login_required
 def update_teacher(request, teacher_id):
-    if request.user.role not in ["admin","teacher"]:
+    """Update teacher information with notification"""
+    if request.user.role not in ["admin", "teacher"]:
         messages.error(request, "You are not authorized to perform that action")
         return redirect("adminservices:list-teachers")
 
@@ -293,14 +245,11 @@ def update_teacher(request, teacher_id):
 
     if request.method == "POST":
         form = AddTeacherForm(request.POST, request.FILES, school=school, instance=teacher)
-
-        # Make password optional during update
         form.fields['password'].required = False
-        form.fields['password'].help_text = "Leave blank to keep current password."
 
         if form.is_valid():
             try:
-              
+                # Update user information
                 user.first_name = form.cleaned_data['first_name']
                 user.last_name = form.cleaned_data['last_name']
                 user.email = form.cleaned_data['email']
@@ -310,7 +259,7 @@ def update_teacher(request, teacher_id):
                 user.address = form.cleaned_data['address']
                 user.phone_number = form.cleaned_data.get('phone_number', '')
 
-           
+                # Update password if provided
                 password = form.cleaned_data.get('password')
                 if password:
                     user.set_password(password)
@@ -318,92 +267,116 @@ def update_teacher(request, teacher_id):
                 if 'profile_picture' in request.FILES:
                     user.profile_picture = request.FILES['profile_picture']
 
-                user.save()  
+                user.save()
 
-            
+                # Update teacher profile
                 updated_teacher = form.save(commit=False)
-                updated_teacher.school = school 
+                updated_teacher.school = school
                 updated_teacher.save()
 
-          
-                try:
-                    send_mail(
-                        subject='Your Account Has Been Updated',
-                        message=(
-                            f"Hello {user.first_name},\n\n"
-                            f"Your teacher account at {school.name} has been updated.\n"
-                            f"If you changed your password, please use the new one to log in.\n\n"
-                            f"Best regards,\n{school.name} Administration"
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[user.email],
-                        fail_silently=False,
-                    )
-                except Exception as email_error:
-                    print(f"Email error: {email_error}")
-                    messages.warning(request, "Teacher updated, but email could not be sent.")
+                # Send update notification
+                teacher_emails, teacher_phones = get_teacher_contacts(teacher)
+                
+                email_message = (
+                    f"Hello {user.first_name},\n\n"
+                    f"Your teacher account at {school.name} has been updated.\n"
+                    f"If you changed your password, please use the new one to log in.\n\n"
+                    f"Best regards,\n{school.name} Administration"
+                )
 
-                messages.success(request, "Teacher updated successfully!")
+                notification_results = send_notification(
+                    emails=teacher_emails,
+                    phones=teacher_phones,
+                    subject='Your Account Has Been Updated',
+                    message=email_message
+                )
+
+                if notification_results['email_sent'] or notification_results['sms_sent']:
+                    messages.success(request, "Teacher updated successfully and notified!")
+                else:
+                    messages.success(request, "Teacher updated successfully!")
+
                 return redirect("adminservices:list-teachers")
 
             except Exception as e:
-                messages.error(request, f"An error occurred while saving: {str(e)}")
-                print(f"Update teacher error: {str(e)}")
+                logger.error(f"Failed to update teacher {teacher_id}: {str(e)}", exc_info=True)
+                messages.error(request, f"An error occurred while updating: {str(e)}")
         else:
-            messages.error(request, "Please correct the errors below.")
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
     else:
-        # Pre-fill form for GET request
         form = AddTeacherForm(instance=teacher, school=school)
         form.fields['password'].required = False
-        form.fields['password'].help_text = "Leave blank to keep current password."
-        form.fields['password'].initial = '' 
+        form.fields['password'].initial = ''
 
     return render(request, "adminservices/edit-teacher.html", {
         "form": form,
         "teacher": teacher
     })
 
-
-def list_teachers(request):
+@login_required
+def delete_teacher(request, teacher_id):
+    """Delete a teacher"""
     if request.user.role != "admin":
-        messages.error(request,"You are not authorized to perform this action")
+        messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-teachers")
     
     school = request.user.managed_school
+    teacher = get_object_or_404(Teacher, id=teacher_id, school=school)
     
-    teachers = Teacher.objects.filter(school=school, is_active=True).select_related('user', 'department')
-    paginator = Paginator(teachers,50)
-    page_number = request.GET.get("page_number")
-    page_obj = paginator.get_page(page_number)
-    
-    return render(request,"adminservices/list-teachers.html",{"page_obj":page_obj})
-
-
-def delete_teacher(request,teacher_id):
-    if request.user.role != "admin":
-        messages.error(request,"You are not authorized to perform this action")
-        return redirect("adminservices:list-teachers")
-    
-    school = request.user.managed_school
-    teacher = get_object_or_404(Teacher,id=teacher_id,school=school)
+    teacher_name = teacher.user.get_full_name()
     teacher.delete()
+    
+    messages.success(request, f"Teacher '{teacher_name}' deleted successfully")
     return redirect("adminservices:list-teachers")
 
-def teacher_detail(request,teacher_id):
-    if request.user.role != "admin" or request.user.role != "teacher":
-        messages.error(request,"You are not authorized to perform this action")
+@login_required
+def teacher_detail(request, teacher_id):
+    """View teacher details"""
+    if request.user.role not in ["admin", "teacher"]:
+        messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-teachers")
     
     school = request.user.managed_school
-    teacher = get_object_or_404(Teacher,id=teacher_id,school=school)
-    return render(request,"adminservices/teacher_detail.html",{"teacher":teacher})
+    teacher = get_object_or_404(Teacher, id=teacher_id, school=school)
     
-        
-    
+    return render(request, "adminservices/teacher_detail.html", {"teacher": teacher})
+
+# ===== DEPARTMENT MANAGEMENT VIEWS =====
+
+@login_required
+def add_department(request):
+    """Add a new department"""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-departments")
+
+    try:
+        school = request.user.managed_school
+    except School.DoesNotExist:
+        messages.error(request, "Your account is not linked to any school.")
+        return redirect("adminservices:admin-dashboard")
+
+    if request.method == "POST":
+        form = AddDepartmentForm(request.POST)
+        if form.is_valid():
+            department = form.save(commit=False)
+            department.school = school
+            department.save()
+            
+            messages.success(request, f"Department '{department.name}' added successfully!")
+            return redirect("adminservices:list-departments")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AddDepartmentForm(school=school)
+
+    return render(request, "adminservices/add_department.html", {"form": form})
+
+@login_required
 def list_departments(request):
+    """List all departments with pagination"""
     if request.user.role != "admin":
         messages.error(request, "Not authorized.")
         return redirect("adminservices:admin-dashboard")
@@ -414,64 +387,71 @@ def list_departments(request):
         messages.error(request, "No school linked to your account.")
         return redirect("adminservices:admin-dashboard")
 
-
     departments = Department.objects.filter(school=school)
-    
     paginator = Paginator(departments, 25)
     page_obj = paginator.get_page(request.GET.get("page"))
     
     return render(request, "adminservices/list_department.html", {"page_obj": page_obj})
 
-
-
-def delete_department(request,department_id):
+@login_required
+def edit_department(request, department_id):
+    """Edit department information"""
     if request.user.role != "admin":
-        messages.error(request,"You are not authorized to perform this action")
-        return redirect("adminservices:list-teachers")
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("adminservices:list-departments")
     
     school = request.user.managed_school
-    
-    department = get_object_or_404(Department,id=department_id,school=school)
-    department.delete()
-    return redirect("adminservices:list-departments")
-
-def edit_department(request,department_id):
-    if request.user.role != "admin":
-        messages.error(request,"You are not authorized to perform this action")
-        return redirect("adminservices:list-department")
-    
-    school = request.user.managed_school
-    
-    department = get_object_or_404(Department,id=department_id,school=school)
+    department = get_object_or_404(Department, id=department_id, school=school)
     
     if request.method == "POST":
-        form = AddDepartmentForm(request.POST,instance=department,school=school)
+        form = AddDepartmentForm(request.POST, instance=department, school=school)
         if form.is_valid():
             department = form.save(commit=False)
             department.school = school
             department.save()
+            
             messages.success(request, f"Department '{department.name}' updated successfully!")
             return redirect("adminservices:list-departments")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = AddDepartmentForm(instance=department,school=school)
+        form = AddDepartmentForm(instance=department, school=school)
 
     return render(request, "adminservices/edit_department.html", {"form": form})
 
-
-def department_detail(request,department_id):
+@login_required
+def delete_department(request, department_id):
+    """Delete a department"""
     if request.user.role != "admin":
-        messages.error(request,"You are not authorized to perform this action")
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("adminservices:list-departments")
+    
+    school = request.user.managed_school
+    department = get_object_or_404(Department, id=department_id, school=school)
+    
+    department_name = department.name
+    department.delete()
+    
+    messages.success(request, f"Department '{department_name}' deleted successfully")
+    return redirect("adminservices:list-departments")
+
+@login_required
+def department_detail(request, department_id):
+    """View department details"""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-teachers")
     
     school = request.user.managed_school
+    department = get_object_or_404(Department, id=department_id, school=school)
     
-    department = get_object_or_404(Department,id=department_id,school=school)
-    return render(request,"adminservices/department-detail.html",{"department":department})
+    return render(request, "adminservices/department-detail.html", {"department": department})
 
+# ===== STUDENT MANAGEMENT VIEWS =====
 
+@login_required
 def add_student(request):
+    """Add a new student with parent notifications"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login") 
@@ -489,9 +469,7 @@ def add_student(request):
                     student = form.save()
                     password = form.cleaned_data.get('password')
                     
-                    # Send email AND SMS to parents
-                    from .utils import send_notification, get_student_parent_contacts
-                    
+                    # Send enrollment notifications to parents
                     parent_emails, parent_phones = get_student_parent_contacts(student)
                     
                     email_message = (
@@ -518,11 +496,24 @@ def add_student(request):
                         message=email_message
                     )
                     
-                    if notification_results['email_sent'] or notification_results['sms_sent']:
+                    # Provide detailed feedback
+                    if notification_results['email_sent'] and notification_results['sms_sent']:
                         messages.success(
                             request, 
                             f"Student '{student.user.get_full_name()}' added successfully! "
-                            f"Login details have been sent to the parent(s)."
+                            f"Login details sent to parent via email and SMS."
+                        )
+                    elif notification_results['email_sent']:
+                        messages.success(
+                            request, 
+                            f"Student '{student.user.get_full_name()}' added successfully! "
+                            f"Login details sent to parent via email."
+                        )
+                    elif notification_results['sms_sent']:
+                        messages.success(
+                            request, 
+                            f"Student '{student.user.get_full_name()}' added successfully! "
+                            f"Login details sent to parent via SMS."
                         )
                     else:
                         messages.warning(
@@ -531,12 +522,16 @@ def add_student(request):
                             f"but we couldn't send the login details to the parent(s)."
                         )
                     
+                    logger.info(f"Student {student.user.username} created. Notifications: {notification_results}")
                     return redirect("adminservices:list-students")
+                    
             except Exception as e:
-                import traceback
-                print(f"[Add Student Error] {str(e)}")
-                print(traceback.format_exc())
+                logger.error(f"Failed to create student: {str(e)}", exc_info=True)
                 messages.error(request, f"An error occurred while creating the student: {str(e)}")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = AddStudentForm(school=school)
  
@@ -545,7 +540,9 @@ def add_student(request):
         "title": "Add New Student"
     })
 
+@login_required
 def list_students(request):
+    """List all students with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "Unauthorized.")
         return redirect("login")
@@ -556,7 +553,6 @@ def list_students(request):
         return redirect("adminservices:admin-dashboard")
 
     students = Student.objects.filter(school=school).select_related('user', 'parent').order_by('-created_at')
-
     paginator = Paginator(students, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -565,13 +561,16 @@ def list_students(request):
         "page_obj": page_obj,
         "year": 2025  
     })
-    
+
+@login_required  
 def student_detail(request, student_id):
+    """View student details"""
     student = get_object_or_404(Student, id=student_id, school=request.user.managed_school)
     return render(request, "adminservices/student_detail.html", {"student": student})
 
-
+@login_required
 def edit_student(request, student_id):
+    """Edit student information"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized.")
         return redirect("adminservices:list-students")
@@ -599,20 +598,27 @@ def edit_student(request, student_id):
         "student": student
     })
 
+@login_required
 def delete_student(request, student_id):
+    """Delete a student"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized.")
         return redirect("adminservices:list-students")
 
     school = request.user.managed_school
     student = get_object_or_404(Student, id=student_id, school=school)
+    
+    student_name = student.user.get_full_name()
     student.delete()
+    
+    messages.success(request, f"Student '{student_name}' deleted successfully")
     return redirect("adminservices:list-students")
 
+# ===== FEES MANAGEMENT VIEWS =====
 
-
-
+@login_required
 def add_fees(request):
+    """Add new fees with parent notifications"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
@@ -632,8 +638,6 @@ def add_fees(request):
                     fee.save()
 
                     # Send fee notification via email AND SMS
-                    from .utils import send_notification, get_student_parent_contacts
-                    
                     student = fee.student
                     parent_emails, parent_phones = get_student_parent_contacts(student)
                     
@@ -662,24 +666,44 @@ def add_fees(request):
                         message=email_message
                     )
                     
-                    if notification_results['email_sent'] or notification_results['sms_sent']:
-                        messages.success(request, f"Fee for '{student.user.get_full_name()}' added successfully and parents notified!")
+                    # Provide detailed feedback
+                    if notification_results['email_sent'] and notification_results['sms_sent']:
+                        messages.success(request, 
+                            f"Fee for '{student.user.get_full_name()}' added successfully "
+                            f"and parents notified via email and SMS!"
+                        )
+                    elif notification_results['email_sent']:
+                        messages.success(request, 
+                            f"Fee for '{student.user.get_full_name()}' added successfully "
+                            f"and parents notified via email!"
+                        )
+                    elif notification_results['sms_sent']:
+                        messages.success(request, 
+                            f"Fee for '{student.user.get_full_name()}' added successfully "
+                            f"and parents notified via SMS!"
+                        )
                     else:
-                        messages.warning(request, f"Fee added but notifications could not be sent.")
+                        messages.warning(request, 
+                            f"Fee added but notifications could not be sent. "
+                            f"Please contact the parents manually."
+                        )
                     
                     return redirect("adminservices:list-fees")
 
             except Exception as e:
+                logger.error(f"Failed to add fee: {str(e)}", exc_info=True)
                 messages.error(request, f"An error occurred while saving: {str(e)}")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
         form = AddFeesForm(school=school)
+    
     students = Student.objects.filter(school=school, is_active=True).select_related('user')
-
     return render(request, "adminservices/add_fees.html", {"form": form, "students": students})
 
+@login_required
 def edit_fees(request, fee_id):
+    """Edit fee information"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
@@ -700,7 +724,9 @@ def edit_fees(request, fee_id):
 
     return render(request, "adminservices/edit_fees.html", {"form": form, "fee": fee})
 
+@login_required
 def list_fees(request):
+    """List all fees with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
@@ -714,7 +740,9 @@ def list_fees(request):
 
     return render(request, "adminservices/list_fees.html", {"page_obj": page_obj})
 
+@login_required
 def delete_fees(request, fee_id):
+    """Delete a fee record"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
@@ -730,9 +758,11 @@ def delete_fees(request, fee_id):
 
     return render(request, "adminservices/confirm_delete.html", {"fee": fee})
 
+# ===== SUBJECT MANAGEMENT VIEWS =====
 
-
+@login_required
 def add_subject(request):
+    """Add a new subject"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized.")
         return redirect("account:login")
@@ -748,18 +778,20 @@ def add_subject(request):
             subject = form.save(commit=False)
             subject.school = school
             subject.save()
+            
             messages.success(request, f"Subject '{subject.name}' added successfully!")
             return redirect("adminservices:list-subjects")
         else:
-            # 🔽 Print errors to console for debugging
-            print("Form errors:", form.errors)  # Debug line
+            logger.warning(f"Subject form errors: {form.errors}")
             messages.error(request, "Please correct the errors below.")
     else:
         form = AddSubjectForm(school=school)
 
     return render(request, "adminservices/add_subject.html", {"form": form})
 
+@login_required
 def list_subjects(request):
+    """List all subjects with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "Unauthorized.")
         return redirect("account:login")
@@ -770,21 +802,23 @@ def list_subjects(request):
         return redirect("adminservices:admin-dashboard")
 
     subjects = Subject.objects.filter(school=school).select_related('teacher__user', 'department').order_by('-created_at')
-
     paginator = Paginator(subjects, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, "adminservices/list_subjects.html", {"page_obj": page_obj})
 
-
+@login_required
 def subject_detail(request, subject_id):
+    """View subject details"""
     school = getattr(request.user, 'managed_school', None)
     subject = get_object_or_404(Subject, id=subject_id, school=school)
+    
     return render(request, "adminservices/subject_detail.html", {"subject": subject})
 
-
+@login_required
 def edit_subject(request, subject_id):
+    """Edit subject information"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized.")
         return redirect("account:login")
@@ -808,8 +842,9 @@ def edit_subject(request, subject_id):
         "subject": subject
     })
 
-
+@login_required
 def delete_subject(request, subject_id):
+    """Delete a subject"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "Unauthorized.")
         return redirect("account:login")
@@ -817,16 +852,17 @@ def delete_subject(request, subject_id):
     school = getattr(request.user, 'managed_school', None)
     subject = get_object_or_404(Subject, id=subject_id, school=school)
 
-
     name = subject.name
     subject.delete()
+    
     messages.success(request, f"Subject '{name}' deleted successfully.")
     return redirect("adminservices:list-subjects")
 
-
+# ===== ANNOUNCEMENT MANAGEMENT VIEWS =====
 
 @login_required
 def manage_announcement(request, pk=None):
+    """Create or edit announcements with comprehensive notification handling"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to manage announcements.")
         return redirect("account:home")
@@ -843,34 +879,56 @@ def manage_announcement(request, pk=None):
         announcement = Announcement(school=school, author=request.user)
 
     if request.method == "POST":
-        form = AnnouncementForm(request.POST, request.FILES, instance=announcement)
+        form = AnnouncementForm(request.POST, request.FILES, instance=announcement, school=school)
         if form.is_valid():
             announcement = form.save(commit=False)
             announcement.school = school
             announcement.author = request.user
             announcement.save()
 
+            # Send notifications if published
             if announcement.published:
-                send_announcement_via_email_and_sms(announcement)
-
-            messages.success(request, "Announcement saved successfully.")
+                try:
+                    results = send_announcement_via_email_and_sms(announcement)
+                    
+                    if results.get('errors'):
+                        messages.warning(request, 
+                            f"Announcement saved but {len(results['errors'])} notifications failed. "
+                            f"Check logs for details."
+                        )
+                    else:
+                        messages.success(request, 
+                            f"Announcement saved and sent successfully! "
+                            f"Notifications: {results.get('notifications_created', 0)}, "
+                            f"Emails: {results.get('emails_sent', 0)}, "
+                            f"SMS: {results.get('sms_sent', 0)}"
+                        )
+                        
+                    logger.info(f"Announcement {announcement.id} sent. Results: {results}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to send announcement: {str(e)}", exc_info=True)
+                    messages.error(request, 
+                        f"Announcement saved but failed to send notifications: {str(e)}"
+                    )
+            else:
+                messages.success(request, "Announcement saved as draft.")
+                
             return redirect("adminservices:announcement_list")
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
-        form = AnnouncementForm(instance=announcement,school=school)
+        form = AnnouncementForm(instance=announcement, school=school)
 
     return render(request, "adminservices/annoucement_form.html", {
         "form": form,
         "announcement": announcement,
         "is_edit": pk is not None,
     })
-    
-    
+
 @login_required
 def list_announcements(request):
-    """
-    Display all announcements for the current admin's school.
-    """
-    # Authorization checks
+    """Display all announcements for the current admin's school"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to manage announcements.")
         return redirect("account:home")
@@ -880,17 +938,15 @@ def list_announcements(request):
         return redirect("account:home")
 
     school = request.user.managed_school
-
-    # Fetch announcements for this school, ordered by creation date (newest first)
     announcements = Announcement.objects.filter(school=school).select_related('author').order_by('-created_at')
 
     return render(request, "adminservices/list_announcements.html", {
         "announcements": announcements
     })
-    
-    
+
 @login_required
-def announcement_delete(request,announcement_id):
+def announcement_delete(request, announcement_id):
+    """Delete an announcement"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to manage announcements.")
         return redirect("account:home")
@@ -900,9 +956,149 @@ def announcement_delete(request,announcement_id):
         return redirect("account:home")
 
     school = request.user.managed_school
-
-    announcement = get_object_or_404(Announcement,id=announcement_id,school=school)
-    announcement.delete()
-    messages.success(request,"Annoucement successfully deleted")
-    return redirect("adminservices:announcement_list")
+    announcement = get_object_or_404(Announcement, id=announcement_id, school=school)
     
+    announcement_title = announcement.title
+    announcement.delete()
+    
+    messages.success(request, f"Announcement '{announcement_title}' successfully deleted")
+    return redirect("adminservices:announcement_list")
+
+def _get_academic_year(school):
+    """Helper to safely get academic year."""
+    return school.get_current_academic_year() if hasattr(school, 'get_current_academic_year') else "2024/2025"
+
+
+@login_required
+def print_fee_receipt(request, fee_id):
+    """Render HTML version of the fee receipt for printing."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-fees")
+
+    school = request.user.managed_school
+    fee = get_object_or_404(Fees, id=fee_id, student__school=school)
+
+    # Use existing receipt_number or generate a safe fallback
+    receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
+    issue_date = timezone.now().strftime('%B %d, %Y')
+    academic_year = _get_academic_year(school)
+    payment_method = fee.get_payment_method_display() or "Cash" # type: ignore
+
+    context = {
+        'school': school,
+        'fee': fee,
+        'receipt_number': receipt_number,
+        'issue_date': issue_date,
+        'academic_year': academic_year,
+        'payment_method': payment_method,
+    }
+
+    return render(request, 'adminservices/fee_receipt.html', context)
+
+
+@login_required
+def print_admission_form(request, student_id):
+    """Render HTML version of the admission form for printing."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-students")
+
+    school = request.user.managed_school
+    student = get_object_or_404(Student, id=student_id, school=school)
+
+    # Use admission_number (e.g., "2025-0042") for traceability
+    form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
+    generated_date = timezone.now().strftime('%B %d, %Y')
+    academic_year = "2024/2025"
+
+    context = {
+        'school': school,
+        'student': student,
+        'form_number': form_number,
+        'generated_date': generated_date,
+        'academic_year': academic_year,
+    }
+
+    return render(request, 'adminservices/admission_form.html', context)
+
+
+@login_required
+def download_fee_receipt_pdf(request, fee_id):
+    """Generate and download a PDF version of the fee receipt."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-fees")
+
+    school = request.user.managed_school
+    fee = get_object_or_404(Fees, id=fee_id, student__school=school)
+
+    receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
+    issue_date = timezone.now().strftime('%B %d, %Y')
+    academic_year = "2024/2025"
+    payment_method = fee.get_payment_method_display() or "Cash"
+
+    context = {
+        'school': school,
+        'fee': fee,
+        'receipt_number': receipt_number,
+        'issue_date': issue_date,
+        'academic_year': academic_year,
+        'payment_method': payment_method,
+    }
+
+    if HTML is None:
+        messages.info(request, "PDF generation is not available. Please install WeasyPrint.")
+        return redirect('adminservices:print-fee-receipt', fee_id=fee_id)
+
+    try:
+        html_string = render_to_string('adminservices/fee_receipt.html', context)
+        pdf_file = HTML(string=html_string).write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="fee_receipt_{receipt_number}.pdf"'
+        return response
+
+    except Exception as e:
+        messages.error(request, f"Failed to generate PDF: {str(e)}")
+        return redirect('adminservices:print-fee-receipt', fee_id=fee_id)
+
+
+@login_required
+def download_admission_form_pdf(request, student_id):
+    """Generate and download a PDF version of the admission form."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-students")
+
+    school = request.user.managed_school
+    student = get_object_or_404(Student, id=student_id, school=school)
+
+    form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
+    generated_date = timezone.now().strftime('%B %d, %Y')
+    academic_year = "2024/2025"
+
+    context = {
+        'school': school,
+        'student': student,
+        'form_number': form_number,
+        'generated_date': generated_date,
+        'academic_year': academic_year,
+    }
+    
+
+    if HTML is None:
+        messages.info(request, "PDF generation is not available. Please install WeasyPrint.")
+        return redirect('adminservices:print-admission-form', student_id=student_id)
+
+    try:
+        html_string = render_to_string('adminservices/admission_form.html', context)
+        pdf_file = HTML(string=html_string).write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="admission_form_{form_number}.pdf"'
+        return response
+
+    except Exception as e:
+        messages.error(request, f"Failed to generate PDF: {str(e)}")
+        return redirect('adminservices:print-admission-form', student_id=student_id)

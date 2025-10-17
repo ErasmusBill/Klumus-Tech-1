@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Admission Form - {{ school.name }}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0.5in;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                color: #333;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px double #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .school-address {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .document-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .section {
+            margin: 30px 0;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-left: 4px solid #333;
+            margin-bottom: 15px;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        
+        .info-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        
+        .info-table .label {
+            font-weight: bold;
+            background-color: #f9f9f9;
+            width: 30%;
+        }
+        
+        .photo-area {
+            width: 120px;
+            height: 150px;
+            border: 1px solid #ddd;
+            text-align: center;
+            padding: 5px;
+        }
+        
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        
+        .declaration {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            background-color: #f9f9f9;
+        }
+        
+        .signature-area {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+        }
+        
+        .signature {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin: 60px 0 5px 0;
+        }
+        
+        .print-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .print-btn:hover {
+            background-color: #218838;
+        }
+        
+        .watermark {
+            opacity: 0.1;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80px;
+            color: #333;
+            pointer-events: none;
+        }
+        
+        .form-number {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">ADMISSION FORM</div>
+    
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Print Admission Form</button>
+    
+    <div class="form-number">Form No: {{ form_number }}</div>
+    
+    <div class="header">
+        <div class="school-name">{{ school.name }}</div>
+        <div class="school-address">{{ school.address }}</div>
+        <div class="school-address">Phone: {{ school.phone_number }} | Email: {{ school.email }}</div>
+        <div class="document-title">STUDENT ADMISSION FORM</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Student Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Full Name:</td>
+                <td>{{ student.user.get_full_name }}</td>
+                <td rowspan="4" class="photo-area">
+                    {% if student.user.profile_picture %}
+                        <img src="{{ student.user.profile_picture.url }}" alt="Student Photo" style="max-width: 100%; max-height: 100%;">
+                    {% else %}
+                        <div class="photo-placeholder">
+                            Student Photo<br>(Passport Size)
+                        </div>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Date of Birth:</td>
+                <td>{{ student.user.date_of_birth }}</td>
+            </tr>
+            <tr>
+                <td class="label">Gender:</td>
+                <td>{{ student.user.get_gender_display }}</td>
+            </tr>
+            <tr>
+                <td class="label">Student ID:</td>
+                <td>{{ student.student_id }}</td>
+            </tr>
+            <tr>
+                <td class="label">Admission Number:</td>
+                <td colspan="2">{{ student.admission_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Grade/Class:</td>
+                <td colspan="2">{{ student.grade_level }}</td>
+            </tr>
+            <tr>
+                <td class="label">Address:</td>
+                <td colspan="2">{{ student.user.address }}</td>
+            </tr>
+            <tr>
+                <td class="label">Email:</td>
+                <td colspan="2">{{ student.user.email }}</td>
+            </tr>
+            <tr>
+                <td class="label">Phone:</td>
+                <td colspan="2">{{ student.user.phone_number }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Parent/Guardian Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Father's Name:</td>
+                <td>{{ student.parent.father_name|default:"N/A" }}</td>
+                <td class="label">Mother's Name:</td>
+                <td>{{ student.parent.mother_name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Father's Phone:</td>
+                <td>{{ student.parent.father_phone|default:"N/A" }}</td>
+                <td class="label">Mother's Phone:</td>
+                <td>{{ student.parent.mother_phone|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Father's Email:</td>
+                <td>{{ student.parent.father_email|default:"N/A" }}</td>
+                <td class="label">Mother's Email:</td>
+                <td>{{ student.parent.mother_email|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Emergency Contact:</td>
+                <td colspan="3">
+                    {{ student.parent.emergency_contact_name|default:"N/A" }} - 
+                    {{ student.parent.emergency_contact_phone|default:"N/A" }}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Parent Address:</td>
+                <td colspan="3">{{ student.parent.address|default:"N/A" }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Academic Information</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Admission Date:</td>
+                <td>{{ student.admission_date }}</td>
+                <td class="label">Academic Year:</td>
+                <td>{{ academic_year }}</td>
+            </tr>
+            <tr>
+                <td class="label">Previous School:</td>
+                <td colspan="3">{{ student.previous_school|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Department:</td>
+                <td colspan="3">{{ student.department.name|default:"N/A" }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="declaration">
+        <div style="font-weight: bold; margin-bottom: 10px;">DECLARATION</div>
+        <p>
+            I hereby declare that the information provided in this admission form is true and correct to the best of my knowledge. 
+            I agree to abide by the rules and regulations of {{ school.name }} and understand that any false information may lead 
+            to cancellation of admission.
+        </p>
+        <p>
+            I also understand that all fees paid are non-refundable and agree to pay the school fees as per the school's fee structure.
+        </p>
+    </div>
+    
+    <div class="signature-area">
+        <div class="signature">
+            <div class="signature-line"></div>
+            <div>Parent/Guardian Signature</div>
+            <div style="font-size: 12px; margin-top: 5px;">Date: ________________</div>
+        </div>
+        <div class="signature">
+            <div class="signature-line"></div>
+            <div>School Administrator</div>
+            <div style="font-size: 12px; margin-top: 5px;">Date: ________________</div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #666;">
+        This admission form is generated on {{ generated_date }}
+    </div>
+    
+    <script>
+        // Auto-print if specified in URL
+        if (window.location.search.includes('autoprint=true')) {
+            window.print();
+        }
+        
+        // Close window after print (optional)
+        window.onafterprint = function() {
+            if (window.location.search.includes('closeafterprint=true')) {
+                setTimeout(function() {
+                    window.close();
+                }, 500);
+            }
+        };
+    </script>
+</body>
+</html>

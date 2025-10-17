@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Fee Receipt - {{ school.name }}</title>
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 0.5in;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                color: #333;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px double #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .school-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .school-address {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .document-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .receipt-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .student-info, .receipt-details {
+            width: 48%;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .info-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .info-table .label {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            width: 40%;
+        }
+        
+        .fee-details {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .fee-details th {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .fee-details td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+        
+        .signature-area {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin: 40px 0 5px 0;
+        }
+        
+        .print-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .print-btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .watermark {
+            opacity: 0.1;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80px;
+            color: #333;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark">OFFICIAL RECEIPT</div>
+    
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Print Receipt</button>
+    
+    <div class="header">
+        <div class="school-name">{{ school.name }}</div>
+        <div class="school-address">{{ school.address }}</div>
+        <div class="school-address">Phone: {{ school.phone_number }} | Email: {{ school.email }}</div>
+        <div class="document-title">FEE PAYMENT RECEIPT</div>
+    </div>
+    
+    <div class="receipt-info">
+        <div class="student-info">
+            <table class="info-table">
+                <tr>
+                    <td class="label">Student Name:</td>
+                    <td>{{ fee.student.user.get_full_name }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Student ID:</td>
+                    <td>{{ fee.student.student_id }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Class/Grade:</td>
+                    <td>{{ fee.student.grade_level }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Parent Name:</td>
+                    <td>{{ fee.student.parent.father_name|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="receipt-details">
+            <table class="info-table">
+                <tr>
+                    <td class="label">Receipt No:</td>
+                    <td>#{{ receipt_number }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Date Issued:</td>
+                    <td>{{ issue_date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Academic Year:</td>
+                    <td>{{ academic_year }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Payment Method:</td>
+                    <td>{{ payment_method }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <table class="fee-details">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Due Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ fee.get_fee_type_display }}</td>
+                <td>${{ fee.amount }}</td>
+                <td>{{ fee.get_status_display }}</td>
+                <td>{{ fee.due_date }}</td>
+            </tr>
+            {% if fee.paid_amount %}
+            <tr>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Paid Amount:</td>
+                <td style="font-weight: bold;">${{ fee.paid_amount }}</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Balance:</td>
+                <td style="font-weight: bold; color: {% if fee.balance > 0 %}red{% else %}green{% endif %};">
+                    ${{ fee.balance }}
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    
+    {% if fee.notes %}
+    <div style="margin: 20px 0;">
+        <strong>Notes:</strong> {{ fee.notes }}
+    </div>
+    {% endif %}
+    
+    <div class="footer">
+        <div class="signature-area">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>School Administrator</div>
+            </div>
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div>Parent/Guardian Signature</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; font-size: 12px;">
+            This is a computer-generated receipt. No signature required.
+        </div>
+    </div>
+    
+    <script>
+        // Auto-print if specified in URL
+        if (window.location.search.includes('autoprint=true')) {
+            window.print();
+        }
+        
+        // Close window after print (optional)
+        window.onafterprint = function() {
+            if (window.location.search.includes('closeafterprint=true')) {
+                setTimeout(function() {
+                    window.close();
+                }, 500);
+            }
+        };
+    </script>
+</body>
+</html>

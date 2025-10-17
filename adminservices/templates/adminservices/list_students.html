@@ -19,6 +19,12 @@
   .btn-sm i {
     font-size: 12px;
   }
+  .actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 </style>
 {% endblock %}
 
@@ -105,12 +111,29 @@
                       <td>{{ student.user.address|truncatechars:20 }}</td>
                       <td class="text-right">
                         <div class="actions">
-                          <a href="{% url 'adminservices:edit-student' student.id %}" class="btn btn-sm bg-success-light mr-2">
+                          <!-- New: Print & Download Admission Form -->
+                          <a href="{% url 'adminservices:print-admission-form' student.id %}" 
+                             target="_blank" 
+                             class="btn btn-sm btn-outline-primary"
+                             title="Print Admission Form">
+                            🖨️
+                          </a>
+                          <a href="{% url 'adminservices:download-admission-form' student.id %}" 
+                             class="btn btn-sm btn-outline-secondary"
+                             title="Download Admission Form (PDF)">
+                            📄
+                          </a>
+
+                          <!-- Existing: Edit & Delete -->
+                          <a href="{% url 'adminservices:edit-student' student.id %}" 
+                             class="btn btn-sm bg-success-light"
+                             title="Edit">
                             <i class="fas fa-pen"></i>
                           </a>
                           <a href="{% url 'adminservices:delete-student' student.id %}"
                              class="btn btn-sm bg-danger-light"
-                             onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');">
+                             onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');"
+                             title="Delete">
                             <i class="fas fa-trash"></i>
                           </a>
                         </div>

@@ -37,4 +37,11 @@ urlpatterns = [
     
     
     path('ai-dashboard/', views.dashboard, name='ai_dashboard'),
+    path('promotion/dashboard/', views.promotion_dashboard, name='promotion-dashboard'),
+    path('promotion/class/<str:class_name>/', views.view_class_students, name='view-class-students'),
+    path('promotion/bulk/<str:class_name>/', views.bulk_promote_students, name='bulk-promote'),
+    path('promotion/individual/<uuid:student_id>/', views.individual_promotion, name='individual-promotion'),
+    path('promotion/history/', views.promotion_history, name='promotion-history'),
+    path('promotion/history/<uuid:student_id>/', views.promotion_history, name='student-promotion-history'),
+    path('api/student-promotion-data/<uuid:student_id>/', views.get_student_promotion_data, name='student-promotion-data'),
 ]

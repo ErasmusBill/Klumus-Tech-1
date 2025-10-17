@@ -1,0 +1,259 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}Individual Promotion - {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h3 class="page-title">Individual Student Promotion</h3>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'teacher:view-class-students' student.student_class %}">{{ student.get_student_class_display }}</a></li>
+                <li class="breadcrumb-item active">{{ student.user.get_full_name }}</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <!-- Student Information Card -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Student Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if student.student_image %}
+                        <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" 
+                             class="rounded-circle" width="100" height="100">
+                    {% else %}
+                        <div class="avatar-placeholder rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
+                             style="width: 100px; height: 100px;">
+                            <i class="fas fa-user-graduate fa-2x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <h5 class="text-center">{{ student.user.get_full_name }}</h5>
+                <p class="text-center text-muted">{{ student.student_id }}</p>
+                
+                <div class="student-details">
+                    <p><strong>Admission No:</strong> {{ student.admission_number }}</p>
+                    <p><strong>Current Class:</strong> {{ student.get_student_class_display }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge badge-{% if student.is_active %}success{% else %}danger{% endif %}">
+                            {{ student.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </p>
+                    <p><strong>Promotion Status:</strong> 
+                        <span class="badge badge-{% if student.promotion_status == 'promoted' %}success{% elif student.promotion_status == 'retained' %}warning{% elif student.promotion_status == 'graduated' %}info{% else %}secondary{% endif %}">
+                            {{ student.get_promotion_status_display }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Academic Performance Summary -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Academic Summary</h4>
+            </div>
+            <div class="card-body">
+                <div class="performance-stats">
+                    <div class="stat-item text-center mb-3">
+                        <h3 class="text-{% if average_percentage >= 50 %}success{% else %}warning{% endif %}">
+                            {{ average_percentage|floatformat:1 }}%
+                        </h3>
+                        <p class="text-muted mb-0">Average Score</p>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5>{{ recent_results.count }}</h5>
+                            <small class="text-muted">Subjects</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-{% if average_percentage >= 50 %}success{% else %}warning{% endif %}">
+                                {{ average_percentage|floatformat:1 }}%
+                            </h5>
+                            <small class="text-muted">Average</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- Promotion Form -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Promotion Action</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Academic Year</label>
+                                <input type="text" class="form-control" name="academic_year" 
+                                       value="{{ academic_year }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Current Class</label>
+                                <input type="text" class="form-control" 
+                                       value="{{ student.get_student_class_display }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Promotion Action</label>
+                        <div class="promotion-options">
+                            {% if next_class %}
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="promote" name="promotion_action" value="promote" 
+                                       class="custom-control-input" checked>
+                                <label class="custom-control-label text-success" for="promote">
+                                    <i class="fas fa-arrow-up"></i> 
+                                    <strong>Promote to {{ next_class_name }}</strong>
+                                </label>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="retain" name="promotion_action" value="retain" 
+                                       class="custom-control-input">
+                                <label class="custom-control-label text-warning" for="retain">
+                                    <i class="fas fa-redo"></i> 
+                                    <strong>Retain in {{ student.get_student_class_display }}</strong>
+                                </label>
+                            </div>
+                            
+                            {% if can_graduate %}
+                            <div class="custom-control custom-radio mb-2">
+                                <input type="radio" id="graduate" name="promotion_action" value="graduate" 
+                                       class="custom-control-input">
+                                <label class="custom-control-label text-info" for="graduate">
+                                    <i class="fas fa-graduation-cap"></i> 
+                                    <strong>Graduate Student</strong>
+                                </label>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Remarks (Optional)</label>
+                        <textarea class="form-control" name="remarks" rows="3" 
+                                  placeholder="Add any remarks about this promotion decision..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> This action will update the student's class and create a permanent record in the promotion history.
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        <a href="{% url 'teacher:view-class-students' student.student_class %}" 
+                           class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check"></i> Confirm Promotion Action
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Academic Performance -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Recent Academic Performance</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Term</th>
+                                <th>Year</th>
+                                <th>Total</th>
+                                <th>Grade</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in recent_results %}
+                            <tr>
+                                <td>{{ result.subject.name }}</td>
+                                <td>{{ result.get_term_display }}</td>
+                                <td>{{ result.academic_year }}</td>
+                                <td>
+                                    <strong>{{ result.total_marks }}/100</strong>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if result.grade == 'F' %}danger{% else %}success{% endif %}">
+                                        {{ result.grade }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{% if result.percentage >= 50 %}success{% else %}warning{% endif %}">
+                                        {{ result.percentage|floatformat:1 }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <i class="fas fa-info-circle"></i> No academic records found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add confirmation for promotion actions
+    $('form').on('submit', function(e) {
+        const action = $('input[name="promotion_action"]:checked').val();
+        let message = '';
+        
+        switch(action) {
+            case 'promote':
+                message = `Are you sure you want to promote {{ student.user.get_full_name }} to {{ next_class_name }}?`;
+                break;
+            case 'retain':
+                message = `Are you sure you want to retain {{ student.user.get_full_name }} in {{ student.get_student_class_display }}?`;
+                break;
+            case 'graduate':
+                message = `Are you sure you want to graduate {{ student.user.get_full_name }}?`;
+                break;
+        }
+        
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

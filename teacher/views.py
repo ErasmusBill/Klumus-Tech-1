@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
 from .forms import BulkResultForm, EditResultForm,AttendanceForm,AssignmentForm
-from account.models import ResultSheet, Subject, Student, Teacher,Attendance,Assignment,AssignmentSubmission
+from account.models import ResultSheet, Subject, Student, Teacher,Attendance,Assignment,AssignmentSubmission,PromotionHistory,Enrollment
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.core.mail import send_mail
@@ -17,6 +17,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponse
 import os
 from ai_predictor.models import PredictedPerformance
+from django.http import JsonResponse
 
 
 def teacher_dashboard(request):
@@ -1012,7 +1013,7 @@ def bulk_download_submissions(request, assignment_id):
 
 
 
-
+@login_required
 def dashboard(request):
     """
     Show AI prediction summary and risk analysis.
@@ -1029,3 +1030,488 @@ def dashboard(request):
         "data": data,
         "risk_summary": risk_summary,
     })
+    
+@login_required
+def promotion_dashboard(request):
+    """Main promotion management dashboard"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        messages.error(request, "You are not authorized to access this page.")
+        return redirect("account:login")
+
+    try:
+        if request.user.role == "teacher":
+            teacher = request.user.teacher_profile
+            school = teacher.school
+        else:  # admin
+            school = request.user.managed_school
+    except Exception as e:
+        messages.error(request, "Profile not found.")
+        return redirect("account:login")
+
+    # Get all classes with student counts
+    classes_data = []
+    for class_choice in Student.CLASS_CHOICES:
+        class_code, class_name = class_choice
+        student_count = Student.objects.filter(
+            school=school,
+            student_class=class_code,
+            is_active=True
+        ).count()
+        
+        classes_data.append({
+            'code': class_code,
+            'name': class_name,
+            'student_count': student_count
+        })
+
+    # Get recent promotion history
+    recent_promotions = PromotionHistory.objects.filter(
+        student__school=school
+    ).select_related('student__user', 'promoted_by').order_by('-promotion_date')[:10]
+
+    context = {
+        'classes': classes_data,
+        'recent_promotions': recent_promotions,
+        'school': school,
+        'student_class_keys': Student.CLASS_CHOICES,  # Add this line
+        'title': 'Student Promotion Management'
+    }
+    
+    return render(request, "teacher/promotion_dashboard.html", context)
+@login_required
+def view_class_students(request, class_name):
+    """View students in a specific class for promotion"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
+
+    try:
+        if request.user.role == "teacher":
+            teacher = request.user.teacher_profile
+            school = teacher.school
+        else:
+            school = request.user.managed_school
+    except Exception as e:
+        messages.error(request, "Profile not found.")
+        return redirect("account:login")
+
+    # Get students in the specified class
+    students = Student.objects.filter(
+        school=school,
+        student_class=class_name,
+        is_active=True
+    ).select_related('user').order_by('user__last_name', 'user__first_name')
+
+    # Get class progression info
+    class_progression = dict(Student.CLASS_CHOICES)
+    class_keys = list(class_progression.keys())
+    
+    try:
+        current_index = class_keys.index(class_name)
+        next_class = class_keys[current_index + 1] if current_index < len(class_keys) - 1 else None
+        next_class_name = class_progression.get(next_class, "Graduation") if next_class else "Graduation"
+    except ValueError:
+        next_class = None
+        next_class_name = "Unknown"
+
+    context = {
+        'students': students,
+        'current_class': class_name,
+        'current_class_display': class_progression.get(class_name, class_name),
+        'next_class': next_class,
+        'next_class_name': next_class_name,
+        'is_final_class': next_class is None,
+        'title': f'Students in {class_progression.get(class_name, class_name)}'
+    }
+    
+    return render(request, "teacher/class_students.html", context)
+
+@login_required
+def bulk_promote_students(request, class_name):
+    """Bulk promote students from one class to another"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
+
+    try:
+        if request.user.role == "teacher":
+            teacher = request.user.teacher_profile
+            school = teacher.school
+            promoted_by = request.user
+        else:
+            school = request.user.managed_school
+            promoted_by = request.user
+    except Exception as e:
+        messages.error(request, "Profile not found.")
+        return redirect("account:login")
+
+    if request.method == "POST":
+        student_ids = request.POST.getlist('student_ids')
+        promotion_action = request.POST.get('promotion_action', 'promote')
+        academic_year = request.POST.get('academic_year', school.get_current_academic_year())
+        
+        if not student_ids:
+            messages.error(request, "No students selected for promotion.")
+            return redirect('teacher:view-class-students', class_name=class_name)
+
+        # Get class progression
+        class_progression = dict(Student.CLASS_CHOICES)
+        class_keys = list(class_progression.keys())
+        
+        try:
+            current_index = class_keys.index(class_name)
+            if current_index < len(class_keys) - 1:
+                next_class = class_keys[current_index + 1]
+            else:
+                next_class = None
+        except ValueError:
+            messages.error(request, "Invalid class specified.")
+            return redirect('teacher:view-class-students', class_name=class_name)
+
+        promoted_count = 0
+        retained_count = 0
+        
+        try:
+            with transaction.atomic():
+                for student_id in student_ids:
+                    student = Student.objects.get(id=student_id, school=school)
+                    
+                    if promotion_action == 'promote' and next_class:
+                        # Promote student
+                        student.previous_class = student.student_class
+                        student.student_class = next_class
+                        student.promotion_status = 'promoted'
+                        student.promoted_to = None
+                        student.promotion_date = timezone.now().date()
+                        student.save()
+                        
+                        # Create promotion history record
+                        PromotionHistory.objects.create(
+                            student=student,
+                            from_class=class_name,
+                            to_class=next_class,
+                            academic_year=academic_year,
+                            promotion_date=timezone.now().date(),
+                            promoted_by=promoted_by,
+                            remarks=f"Bulk promotion from {class_progression.get(class_name)} to {class_progression.get(next_class)}"
+                        )
+                        
+                        # Auto-enroll in new class subjects
+                        auto_enroll_student_in_new_class(student, next_class)
+                        
+                        promoted_count += 1
+                        
+                    elif promotion_action == 'retain':
+                        # Retain student
+                        student.promotion_status = 'retained'
+                        student.promoted_to = None
+                        student.promotion_date = timezone.now().date()
+                        student.save()
+                        
+                        retained_count += 1
+
+                # Success message
+                if promotion_action == 'promote':
+                    messages.success(
+                        request, 
+                        f"Successfully promoted {promoted_count} students to {class_progression.get(next_class)}."
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Successfully retained {retained_count} students in {class_progression.get(class_name)}."
+                    )
+                    
+                return redirect('teacher:view-class-students', class_name=class_name)
+
+        except Exception as e:
+            messages.error(request, f"An error occurred during promotion: {str(e)}")
+            return redirect('teacher:view-class-students', class_name=class_name)
+
+    # GET request - show confirmation page
+    students = Student.objects.filter(
+        school=school,
+        student_class=class_name,
+        is_active=True
+    ).select_related('user')
+
+    class_progression = dict(Student.CLASS_CHOICES)
+    class_keys = list(class_progression.keys())
+    
+    try:
+        current_index = class_keys.index(class_name)
+        next_class = class_keys[current_index + 1] if current_index < len(class_keys) - 1 else None
+        next_class_name = class_progression.get(next_class, "Graduation") if next_class else "Graduation"
+    except ValueError:
+        next_class = None
+        next_class_name = "Unknown"
+
+    context = {
+        'students': students,
+        'current_class': class_name,
+        'current_class_display': class_progression.get(class_name, class_name),
+        'next_class': next_class,
+        'next_class_name': next_class_name,
+        'academic_year': school.get_current_academic_year(),
+        'title': f'Promote Students from {class_progression.get(class_name, class_name)}'
+    }
+    
+    return render(request, "teacher/bulk_promotion.html", context)
+
+def auto_enroll_student_in_new_class(student, new_class):
+    """Automatically enroll student in subjects for their new class"""
+    try:
+        # Get subjects for the new class in the student's school
+        new_subjects = Subject.objects.filter(
+            school=student.school,
+            subject_class=new_class
+        )
+        
+        # Enroll in new subjects
+        for subject in new_subjects:
+            Enrollment.objects.get_or_create(
+                student=student,
+                subject=subject,
+                defaults={'is_active': True}
+            )
+        
+        # Deactivate enrollments in old class subjects
+        old_subjects = Subject.objects.filter(
+            school=student.school,
+            subject_class=student.previous_class
+        )
+        
+        Enrollment.objects.filter(
+            student=student,
+            subject__in=old_subjects
+        ).update(is_active=False)
+        
+        return True
+    except Exception as e:
+        print(f"Error auto-enrolling student {student}: {str(e)}")
+        return False
+
+@login_required
+def individual_promotion(request, student_id):
+    """Promote an individual student"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
+
+    try:
+        if request.user.role == "teacher":
+            teacher = request.user.teacher_profile
+            school = teacher.school
+            promoted_by = request.user
+        else:
+            school = request.user.managed_school
+            promoted_by = request.user
+    except Exception as e:
+        messages.error(request, "Profile not found.")
+        return redirect("account:login")
+
+    student = get_object_or_404(Student, id=student_id, school=school)
+    
+    if request.method == "POST":
+        promotion_action = request.POST.get('promotion_action')
+        academic_year = request.POST.get('academic_year', school.get_current_academic_year())
+        remarks = request.POST.get('remarks', '')
+        
+        class_progression = dict(Student.CLASS_CHOICES)
+        class_keys = list(class_progression.keys())
+        
+        try:
+            current_index = class_keys.index(student.student_class)
+            if current_index < len(class_keys) - 1:
+                next_class = class_keys[current_index + 1]
+            else:
+                next_class = None
+        except ValueError:
+            messages.error(request, "Invalid student class.")
+            return redirect('teacher:student-details', student_id=student_id)
+
+        try:
+            with transaction.atomic():
+                if promotion_action == 'promote' and next_class:
+                    # Promote student
+                    student.previous_class = student.student_class
+                    student.student_class = next_class
+                    student.promotion_status = 'promoted'
+                    student.promoted_to = None
+                    student.promotion_date = timezone.now().date()
+                    student.save()
+                    
+                    # Create promotion history
+                    PromotionHistory.objects.create(
+                        student=student,
+                        from_class=student.previous_class,
+                        to_class=next_class,
+                        academic_year=academic_year,
+                        promotion_date=timezone.now().date(),
+                        promoted_by=promoted_by,
+                        remarks=remarks or f"Individual promotion to {class_progression.get(next_class)}"
+                    )
+                    
+                    # Auto-enroll in new class
+                    auto_enroll_student_in_new_class(student, next_class)
+                    
+                    messages.success(
+                        request, 
+                        f"Successfully promoted {student.user.get_full_name()} to {class_progression.get(next_class)}."
+                    )
+                    
+                elif promotion_action == 'retain':
+                    # Retain student
+                    student.promotion_status = 'retained'
+                    student.promoted_to = None
+                    student.promotion_date = timezone.now().date()
+                    student.save()
+                    
+                    messages.success(
+                        request,
+                        f"Successfully retained {student.user.get_full_name()} in {class_progression.get(student.student_class)}."
+                    )
+                
+                elif promotion_action == 'graduate' and not next_class:
+                    # Graduate student
+                    student.promotion_status = 'graduated'
+                    student.promoted_to = None
+                    student.promotion_date = timezone.now().date()
+                    student.is_active = False  # Optionally deactivate graduated students
+                    student.save()
+                    
+                    messages.success(
+                        request,
+                        f"Successfully graduated {student.user.get_full_name()}."
+                    )
+
+                return redirect('teacher:view-class-students', class_name=student.previous_class or student.student_class)
+
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('teacher:individual-promotion', student_id=student_id)
+
+    # GET request - show promotion form
+    class_progression = dict(Student.CLASS_CHOICES)
+    class_keys = list(class_progression.keys())
+    
+    try:
+        current_index = class_keys.index(student.student_class)
+        next_class = class_keys[current_index + 1] if current_index < len(class_keys) - 1 else None
+        next_class_name = class_progression.get(next_class, "Graduation") if next_class else "Graduation"
+    except ValueError:
+        next_class = None
+        next_class_name = "Unknown"
+
+    # Get student's academic performance for decision making
+    recent_results = ResultSheet.objects.filter(
+        student=student
+    ).select_related('subject').order_by('-academic_year', '-term')[:10]
+
+    average_percentage = recent_results.aggregate(avg=models.Avg('percentage'))['avg'] or 0
+
+    context = {
+        'student': student,
+        'recent_results': recent_results,
+        'average_percentage': average_percentage,
+        'next_class': next_class,
+        'next_class_name': next_class_name,
+        'can_graduate': next_class is None,
+        'academic_year': school.get_current_academic_year(),
+        'title': f'Promote {student.user.get_full_name()}'
+    }
+    
+    return render(request, "teacher/individual_promotion.html", context)
+
+@login_required
+def promotion_history(request, student_id=None):
+    """View promotion history for a student or all students"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
+
+    try:
+        if request.user.role == "teacher":
+            teacher = request.user.teacher_profile
+            school = teacher.school
+        else:
+            school = request.user.managed_school
+    except Exception as e:
+        messages.error(request, "Profile not found.")
+        return redirect("account:login")
+
+    if student_id:
+        # Single student history
+        student = get_object_or_404(Student, id=student_id, school=school)
+        promotions = PromotionHistory.objects.filter(
+            student=student
+        ).select_related('promoted_by').order_by('-promotion_date')
+        
+        context = {
+            'promotions': promotions,
+            'student': student,
+            'title': f'Promotion History - {student.user.get_full_name()}'
+        }
+        template = "teacher/student_promotion_history.html"
+    else:
+        # All promotions in school
+        promotions = PromotionHistory.objects.filter(
+            student__school=school
+        ).select_related('student__user', 'promoted_by').order_by('-promotion_date')
+        
+        context = {
+            'promotions': promotions,
+            'title': 'School Promotion History'
+        }
+        template = "teacher/school_promotion_history.html"
+    
+    return render(request, template, context)
+
+@login_required
+def get_student_promotion_data(request, student_id):
+    """AJAX endpoint to get student data for promotion decisions"""
+    if request.user.role != "teacher" and request.user.role != "admin":
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    try:
+        if request.user.role == "teacher":
+            school = request.user.teacher_profile.school
+        else:
+            school = request.user.managed_school
+        
+        student = Student.objects.get(id=student_id, school=school)
+        
+        # Get academic performance data
+        results = ResultSheet.objects.filter(student=student)
+        
+        performance_data = {
+            'total_subjects': results.count(),
+            'average_percentage': results.aggregate(avg=models.Avg('percentage'))['avg'] or 0,
+            'subjects_below_50': results.filter(percentage__lt=50).count(),
+            'best_subject': results.order_by('-percentage').first(),
+            'worst_subject': results.order_by('percentage').first(),
+        }
+        
+        # Get attendance data
+        attendance_data = {
+            'total_days': 0,  # You would implement this based on your attendance model
+            'present_days': 0,
+            'attendance_rate': 0,
+        }
+        
+        return JsonResponse({
+            'student': {
+                'id': student.id,
+                'name': student.user.get_full_name(),
+                'current_class': student.get_student_class_display(),
+                'admission_number': student.admission_number,
+            },
+            'performance': performance_data,
+            'attendance': attendance_data
+        })
+        
+    except Student.DoesNotExist:
+        return JsonResponse({'error': 'Student not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

@@ -232,12 +232,56 @@
                                 </li>
                             </ul>
                         </li>
-                        <li>
-    <a href="#">AI Insights</a>
-    <ul>
-        <li><a href="{% url 'teacher:ai_dashboard' %}">Student Performance Dashboard</a></li>
-    </ul>
-</li>
+
+                        <!-- PROMOTION MANAGEMENT -->
+                        <li class="submenu {% if 'promotion' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-user-graduate"></i> <span>Promotion Management</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'promotion-dashboard' %}active{% endif %}">
+                                    <a href="{% url 'teacher:promotion-dashboard' %}">
+                                        <i class="fas fa-tachometer-alt"></i> Promotion Dashboard
+                                    </a>
+                                </li>
+                                <li class="{% if 'view-class-students' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:promotion-dashboard' %}#classes">
+                                        <i class="fas fa-layer-group"></i> Manage by Class
+                                    </a>
+                                </li>
+                                <li class="{% if 'bulk-promote' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:promotion-dashboard' %}#bulk">
+                                        <i class="fas fa-users"></i> Bulk Promotion
+                                    </a>
+                                </li>
+                                <li class="{% if 'individual-promotion' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:promotion-dashboard' %}#individual">
+                                        <i class="fas fa-user-edit"></i> Individual Promotion
+                                    </a>
+                                </li>
+                                <li class="{% if 'promotion-history' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:promotion-history' %}">
+                                        <i class="fas fa-history"></i> Promotion History
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- AI Insights -->
+                        <li class="submenu {% if 'ai_dashboard' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-brain"></i> <span>AI Insights</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'ai_dashboard' %}active{% endif %}">
+                                    <a href="{% url 'teacher:ai_dashboard' %}">
+                                        <i class="fas fa-chart-line"></i> Student Performance Dashboard
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
 
                         <!-- Profile & Settings -->
                         <li class="submenu {% if 'profile' in request.resolver_match.url_name or 'change-password' in request.resolver_match.url_name %}active open{% endif %}">

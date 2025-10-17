@@ -1,0 +1,95 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}Promotion History - {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h3 class="page-title">Promotion History</h3>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+                <li class="breadcrumb-item active">Promotion History</li>
+            </ul>
+        </div>
+        <div class="col-auto text-right float-right ml-auto">
+            <a href="{% url 'teacher:promotion-dashboard' %}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">All Promotion Records</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-center mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>From Class</th>
+                                <th>To Class</th>
+                                <th>Academic Year</th>
+                                <th>Processed By</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for promotion in promotions %}
+                            <tr>
+                                <td>{{ promotion.promotion_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'teacher:student-promotion-history' promotion.student.id %}">
+                                            {{ promotion.student.user.get_full_name }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">{{ promotion.student.student_id }}</small>
+                                </td>
+                                <td>{{ promotion.get_from_class_display }}</td>
+                                <td>
+                                    {% if promotion.to_class %}
+                                        {{ promotion.get_to_class_display }}
+                                    {% else %}
+                                        <span class="text-success">Graduated</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ promotion.academic_year }}</td>
+                                <td>
+                                    {% if promotion.promoted_by %}
+                                        {{ promotion.promoted_by.get_full_name }}
+                                    {% else %}
+                                        <span class="text-muted">System</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if promotion.remarks %}
+                                        <small class="text-muted">{{ promotion.remarks|truncatewords:10 }}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    <i class="fas fa-info-circle"></i> No promotion records found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

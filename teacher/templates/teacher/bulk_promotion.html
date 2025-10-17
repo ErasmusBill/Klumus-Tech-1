@@ -1,0 +1,175 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}Bulk Promotion - {{ current_class_display }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h3 class="page-title">Bulk Student Promotion</h3>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'teacher:view-class-students' current_class %}">{{ current_class_display }}</a></li>
+                <li class="breadcrumb-item active">Bulk Promotion</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">
+                    Promote Students from {{ current_class_display }}
+                    {% if next_class_name %}
+                    <small class="text-muted">→ To: {{ next_class_name }}</small>
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Academic Year</label>
+                                <input type="text" class="form-control" name="academic_year" 
+                                       value="{{ academic_year }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Promotion Action</label>
+                                <select class="form-control" name="promotion_action" required>
+                                    {% if next_class %}
+                                    <option value="promote">Promote to {{ next_class_name }}</option>
+                                    {% endif %}
+                                    <option value="retain">Retain in {{ current_class_display }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="5%">
+                                        <input type="checkbox" id="select-all">
+                                    </th>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Admission Number</th>
+                                    <th>Current Status</th>
+                                    <th>Academic Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="student_ids" 
+                                               value="{{ student.id }}" class="student-checkbox">
+                                    </td>
+                                    <td>{{ student.student_id }}</td>
+                                    <td>
+                                        <h6 class="mb-0">{{ student.user.get_full_name }}</h6>
+                                        <small class="text-muted">{{ student.user.email }}</small>
+                                    </td>
+                                    <td>{{ student.admission_number }}</td>
+                                    <td>
+                                        <span class="badge badge-{% if student.promotion_status == 'promoted' %}success{% elif student.promotion_status == 'retained' %}warning{% elif student.promotion_status == 'graduated' %}info{% else %}secondary{% endif %}">
+                                            {{ student.get_promotion_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% with results=student.results.all %}
+                                            {% if results %}
+                                                {% with avg=results.0.percentage %}
+                                                    <span class="badge badge-{% if avg >= 50 %}success{% else %}warning{% endif %}">
+                                                        Avg: {{ avg|floatformat:1 }}%
+                                                    </span>
+                                                {% endwith %}
+                                            {% else %}
+                                                <span class="badge badge-secondary">No data</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">
+                                        <i class="fas fa-info-circle"></i> No students found in this class.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Selected: <span id="selected-count">0</span> students</h6>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <button type="submit" class="btn btn-primary" id="promote-btn" disabled>
+                                    <i class="fas fa-graduation-cap"></i> 
+                                    Process Promotion for <span id="selected-text">0</span> Students
+                                </button>
+                                <a href="{% url 'teacher:view-class-students' current_class %}" 
+                                   class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Select all checkbox
+    $('#select-all').change(function() {
+        $('.student-checkbox').prop('checked', this.checked);
+        updatePromoteButton();
+    });
+
+    // Update promote button state
+    $('.student-checkbox').change(function() {
+        updatePromoteButton();
+    });
+
+    function updatePromoteButton() {
+        const checkedCount = $('.student-checkbox:checked').length;
+        $('#selected-count').text(checkedCount);
+        $('#selected-text').text(checkedCount);
+        $('#promote-btn').prop('disabled', checkedCount === 0);
+    }
+
+    // Form submission confirmation
+    $('form').on('submit', function(e) {
+        const action = $('select[name="promotion_action"]').val();
+        const count = $('.student-checkbox:checked').length;
+        let message = '';
+        
+        if (action === 'promote') {
+            message = `Are you sure you want to promote ${count} students from {{ current_class_display }} to {{ next_class_name }}?`;
+        } else {
+            message = `Are you sure you want to retain ${count} students in {{ current_class_display }}?`;
+        }
+        
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

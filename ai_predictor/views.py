@@ -7,10 +7,11 @@ from .models import PredictedPerformance
 from django.db.models import Count
 from django.shortcuts import render
 from .models import PredictedPerformance
+from django.contrib.auth.decorators import login_required
 
 # Load trained model
 model = joblib.load("ai_predictor/performance_model.pkl")
-
+@login_required
 def predict_student_performance(request, student_id):
     """
     Predict a student's performance using their features.
@@ -58,7 +59,7 @@ def predict_student_performance(request, student_id):
         "message": f"{student.user.get_full_name()} ({student.student_id}) is at {risk} risk of underperforming."
     })
 
-
+@login_required
 def dashboard(request):
     """
     Show AI prediction summary and risk analysis.

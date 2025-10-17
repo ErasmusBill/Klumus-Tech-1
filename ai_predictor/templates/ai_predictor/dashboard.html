@@ -1,0 +1,63 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3 text-center">🎯 AI Academic Performance Dashboard</h2>
+
+  <!-- Chart Section -->
+  <canvas id="riskChart" class="mb-5" height="120"></canvas>
+
+  <!-- Table Section -->
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>Student</th>
+        <th>Predicted Grade</th>
+        <th>Risk Level</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in data %}
+      <tr>
+        <td>{{ item.student.full_name }}</td>
+        <td>{{ item.predicted_grade }}</td>
+        <td>
+          {% if item.risk_level == "High" %}
+            <span class="badge bg-danger">{{ item.risk_level }}</span>
+          {% elif item.risk_level == "Medium" %}
+            <span class="badge bg-warning text-dark">{{ item.risk_level }}</span>
+          {% else %}
+            <span class="badge bg-success">{{ item.risk_level }}</span>
+          {% endif %}
+        </td>
+        <td>{{ item.created_at|date:"Y-m-d" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('riskChart').getContext('2d');
+const chartData = {
+  labels: [{% for r in risk_summary %}'{{ r.risk_level }}',{% endfor %}],
+  datasets: [{
+    label: 'Number of Students',
+    data: [{% for r in risk_summary %}{{ r.count }},{% endfor %}],
+    borderWidth: 1
+  }]
+};
+
+new Chart(ctx, {
+  type: 'bar',
+  data: chartData,
+  options: {
+    responsive: true,
+    scales: { y: { beginAtZero: true } }
+  }
+});
+</script>
+{% endblock %}

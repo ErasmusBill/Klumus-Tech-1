@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'teacher',
     'django_select2',
     'student',
+    "ai_predictor"
 ]
 
 MIDDLEWARE = [

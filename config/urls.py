@@ -26,4 +26,5 @@ urlpatterns = [
     path("teacher/",include("teacher.urls")),
     path("student/",include("student.urls")),
     path('select2/', include('django_select2.urls')),
+    path("ai/",include("ai_predictor.urls")),
 ] + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

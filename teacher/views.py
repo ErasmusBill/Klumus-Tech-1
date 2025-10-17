@@ -16,6 +16,7 @@ from django.db.models import Q,Avg,Count
 from django.db.models import Count, Q
 from django.http import HttpResponse
 import os
+from ai_predictor.models import PredictedPerformance
 
 
 def teacher_dashboard(request):
@@ -758,7 +759,7 @@ def add_assignment(request):
                 enrollments__is_active=True
             )
             
-            print(f"Students who will see this assignment: {enrolled_students.count()}")
+ 
             
             messages.success(request, "Assignment created successfully.")
             return redirect("teacher:assignment-list")
@@ -869,24 +870,13 @@ def view_assignment_submissions(request, assignment_id):
         return redirect("account:login")
 
     # Get the assignment
-    assignment = get_object_or_404(
-        Assignment,
-        id=assignment_id,
-        teacher=teacher,
-        subject__school=school
-    )
+    assignment = get_object_or_404(Assignment,id=assignment_id,teacher=teacher,subject__school=school)
 
     # Get all submissions for this assignment
-    submissions = AssignmentSubmission.objects.filter(
-        assignment=assignment
-    ).select_related('student__user').order_by('-submission_date')
+    submissions = AssignmentSubmission.objects.filter(assignment=assignment).select_related('student__user').order_by('-submission_date')
 
     # Statistics
-    total_students = Student.objects.filter(
-        student_class=assignment.student_class,
-        school=school,
-        is_active=True
-    ).count()
+    total_students = Student.objects.filter(student_class=assignment.student_class,school=school,is_active=True).count()
 
     submission_stats = {
         'total': submissions.count(),
@@ -1019,3 +1009,23 @@ def bulk_download_submissions(request, assignment_id):
     except Exception as e:
         messages.error(request, f"Error creating zip file: {str(e)}")
         return redirect('teacher:assignment-submissions', assignment_id=assignment_id)
+
+
+
+
+def dashboard(request):
+    """
+    Show AI prediction summary and risk analysis.
+    """
+    data = PredictedPerformance.objects.select_related("student", "student__user").all()
+
+    risk_summary = (
+        PredictedPerformance.objects
+        .values("risk_level")
+        .annotate(count=Count("id"))
+    )
+
+    return render(request, "teacher/dashboard.html", {
+        "data": data,
+        "risk_summary": risk_summary,
+    })

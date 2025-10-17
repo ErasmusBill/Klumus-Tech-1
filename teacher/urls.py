@@ -34,4 +34,7 @@ urlpatterns = [
     path('submission/<uuid:submission_id>/download/', views.download_submission_file, name='download-submission'),
     path('submission/<uuid:submission_id>/grade/', views.grade_assignment, name='grade-assignment'),
     path('assignment/<uuid:assignment_id>/bulk-download/', views.bulk_download_submissions, name='bulk-download-submissions'),
+    
+    
+    path('ai-dashboard/', views.dashboard, name='ai_dashboard'),
 ]

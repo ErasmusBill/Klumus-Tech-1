@@ -232,6 +232,12 @@
                                 </li>
                             </ul>
                         </li>
+                        <li>
+    <a href="#">AI Insights</a>
+    <ul>
+        <li><a href="{% url 'teacher:ai_dashboard' %}">Student Performance Dashboard</a></li>
+    </ul>
+</li>
 
                         <!-- Profile & Settings -->
                         <li class="submenu {% if 'profile' in request.resolver_match.url_name or 'change-password' in request.resolver_match.url_name %}active open{% endif %}">

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from student.views import view_all_assignment
 
 app_name = "student"
 
@@ -10,4 +11,11 @@ urlpatterns = [
     path("courses/", views.student_enrolled_courses, name="enrolled-courses"),
     # path("change-class/", views.student_change_class, name="change-class"),
     path("fees/<uuid:student_id>/", views.list_fees_related, name="fees-list"),
+    
+    #Assignment 
+    path("assignments",views.view_all_assignment, name="list-all-assignments"),
+    path('assignment/<uuid:assignment_id>/', views.view_assignment, name='assignment-detail'),
+    path('submit-assignment/<uuid:assignment_id>/', views.submit_assignment, name='submit-assignment'),
+    
+    
 ]

@@ -1,6 +1,6 @@
 from django import forms
 from django.db import transaction
-from account.models import Student, Subject, Enrollment
+from account.models import AssignmentSubmission, Student, Subject, Enrollment
 
 class StudentEnrollmentForm(forms.ModelForm):
     """
@@ -170,3 +170,26 @@ class BulkStudentEnrollmentForm(forms.Form):
         }
 
 
+class AssignmentSubmissionForm(forms.ModelForm):
+    class Meta:
+        model = AssignmentSubmission
+        fields = ['submission_file', 'submission_text']
+        widgets = {
+            'submission_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'submission_text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Optional: Add your answers or notes here...'
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        file = cleaned_data.get('submission_file')
+        text = cleaned_data.get('submission_text')
+
+        if not file and not text:
+            raise forms.ValidationError(
+                "You must submit either a file or text response."
+            )
+        return cleaned_data

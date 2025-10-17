@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404, render,redirect
 from django.contrib import messages
-from account.models import Enrollment, ResultSheet, Student, Teacher, Enrollment,Fees,Assignment,Attendance,Announcement,Event,Subject
+from account.models import Enrollment, ResultSheet, Student, Teacher, Enrollment,Fees,Assignment,Attendance,Announcement,Event,Subject,AssignmentSubmission
 from django.db import models
 from django.db.models import Q,Avg,Count
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm)
+from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm,AssignmentSubmissionForm)
 
 
 # Create your views here.
@@ -19,6 +19,7 @@ def student_dashboard(request):
     
     try:
         student = request.user.student_profile
+        school = student.school
     except Student.DoesNotExist:
         messages.error(request, "Student profile not found")
         return redirect("account:login")
@@ -29,7 +30,6 @@ def student_dashboard(request):
     # Enrolled courses
     enrolled_courses = Enrollment.objects.filter(student=student, is_active=True).select_related('subject__teacher__user', 'subject__department')[:5]
     
-  
     # Attendance
     total_attendance = Attendance.objects.filter(student=student).count()
     present_count = Attendance.objects.filter(student=student, status='present').count()
@@ -37,31 +37,91 @@ def student_dashboard(request):
     
     # Results
     recent_results = ResultSheet.objects.filter(student=student).select_related('subject').order_by('-exam_date')[:6]
-    
     average_grade = recent_results.aggregate(Avg('percentage'))['percentage__avg']
     
-   
     # Fees
-    pending_fees = Fees.objects.filter(student=student,paid=False).order_by('due_date')
-    
+    pending_fees = Fees.objects.filter(student=student, paid=False).order_by('due_date')
     total_pending_fees = sum(fee.net_amount() for fee in pending_fees)
     
     # Announcements
-    announcements = Announcement.objects.filter(school=student.school,published=True,target_audience__in=['all', 'students']).order_by('-created_at')[:5]
+    announcements = Announcement.objects.filter(
+        school=student.school,
+        published=True,
+        target_audience__in=['all', 'students']
+    ).order_by('-created_at')[:5]
     
     # Events
-    upcoming_events = Event.objects.filter(school=student.school,start_date__gte=timezone.now(),is_public=True).order_by('start_date')[:5]
+    upcoming_events = Event.objects.filter(
+        school=student.school,
+        start_date__gte=timezone.now(),
+        is_public=True
+    ).order_by('start_date')[:5]
+    
+    # ASSIGNMENTS DATA - NEW ADDITIONS
+    # Get all assignments for the student
+    assignments = Assignment.objects.filter(
+        subject__enrollments__student=student,
+        subject__school=school,
+        status="published"
+    ).select_related('subject', 'teacher__user')
+    
+    # Assignment statistics
+    pending_assignments_count = assignments.filter(
+        due_date__gte=timezone.now().date()
+    ).exclude(
+        id__in=AssignmentSubmission.objects.filter(
+            student=student,
+            status__in=['submitted', 'graded']
+        ).values('assignment_id')
+    ).count()
+    
+    overdue_assignments_count = assignments.filter(
+        due_date__lt=timezone.now().date()
+    ).exclude(
+        id__in=AssignmentSubmission.objects.filter(
+            student=student,
+            status__in=['submitted', 'graded']
+        ).values('assignment_id')
+    ).count()
+    
+    submitted_assignments_count = AssignmentSubmission.objects.filter(
+        student=student,
+        assignment__in=assignments
+    ).count()
+    
+    # Recent assignments (last 10)
+    recent_assignments = assignments.order_by('-created_at')[:10]
+    
+    # Upcoming deadlines (due in next 7 days)
+    upcoming_deadlines = assignments.filter(
+        due_date__gte=timezone.now().date(),
+        due_date__lte=timezone.now().date() + timezone.timedelta(days=7)
+    ).exclude(
+        id__in=AssignmentSubmission.objects.filter(
+            student=student,
+            status__in=['submitted', 'graded']
+        ).values('assignment_id')
+    ).order_by('due_date')[:5]
+    
+    upcoming_deadlines_count = upcoming_deadlines.count()
     
     context = {
         'student': student,
         'enrolled_courses': enrolled_courses,
         'enrolled_courses_count': enrolled_courses.count(),
-        # 'upcoming_assignments': upcoming_assignments,
-        # 'pending_assignments_count': pending_assignments_count,
+        
+        # Assignment data
+        'pending_assignments_count': pending_assignments_count,
+        'overdue_assignments_count': overdue_assignments_count,
+        'submitted_assignments_count': submitted_assignments_count,
+        'recent_assignments': recent_assignments,
+        'upcoming_deadlines': upcoming_deadlines,
+        'upcoming_deadlines_count': upcoming_deadlines_count,
+        
+        # Existing data
         'attendance_rate': attendance_rate,
         'recent_results': recent_results,
         'average_grade': f"{average_grade:.1f}" if average_grade else None,
-        # 'todays_schedule': todays_schedule,
         'today': today,
         'pending_fees': pending_fees,
         'total_pending_fees': total_pending_fees,
@@ -184,3 +244,108 @@ def list_fees_related(request, student_id):
     fees = Fees.objects.filter(student=student, school=school).order_by('-due_date')
     
     return render(request, "student/fees_list.html", {"fees": fees, "student": student})
+
+
+
+def view_all_assignment(request):
+    if not request.user.is_authenticated or request.user.role != "student":
+        messages.error(request, "Access denied. Students only.")
+        return redirect("account:login")
+    
+    try:
+        student = request.user.student_profile
+        school = student.school
+        student_class = student.student_class
+    except Student.DoesNotExist:    
+        messages.error(request, "Student profile not found.")
+        return redirect("account:login")
+
+
+    assignments = Assignment.objects.filter(subject__enrollments__student=student,subject__school=school,student_class=student_class,status="published").select_related('subject', 'teacher').order_by('-due_date')
+
+    return render(request, 'student/assignments.html', {
+        'assignments': assignments,
+        'student': student
+    })
+    
+def view_assignment(request, assignment_id):
+    if not request.user.is_authenticated or request.user.role != "student":
+        messages.error(request, "Access denied. Students only.")
+        return redirect("account:login")
+
+    try:
+        student = request.user.student_profile
+        school = student.school
+    except AttributeError:
+        messages.error(request, "Student profile not found.")
+        return redirect("account:login")
+
+
+    assignment = get_object_or_404(Assignment,id=assignment_id,subject__school=school,student_class=student.student_class,status="published")
+
+    # Ensure student is enrolled in the subject
+    if not assignment.subject.enrollments.filter(student=student, is_active=True).exists():
+        messages.error(request, "You are not enrolled in this subject.")
+        return redirect("student:student-dashboard")
+
+    # Get or create submission (to show current status)
+    submission, created = AssignmentSubmission.objects.get_or_create(
+        assignment=assignment,
+        student=student,
+        defaults={"status": "pending"}
+    )
+
+    return render(request, 'student/assignment_detail.html', {
+        'assignment': assignment,
+        'submission': submission,
+    })
+    
+def submit_assignment(request, assignment_id):
+    if not request.user.is_authenticated or request.user.role != "student":
+        messages.error(request, "Only students can submit assignments.")
+        return redirect("account:login")
+
+    try:
+        student = request.user.student_profile
+        school = student.school
+    except AttributeError:
+        messages.error(request, "Student profile not found.")
+        return redirect("account:login")
+
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id,
+        subject__school=school,
+        status="published"
+    )
+
+    # Verify student is enrolled in the subject
+    if not assignment.subject.enrollments.filter(student=student, is_active=True).exists():
+        messages.error(request, "You are not enrolled in this subject.")
+        return redirect("student:student-dashboard")
+
+    submission, created = AssignmentSubmission.objects.get_or_create(
+        assignment=assignment,
+        student=student,
+        defaults={'status': 'pending'}
+    )
+
+    if request.method == "POST":
+        form = AssignmentSubmissionForm(request.POST, request.FILES, instance=submission)
+        if form.is_valid():
+            submission = form.save(commit=False)
+            submission.status = "submitted" if not assignment.is_overdue() else "late"
+            submission.submission_date = timezone.now()
+            submission.save()
+            messages.success(request, "Assignment submitted successfully!")
+            return redirect("student:assignment-detail", assignment_id=assignment.id)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AssignmentSubmissionForm(instance=submission)
+
+    return render(request, 'student/submit_assignment.html', {
+        'assignment': assignment,
+        'form': form,
+        'submission': submission,
+    })

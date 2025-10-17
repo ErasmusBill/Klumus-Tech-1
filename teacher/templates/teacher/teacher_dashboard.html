@@ -1,167 +1,354 @@
 {% extends "teacher/base.html" %}
 {% load static %}
-{% block title %}Welcome Teacher - Dashboard{% endblock %}
+{% block title %}Teacher Dashboard - {{ teacher.user.get_full_name }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <div class="row">
-    <div class="col-sm-12">
-      <h3 class="page-title">Welcome Teacher</h3>
-      <ul class="breadcrumb">
-        <li class="breadcrumb-item active">Dashboard</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-xl-3 col-sm-6 col-12 d-flex">
-    <div class="card bg-one w-100">
-      <div class="card-body">
-        <div class="db-widgets d-flex justify-content-between align-items-center">
-          <div class="db-icon"><i class="fas fa-user-graduate"></i></div>
-          <div class="db-info"><h3>50055</h3><h6>Students</h6></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12 d-flex">
-    <div class="card bg-two w-100">
-      <div class="card-body">
-        <div class="db-widgets d-flex justify-content-between align-items-center">
-          <div class="db-icon"><i class="fas fa-crown"></i></div>
-          <div class="db-info"><h3>50+</h3><h6>Awards</h6></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12 d-flex">
-    <div class="card bg-three w-100">
-      <div class="card-body">
-        <div class="db-widgets d-flex justify-content-between align-items-center">
-          <div class="db-icon"><i class="fas fa-building"></i></div>
-          <div class="db-info"><h3>30+</h3><h6>Department</h6></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12 d-flex">
-    <div class="card bg-four w-100">
-      <div class="card-body">
-        <div class="db-widgets d-flex justify-content-between align-items-center">
-          <div class="db-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-          <div class="db-info"><h3>$505</h3><h6>Revenue</h6></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-md-12 col-lg-6">
-    <div class="card card-chart">
-      <div class="card-header">
-        <div class="row align-items-center">
-          <div class="col-6"><h5 class="card-title">Revenue</h5></div>
-          <div class="col-6">
-            <ul class="list-inline-group text-right mb-0 pl-0">
-              <li class="list-inline-item">
-                <div class="form-group mb-0 amount-spent-select">
-                  <select class="form-control form-control-sm">
-                    <option>Today</option>
-                    <option>Last Week</option>
-                    <option>Last Month</option>
-                  </select>
-                </div>
-              </li>
+    <div class="row align-items-center">
+        <div class="col">
+            <h3 class="page-title">Welcome, {{ teacher.user.get_full_name }}!</h3>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Overview</li>
             </ul>
-          </div>
         </div>
-      </div>
-      <div class="card-body"><div id="apexcharts-area"></div></div>
+        <div class="col-auto">
+            <div class="teacher-info">
+                <span class="badge bg-primary">{{ teacher.department.name|default:"Teacher" }}</span>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="col-md-12 col-lg-6">
-    <div class="card card-chart">
-      <div class="card-header">
-        <div class="row align-items-center">
-          <div class="col-6"><h5 class="card-title">Number of Students</h5></div>
-          <div class="col-6">
-            <ul class="list-inline-group text-right mb-0 pl-0">
-              <li class="list-inline-item">
-                <div class="form-group mb-0 amount-spent-select">
-                  <select class="form-control form-control-sm">
-                    <option>Today</option>
-                    <option>Last Week</option>
-                    <option>Last Month</option>
-                  </select>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row">
+    <!-- My Students -->
+    <div class="col-xl-3 col-sm-6 col-12 mb-4">
+        <div class="card bg-secondary text-white shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">{{ student_count }}</h2>
+                        <p class="mb-0">My Students</p>
+                    </div>
+                    <div class="icon-shape">
+                        <i class="fas fa-user-graduate fa-2x"></i>
+                    </div>
                 </div>
-              </li>
-            </ul>
-          </div>
+                <div class="mt-2">
+                    <small>Across {{ subject_count }} subjects</small>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="card-body"><div id="bar"></div></div>
     </div>
-  </div>
-</div>
 
-<div class="row">
-  <div class="col-md-6 d-flex">
-    <div class="card flex-fill">
-      <div class="card-header"><h5 class="card-title">Star Students</h5></div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover table-center">
-            <thead class="thead-light">
-              <tr>
-                <th>ID</th><th>Name</th><th class="text-center">Marks</th><th class="text-center">Percentage</th><th class="text-right">Year</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td class="text-nowrap"><div>PRE2209</div></td><td class="text-nowrap">John Smith</td><td class="text-center">1185</td><td class="text-center">98%</td><td class="text-right"><div>2019</div></td></tr>
-              <tr><td class="text-nowrap"><div>PRE1245</div></td><td class="text-nowrap">Jolie Hoskins</td><td class="text-center">1195</td><td class="text-center">99.5%</td><td class="text-right"><div>2018</div></td></tr>
-              <tr><td class="text-nowrap"><div>PRE1625</div></td><td class="text-nowrap">Pennington Joy</td><td class="text-center">1196</td><td class="text-center">99.6%</td><td class="text-right"><div>2017</div></td></tr>
-              <tr><td class="text-nowrap"><div>PRE2516</div></td><td class="text-nowrap">Millie Marsden</td><td class="text-center">1187</td><td class="text-center">98.2%</td><td class="text-right"><div>2016</div></td></tr>
-              <tr><td class="text-nowrap"><div>PRE2209</div></td><td class="text-nowrap">John Smith</td><td class="text-center">1185</td><td class="text-center">98%</td><td class="text-right"><div>2015</div></td></tr>
-            </tbody>
-          </table>
+    <!-- My Subjects -->
+    <div class="col-xl-3 col-sm-6 col-12 mb-4">
+        <div class="card bg-success text-white shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">{{ subject_count }}</h2>
+                        <p class="mb-0">My Subjects</p>
+                    </div>
+                    <div class="icon-shape">
+                        <i class="fas fa-book-open fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ class_count }} classes</small>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  <div class="col-md-6 d-flex">
-    <div class="card flex-fill">
-      <div class="card-header"><h5 class="card-title">Student Activity</h5></div>
-      <div class="card-body">
-        <ul class="activity-feed">
-          <li class="feed-item"><div class="feed-date">Apr 13</div><span class="feed-text"><a>John Doe</a> won 1st place in <a>"Chess"</a></span></li>
-          <li class="feed-item"><div class="feed-date">Mar 21</div><span class="feed-text"><a>Justin Lee</a> participated in <a href="invoice.html">"Carrom"</a></span></li>
-          <li class="feed-item"><div class="feed-date">Feb 2</div><span class="feed-text"><a>Justin Lee</a> attended international conference in <a href="profile.html">"St.John School"</a></span></li>
-          <li class="feed-item"><div class="feed-date">Apr 13</div><span class="feed-text"><a>John Doe</a> won 1st place in <a>"Chess"</a></span></li>
-          <li class="feed-item"><div class="feed-date">Mar 21</div><span class="feed-text"><a>Justin Lee</a> participated in <a href="invoice.html">"Carrom"</a></span></li>
-        </ul>
-      </div>
+
+    <!-- Pending Assignments to Grade -->
+    <div class="col-xl-3 col-sm-6 col-12 mb-4">
+        <div class="card bg-warning text-white shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">{{ pending_grading_count }}</h2>
+                        <p class="mb-0">To Grade</p>
+                    </div>
+                    <div class="icon-shape">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>Pending submissions</small>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <!-- Total Assignments -->
+    <div class="col-xl-3 col-sm-6 col-12 mb-4">
+        <div class="card bg-info text-white shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">{{ assignment_count }}</h2>
+                        <p class="mb-0">Assignments</p>
+                    </div>
+                    <div class="icon-shape">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small>{{ active_assignments_count }} active</small>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- Main Content Row -->
 <div class="row">
-  <div class="col-xl-3 col-sm-6 col-12">
-    <div class="card flex-fill fb sm-box"><i class="fab fa-facebook"></i><h6>50,095</h6><p>Likes</p></div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12">
-    <div class="card flex-fill twitter sm-box"><i class="fab fa-twitter"></i><h6>48,596</h6><p>Follows</p></div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12">
-    <div class="card flex-fill insta sm-box"><i class="fab fa-instagram"></i><h6>52,085</h6><p>Follows</p></div>
-  </div>
-  <div class="col-xl-3 col-sm-6 col-12">
-    <div class="card flex-fill linkedin sm-box"><i class="fab fa-linkedin-in"></i><h6>69,050</h6><p>Follows</p></div>
-  </div>
-</div>
-{% endblock %}
+    <!-- Recent Assignments & Quick Actions -->
+    <div class="col-xl-8 col-lg-7 mb-4">
+        <!-- Recent Assignments -->
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Assignments</h5>
+                <a href="{% url 'teacher:assignment-list' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Assignment</th>
+                                <th>Subject</th>
+                                <th>Due Date</th>
+                                <th>Submissions</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in recent_assignments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ assignment.title }}</strong>
+                                    <br><small class="text-muted">{{ assignment.subject.name }}</small>
+                                </td>
+                                <td>{{ assignment.get_student_class_display }}</td>
+                                <td>
+                                    <span class="{% if assignment.is_overdue %}text-danger{% endif %}">
+                                        {{ assignment.due_date|date:"M d" }}
+                                    </span>
+                                    {% if assignment.is_overdue %}
+                                    <br><small class="text-danger">Overdue</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if assignment.submissions.count > 0 %}info{% else %}secondary{% endif %}">
+                                        {{ assignment.submissions.count }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'teacher:assignment-submissions' assignment.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No assignments created yet.</p>
+                    <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary">
+                        Create Your First Assignment
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-{% block extra_js %}
-<!-- Optional: Add chart JS here if needed -->
+    <!-- Quick Actions & Profile -->
+    <div class="col-xl-4 col-lg-5 mb-4">
+        <!-- Teacher Profile -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">My Profile</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if teacher.user.profile_picture %}
+                    <img src="{{ teacher.user.profile_picture.url }}" alt="{{ teacher.user.get_full_name }}" 
+                         class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                {% else %}
+                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Profile" 
+                         class="rounded-circle mb-3" style="width: 100px; height: 100px;">
+                {% endif %}
+                <h5 class="mb-1">{{ teacher.user.get_full_name }}</h5>
+                <p class="text-muted mb-2">{{ teacher.qualification|default:"Teacher" }}</p>
+                <div class="text-start small">
+                    <p class="mb-1"><i class="fas fa-book me-2"></i> {{ subject_count }} Subjects</p>
+                    <p class="mb-1"><i class="fas fa-users me-2"></i> {{ student_count }} Students</p>
+                    <p class="mb-0"><i class="fas fa-building me-2"></i> {{ teacher.school.name }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary mb-2">
+                        <i class="fas fa-plus-circle me-2"></i>Create Assignment
+                    </a>
+                    <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-primary mb-2">
+                        <i class="fas fa-clipboard-check me-2"></i>Take Attendance
+                    </a>
+                    <a href="{% url 'teacher:my-subjects' %}" class="btn btn-outline-success mb-2">
+                        <i class="fas fa-book-reader me-2"></i>My Subjects
+                    </a>
+                    <a href="{% url 'teacher:teacher-students' %}" class="btn btn-outline-info">
+                        <i class="fas fa-user-graduate me-2"></i>View Students
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row: Pending Tasks & Class Overview -->
+<div class="row">
+    <!-- Pending Grading -->
+    <div class="col-xl-6 col-lg-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Pending Grading</h5>
+                <span class="badge bg-warning">{{ pending_grading_count }} to grade</span>
+            </div>
+            <div class="card-body">
+                {% if pending_submissions %}
+                <div class="list-group list-group-flush">
+                    {% for submission in pending_submissions %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ submission.student.user.get_full_name }}</h6>
+                            <small class="text-muted">{{ submission.assignment.title }}</small>
+                            <br>
+                            <small class="text-muted">Submitted: {{ submission.submission_date|date:"M d, H:i" }}</small>
+                        </div>
+                        <a href="{% url 'teacher:grade-assignment' submission.id %}" 
+                           class="btn btn-sm btn-outline-success">Grade</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">All caught up! No pending grading.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- My Classes -->
+    <div class="col-xl-6 col-lg-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">My Classes</h5>
+            </div>
+            <div class="card-body">
+                {% if teacher_classes %}
+                <div class="row">
+                    {% for class_info in teacher_classes %}
+                    <div class="col-md-6 mb-3">
+                        <div class="class-card p-3 border rounded">
+                            <h6 class="mb-2">{{ class_info.class_display }}</h6>
+                            <div class="d-flex justify-content-between text-sm text-muted">
+                                <span>{{ class_info.student_count }} students</span>
+                                <span>{{ class_info.subject_count }} subjects</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chalkboard-teacher fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No classes assigned yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Deadlines -->
+{% if upcoming_deadlines %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Upcoming Deadlines</h5>
+                <span class="badge bg-info">{{ upcoming_deadlines|length }} due soon</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for assignment in upcoming_deadlines %}
+                    <div class="col-md-4 mb-3">
+                        <div class="deadline-card alert alert-warning">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="alert-heading mb-1">{{ assignment.title }}</h6>
+                                    <p class="mb-1 small">{{ assignment.subject.name }} - {{ assignment.get_student_class_display }}</p>
+                                    <p class="mb-0 small text-danger">
+                                        <i class="fas fa-clock"></i> Due in {{ assignment.due_date|timeuntil }}
+                                    </p>
+                                </div>
+                                <span class="badge bg-warning">{{ assignment.submissions.count }} submitted</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.icon-shape {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.class-card {
+    transition: transform 0.2s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.deadline-card {
+    border-left: 4px solid #ffc107;
+}
+
+.sm-box {
+    padding: 20px;
+    text-align: center;
+}
+</style>
 {% endblock %}

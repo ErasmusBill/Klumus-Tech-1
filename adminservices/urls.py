@@ -35,4 +35,5 @@ urlpatterns = [
     path('announcements/', views.list_announcements, name='announcement_list'),
     path('announcements/new/', views.manage_announcement, name='announcement_create'),
     path('announcements/<uuid:pk>/edit/', views.manage_announcement, name='announcement_edit'),
+    path('delete-announcement/<uuid:announcement_id>/delete/',views.announcement_delete, name='delete-announcement')
 ]

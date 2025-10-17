@@ -168,6 +168,41 @@
                             </ul>
                         </li>
 
+                        <!-- Assignments Management -->
+                        <li class="submenu {% if 'assignment' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-tasks"></i> <span>Assignments</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'add-assignment' %}active{% endif %}">
+                                    <a href="{% url 'teacher:add-assignment' %}">
+                                        <i class="fas fa-plus-circle"></i> Add Assignment
+                                    </a>
+                                </li>
+                                <li class="{% if request.resolver_match.url_name == 'assignment-list' %}active{% endif %}">
+                                    <a href="{% url 'teacher:assignment-list' %}">
+                                        <i class="fas fa-list"></i> My Assignments
+                                    </a>
+                                </li>
+                                <li class="{% if 'assignment-submissions' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:assignment-list' %}#submissions">
+                                        <i class="fas fa-inbox"></i> View Submissions
+                                    </a>
+                                </li>
+                                <li class="{% if 'grade-assignment' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:assignment-list' %}#grading">
+                                        <i class="fas fa-check-circle"></i> Grade Assignments
+                                    </a>
+                                </li>
+                                <li class="{% if 'bulk-download-submissions' in request.resolver_match.url_name %}active{% endif %}">
+                                    <a href="{% url 'teacher:assignment-list' %}#downloads">
+                                        <i class="fas fa-download"></i> Download Submissions
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
                         <!-- Results & Grades Management -->
                         <li class="submenu {% if 'result' in request.resolver_match.url_name or 'bulk-grades' in request.resolver_match.url_name %}active open{% endif %}">
                             <a href="#">
@@ -237,7 +272,7 @@
 
             <!-- Footer -->
             <footer>
-                <p>Copyright © {{ year }} {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}. All rights reserved.</p>
+                <p>Copyright © {% now "Y" %} {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}. All rights reserved.</p>
             </footer>
         </div>
     </div>

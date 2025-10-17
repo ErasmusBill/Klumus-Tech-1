@@ -1,0 +1,28 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}Delete Assignment - KIDDO CARE{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title text-danger">Confirm Deletion</h4>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete the assignment <strong>"{{ assignment.title }}"</strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'teacher:assignment-list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

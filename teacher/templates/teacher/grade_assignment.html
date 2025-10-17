@@ -1,0 +1,117 @@
+<!-- teacher/grade_assignment.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}Grade - {{ submission.student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Grade Assignment</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:assignment-list' %}">Assignments</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}">Submissions</a></li>
+                        <li class="breadcrumb-item active">Grade</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Grade: {{ submission.assignment.title }}</h4>
+                        <p class="text-muted mb-0">
+                            Student: <strong>{{ submission.student.user.get_full_name }}</strong> |
+                            Class: {{ submission.assignment.get_student_class_display }}
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Submission Details -->
+                        <div class="mb-4">
+                            <h5>Submission Details</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Submitted:</strong> {{ submission.submission_date|date:"M d, Y H:i" }}</p>
+                                    <p><strong>Status:</strong> 
+                                        <span class="badge bg-{% if submission.status == 'graded' %}success{% else %}warning{% endif %}">
+                                            {{ submission.get_status_display }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Total Marks:</strong> {{ submission.assignment.total_marks }}</p>
+                                    {% if submission.marks_obtained %}
+                                        <p><strong>Current Marks:</strong> {{ submission.marks_obtained }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submitted Files -->
+                        {% if submission.submission_file %}
+                        <div class="mb-4">
+                            <h5>Submitted File</h5>
+                            <a href="{% url 'teacher:download-submission' submission.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-download"></i> Download Submission File
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        {% if submission.submission_text %}
+                        <div class="mb-4">
+                            <h5>Text Response</h5>
+                            <div class="bg-light p-3 rounded">
+                                {{ submission.submission_text|linebreaks }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Grading Form -->
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="marks_obtained" class="form-label">Marks Obtained (0 - {{ submission.assignment.total_marks }})</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="marks_obtained" 
+                                       name="marks_obtained" 
+                                       value="{{ submission.marks_obtained|default:0 }}"
+                                       min="0" 
+                                       max="{{ submission.assignment.total_marks }}" 
+                                       step="0.1"
+                                       required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="feedback" class="form-label">Feedback</label>
+                                <textarea class="form-control" 
+                                          id="feedback" 
+                                          name="feedback" 
+                                          rows="5" 
+                                          placeholder="Provide feedback to the student...">{{ submission.feedback|default:'' }}</textarea>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}" class="btn btn-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Save Grade</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,21 +11,13 @@ def auto_enroll_class_students(subject):
     when a subject is added or updated.
     """
     # Get all students in the same school and class as the subject
-    students = Student.objects.filter(
-        school=subject.school,
-        student_class=subject.subject_class,
-        is_active=True
-    )
+    students = Student.objects.filter(school=subject.school,student_class=subject.subject_class,is_active=True)
     
     enrolled_count = 0
     
     with transaction.atomic():
         for student in students:
-            enrollment, created = Enrollment.objects.get_or_create(
-                student=student,
-                subject=subject,
-                defaults={'is_active': True}
-            )
+            enrollment, created = Enrollment.objects.get_or_create(student=student,subject=subject,defaults={'is_active': True})
             
             if not created:
                 enrollment.is_active = True

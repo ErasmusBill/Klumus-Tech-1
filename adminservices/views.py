@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import transaction
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-from .utils import send_announcement_via_email_and_sms
+from .utils import *
 from django.db.models import Q
 # Create your views here.
 
@@ -27,8 +27,7 @@ def admin_dashboard(request):
     except School.DoesNotExist:
         messages.error(request, "You haven't registered for a school")
         return redirect("account:login")
-    
-    # Get counts
+
     students_count = Student.objects.filter(school=school).count()
     teachers_count = Teacher.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
@@ -38,7 +37,7 @@ def admin_dashboard(request):
     
     # Handle POST request for search
     if request.method == "POST":
-        search_query = request.POST.get("search")  #
+        search_query = request.POST.get("search")  
         if search_query:
             students = students.filter(
                 Q(user__first_name__icontains=search_query) |
@@ -140,29 +139,72 @@ def add_teacher(request):
                     teacher.image = form.cleaned_data['image']
                 teacher.save()
                 
-                # Send welcome email to the teacher
-                try:
-                    send_mail(
-                        subject='Welcome to the School',
-                        message=(
-                            f'Hello {user.first_name},\n\n'
-                            f'You have been added as a teacher at {school.name}.\n\n'
-                            f'Your login details:\n'
-                            f'Username: {user.username}\n'
-                            f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
-                            f'Please log in and change your password after first login.\n\n'
-                            f'Best regards,\n{school.name} Administration'
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[teacher.user.email],
-                        fail_silently=False,
-                    )
-                except Exception as email_error:
-                    print(f"Email error: {email_error}")
+                
+                
+                
+                teacher_emails, teacher_phones = get_teacher_contacts(teacher)
+                
+                email_message = (
+                    f'Hello {user.first_name},\n\n'
+                    f'You have been added as a teacher at {school.name}.\n\n'
+                    f'Your login details:\n'
+                    f'Username: {user.username}\n'
+                    f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
+                    f'Please log in and change your password after first login.\n\n'
+                    f'Best regards,\n{school.name} Administration'
+                )
+                
+                sms_message = (
+                    f"Welcome to {school.name}! You've been added as a teacher. "
+                    f"Username: {user.username}. Check your email for details."
+                    f'Username: {user.username}\n'
+                    f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
+                    f'Please log in and change your password after first login.\n\n'
+                    f'Best regards,\n{school.name} Administration'
+                )
+                
+                # Send both email and SMS
+                notification_results = send_notification(
+                    emails=teacher_emails,
+                    phones=teacher_phones,
+                    subject='Welcome to the School',
+                    message=email_message
+                )
+                
+                if not notification_results['email_sent'] and not notification_results['sms_sent']:
+                    messages.warning(request, "Teacher added, but notifications could not be sent.")
+                elif not notification_results['email_sent']:
                     messages.warning(request, "Teacher added, but email could not be sent.")
+                elif not notification_results['sms_sent']:
+                    messages.warning(request, "Teacher added, but SMS could not be sent.")
                 
                 messages.success(request, "Teacher added successfully!")
                 return redirect("adminservices:list-teachers")
+            
+                
+                # Send welcome email to the teacher
+                # try:
+                #     send_mail(
+                #         subject='Welcome to the School',
+                #         message=(
+                #             f'Hello {user.first_name},\n\n'
+                #             f'You have been added as a teacher at {school.name}.\n\n'
+                #             f'Your login details:\n'
+                #             f'Username: {user.username}\n'
+                #             f'Password: {form.cleaned_data.get("password", "the password you set")}\n\n'
+                #             f'Please log in and change your password after first login.\n\n'
+                #             f'Best regards,\n{school.name} Administration'
+                #         ),
+                #         from_email=settings.DEFAULT_FROM_EMAIL,
+                #         recipient_list=[teacher.user.email],
+                #         fail_silently=False,
+                #     )
+                # except Exception as email_error:
+                #     print(f"Email error: {email_error}")
+                #     messages.warning(request, "Teacher added, but email could not be sent.")
+                
+                # messages.success(request, "Teacher added successfully!")
+                # return redirect("adminservices:list-teachers")
             
             except Exception as e:
                 # Rollback: If teacher creation failed but user was created, delete the user
@@ -444,62 +486,49 @@ def add_student(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Save the student using the form's save method
                     student = form.save()
-                    
-                    # Get the plain password before it's hashed
                     password = form.cleaned_data.get('password')
                     
-                  
-                    # Prepare parent emails
-                    recipient_emails = []
-                    father_email = form.cleaned_data.get('father_email')
-                    mother_email = form.cleaned_data.get('mother_email')
-
-                    if father_email:
-                        recipient_emails.append(father_email)
-                    if mother_email:
-                        recipient_emails.append(mother_email)
-                    # Send email to parents with login credentials
-                    if recipient_emails and password:
-                        subject = f"Login Details for {student.user.get_full_name()} - {school.name}"
-                        message = (
-                            f"Dear Parent/Guardian,\n\n"
-                            f"Your child, {student.user.first_name} {student.user.last_name}, "
-                            f"has been enrolled at {school.name}.\n\n"
-                            f"Please use the following credentials to access their student portal:\n\n"
-                            f"Username: {student.user.username}\n"
-                            f"Password: {password}\n\n"
-                            f"We recommend changing the password after the first login for security.\n\n"
-                            f"Best regards,\n"
-                            f"{school.name} Administration"
-                        )
-
-                        try:
-                            send_mail(
-                                subject=subject,
-                                message=message,
-                                from_email=settings.DEFAULT_FROM_EMAIL,
-                                recipient_list=recipient_emails,
-                                fail_silently=False,
-                            )
-                            messages.success(
-                                request, 
-                                f"Student '{student.user.get_full_name()}' added successfully! "
-                                f"Login details have been sent to the parent(s)."
-                            )
-                        except Exception as email_error:
-                            print(f"[Email Error] Failed to send login email to parents: {str(email_error)}")
-                            messages.warning(
-                                request,
-                                f"Student '{student.user.get_full_name()}' created successfully, "
-                                f"but we couldn't send the login details to the parent(s). "
-                                f"Please verify the email addresses or check mail configuration."
-                            )
-                    else:
+                    # Send email AND SMS to parents
+                    from .utils import send_notification, get_student_parent_contacts
+                    
+                    parent_emails, parent_phones = get_student_parent_contacts(student)
+                    
+                    email_message = (
+                        f"Dear Parent/Guardian,\n\n"
+                        f"Your child, {student.user.first_name} {student.user.last_name}, "
+                        f"has been enrolled at {school.name}.\n\n"
+                        f"Please use the following credentials to access their student portal:\n\n"
+                        f"Username: {student.user.username}\n"
+                        f"Password: {password}\n\n"
+                        f"We recommend changing the password after the first login for security.\n\n"
+                        f"Best regards,\n"
+                        f"{school.name} Administration"
+                    )
+                    
+                    sms_message = (
+                        f"Your child {student.user.first_name} has been enrolled at {school.name}. "
+                        f"Username: {student.user.username}. Check email for login details."
+                    )
+                    
+                    notification_results = send_notification(
+                        emails=parent_emails,
+                        phones=parent_phones,
+                        subject=f"Login Details for {student.user.get_full_name()} - {school.name}",
+                        message=email_message
+                    )
+                    
+                    if notification_results['email_sent'] or notification_results['sms_sent']:
                         messages.success(
                             request, 
-                            f"Student '{student.user.get_full_name()}' added successfully!"
+                            f"Student '{student.user.get_full_name()}' added successfully! "
+                            f"Login details have been sent to the parent(s)."
+                        )
+                    else:
+                        messages.warning(
+                            request,
+                            f"Student '{student.user.get_full_name()}' created successfully, "
+                            f"but we couldn't send the login details to the parent(s)."
                         )
                     
                     return redirect("adminservices:list-students")
@@ -508,10 +537,6 @@ def add_student(request):
                 print(f"[Add Student Error] {str(e)}")
                 print(traceback.format_exc())
                 messages.error(request, f"An error occurred while creating the student: {str(e)}")
-
-            # except Exception as e:
-            #     print(f"[Add Student Error] {str(e)}")
-            #     messages.error(request, "An error occurred while creating the student. Please try again.")
     else:
         form = AddStudentForm(school=school)
  
@@ -606,48 +631,42 @@ def add_fees(request):
                     fee.school = school  
                     fee.save()
 
-                  
+                    # Send fee notification via email AND SMS
+                    from .utils import send_notification, get_student_parent_contacts
+                    
                     student = fee.student
-                    parent = student.parent
-                    user = student.user
-
-                    recipient_emails = []
-                    if parent.father_email:
-                        recipient_emails.append(parent.father_email)
-                    if parent.mother_email:
-                        recipient_emails.append(parent.mother_email)
-
-                    if recipient_emails:
-                        subject = f"New Fee Added for {user.get_full_name()} - {school.name}"
-                        message = (
-                            f"Dear Parent/Guardian,\n\n"
-                            f"A new fee has been added for your child:\n\n"
-                            f"Student: {user.get_full_name()}\n"
-                            f"Fee Type: {fee.get_fee_type_display()}\n"
-                            f"Amount: ${fee.amount:.2f}\n"
-                            f"Due Date: {fee.due_date}\n"
-                            f"Status: {fee.get_status_display()}\n\n"
-                            f"Please make payment before the due date.\n\n"
-                            f"Thank you,\n"
-                            f"{school.name} Administration"
-                        )
-
-                        try:
-                            send_mail(
-                                subject=subject,
-                                message=message,
-                                from_email=settings.DEFAULT_FROM_EMAIL,
-                                recipient_list=recipient_emails,
-                                fail_silently=False,
-                            )
-                        except Exception as email_error:
-                            print(f"[Email Error] Failed to send fee notification: {str(email_error)}")
-                            messages.warning(
-                                request,
-                                "Fee created, but we couldn't send the email to parents."
-                            )
-
-                    messages.success(request, f"Fee for '{user.get_full_name()}' added successfully!")
+                    parent_emails, parent_phones = get_student_parent_contacts(student)
+                    
+                    email_message = (
+                        f"Dear Parent/Guardian,\n\n"
+                        f"A new fee has been added for your child:\n\n"
+                        f"Student: {student.user.get_full_name()}\n"
+                        f"Fee Type: {fee.get_fee_type_display()}\n"
+                        f"Amount: ${fee.amount:.2f}\n"
+                        f"Due Date: {fee.due_date}\n"
+                        f"Status: {fee.get_status_display()}\n\n"
+                        f"Please make payment before the due date.\n\n"
+                        f"Thank you,\n"
+                        f"{school.name} Administration"
+                    )
+                    
+                    sms_message = (
+                        f"New fee for {student.user.first_name}: {fee.get_fee_type_display()} - "
+                        f"${fee.amount:.2f} due {fee.due_date}. Check email for details."
+                    )
+                    
+                    notification_results = send_notification(
+                        emails=parent_emails,
+                        phones=parent_phones,
+                        subject=f"New Fee Added for {student.user.get_full_name()} - {school.name}",
+                        message=email_message
+                    )
+                    
+                    if notification_results['email_sent'] or notification_results['sms_sent']:
+                        messages.success(request, f"Fee for '{student.user.get_full_name()}' added successfully and parents notified!")
+                    else:
+                        messages.warning(request, f"Fee added but notifications could not be sent.")
+                    
                     return redirect("adminservices:list-fees")
 
             except Exception as e:
@@ -868,3 +887,22 @@ def list_announcements(request):
     return render(request, "adminservices/list_announcements.html", {
         "announcements": announcements
     })
+    
+    
+@login_required
+def announcement_delete(request,announcement_id):
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to manage announcements.")
+        return redirect("account:home")
+
+    if not hasattr(request.user, 'managed_school'):
+        messages.error(request, "You do not manage any school.")
+        return redirect("account:home")
+
+    school = request.user.managed_school
+
+    announcement = get_object_or_404(Announcement,id=announcement_id,school=school)
+    announcement.delete()
+    messages.success(request,"Annoucement successfully deleted")
+    return redirect("adminservices:announcement_list")
+    

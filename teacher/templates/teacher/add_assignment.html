@@ -1,0 +1,122 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - KIDDO CARE{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <!-- Title -->
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <div class="text-danger">{{ form.subject.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Class -->
+                    <div class="mb-3">
+                        <label class="form-label">Class</label>
+                        {{ form.student_class }}
+                        {% if form.student_class.errors %}
+                            <div class="text-danger">{{ form.student_class.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Select the class this assignment is for.</small>
+                    </div>
+
+                    <!-- Total Marks -->
+                    <div class="mb-3">
+                        <label class="form-label">Total Marks</label>
+                        {{ form.total_marks }}
+                        {% if form.total_marks.errors %}
+                            <div class="text-danger">{{ form.total_marks.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Due Date -->
+                    <div class="mb-3">
+                        <label class="form-label">Due Date</label>
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}
+                            <div class="text-danger">{{ form.due_date.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Instructions (Optional) -->
+                    <div class="mb-3">
+                        <label class="form-label">Instructions (Optional)</label>
+                        {{ form.instructions }}
+                        {% if form.instructions.errors %}
+                            <div class="text-danger">{{ form.instructions.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Attachment -->
+                    <div class="mb-3">
+                        <label class="form-label">Attachment (Optional)</label>
+                        {{ form.attachment }}
+                        {% if form.attachment.errors %}
+                            <div class="text-danger">{{ form.attachment.errors }}</div>
+                        {% endif %}
+                        {% if form.instance.attachment %}
+                            <div class="mt-2">
+                                <a href="{{ form.instance.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-file-download"></i> View Current File
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit / Cancel -->
+                    <div class="text-end">
+                        <a href="{% url 'teacher:assignment-list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">{{ title }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

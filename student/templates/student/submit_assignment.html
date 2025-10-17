@@ -1,0 +1,168 @@
+<!-- templates/student/submit_assignment.html -->
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}Submit Assignment - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Submit Assignment</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'student:list-all-assignments' %}">Assignments</a></li>
+                        <li class="breadcrumb-item active">Submit Assignment</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">{{ assignment.title }}</h4>
+                        <div class="assignment-meta">
+                            <span class="text-muted">
+                                <i class="fas fa-book"></i> {{ assignment.subject.name }} | 
+                                <i class="fas fa-calendar"></i> Due: {{ assignment.due_date|date:"M d, Y" }} |
+                                <i class="fas fa-chalkboard-teacher"></i> {{ assignment.teacher.user.get_full_name }}
+                            </span>
+                            {% if assignment.is_overdue %}
+                                <span class="badge bg-danger float-end">Overdue</span>
+                            {% else %}
+                                <span class="badge bg-warning float-end">Due in {{ assignment.due_date|timeuntil }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Assignment Details -->
+                        <div class="assignment-details mb-4">
+                            <h5>Assignment Description</h5>
+                            <p>{{ assignment.description|linebreaks }}</p>
+                            
+                            {% if assignment.instructions %}
+                                <h6>Instructions:</h6>
+                                <p>{{ assignment.instructions|linebreaks }}</p>
+                            {% endif %}
+                            
+                            {% if assignment.attachment %}
+                                <div class="mt-3">
+                                    <a href="{{ assignment.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-download"></i> Download Assignment File
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <hr>
+
+                        <!-- Current Submission Status -->
+                        {% if submission and submission.status != 'pending' %}
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Current Submission Status</h6>
+                            <p class="mb-1">
+                                <strong>Status:</strong> 
+                                <span class="badge 
+                                    {% if submission.status == 'submitted' %}bg-info
+                                    {% elif submission.status == 'graded' %}bg-success
+                                    {% elif submission.status == 'late' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ submission.get_status_display }}
+                                </span>
+                            </p>
+                            <p class="mb-1"><strong>Submitted:</strong> {{ submission.submission_date|date:"M d, Y H:i" }}</p>
+                            {% if submission.marks_obtained %}
+                                <p class="mb-0"><strong>Marks:</strong> {{ submission.marks_obtained }}/{{ assignment.total_marks }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Submission Form -->
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- File Upload -->
+                            <div class="mb-3">
+                                <label class="form-label">Upload File</label>
+                                {{ form.submission_file }}
+                                {% if form.submission_file.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.submission_file.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Supported formats: PDF, Word, Excel, Images, etc. (Max 10MB)
+                                </div>
+                                
+                                {% if submission.submission_file %}
+                                    <div class="mt-2">
+                                        <strong>Current file:</strong>
+                                        <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-2">
+                                            <i class="fas fa-eye"></i> View Current Submission
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Text Response -->
+                            <div class="mb-3">
+                                <label class="form-label">Text Response</label>
+                                {{ form.submission_text }}
+                                {% if form.submission_text.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.submission_text.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    You can type your answer here if you prefer not to upload a file.
+                                </div>
+                            </div>
+
+                            <!-- Submission Notes -->
+                            {% if assignment.is_overdue %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    This assignment is overdue. Your submission will be marked as late.
+                                </div>
+                            {% endif %}
+
+                            <!-- Action Buttons -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <a href="{% url 'student:list-all-assignments' %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-arrow-left"></i> Back to Assignments
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i>
+                                    {% if submission and submission.status != 'pending' %}
+                                        Update Submission
+                                    {% else %}
+                                        Submit Assignment
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

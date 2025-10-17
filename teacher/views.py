@@ -3,8 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
-from .forms import BulkResultForm, EditResultForm,AttendanceForm
-from account.models import ResultSheet, Subject, Student, Teacher,Attendance
+from .forms import BulkResultForm, EditResultForm,AttendanceForm,AssignmentForm
+from account.models import ResultSheet, Subject, Student, Teacher,Attendance,Assignment,AssignmentSubmission
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.core.mail import send_mail
@@ -13,6 +13,9 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.db import models
 from django.db.models import Q,Avg,Count
+from django.db.models import Count, Q
+from django.http import HttpResponse
+import os
 
 
 def teacher_dashboard(request):
@@ -27,22 +30,44 @@ def teacher_dashboard(request):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
+    # Get teacher's subjects
+    subjects = Subject.objects.filter(teacher=teacher, school=school)
+    subject_count = subjects.count()
+    
+    # Get assignments created by teacher
+    assignments = Assignment.objects.filter(teacher=teacher, subject__school=school)
+    assignment_count = assignments.count()
+    
+    # Recent assignments
+    recent_assignments = assignments.select_related('subject').order_by('-created_at')[:5]
+    
+    # Pending submissions to grade
+    pending_grading_count = AssignmentSubmission.objects.filter(
+        assignment__teacher=teacher,
+        status__in=['submitted', 'late']
+    ).count()
+    
+    # Simple class count (distinct classes from subjects)
+    class_count = subjects.values('subject_class').distinct().count()
+    
+    # Simple student count
+    student_count = Student.objects.filter(
+        enrollments__subject__in=subjects,
+        is_active=True
+    ).distinct().count()
 
-    subject_classes = Subject.objects.filter(teacher=teacher,school=school).values_list('subject_class', flat=True).distinct()
-
-    if not subject_classes:
-        subject_classes = Student.objects.filter(school=school).values_list('student_class', flat=True).distinct()
-
-    class_options = [
-        (code, label)
-        for code, label in Attendance.CLASS_CHOICES
-        if code in subject_classes
-    ]
-
-    return render(request, "teacher/teacher_dashboard.html", {
-        "class_options": class_options,
+    context = {
         "teacher": teacher,
-    })
+        "subject_count": subject_count,
+        "class_count": class_count,
+        "student_count": student_count,
+        "assignment_count": assignment_count,
+        "recent_assignments": recent_assignments,
+        "pending_grading_count": pending_grading_count,
+        "teacher_classes": [],  # Empty for now to avoid errors
+    }
+    
+    return render(request, "teacher/teacher_dashboard.html", context)
 
 def my_subjects(request):
     """View that shows teacher's assigned subjects"""
@@ -83,19 +108,10 @@ def enter_bulk_grades(request, subject_id):
         return redirect("account:login")
 
     # Get the subject and verify teacher has permission
-    subject = get_object_or_404(
-        Subject, 
-        id=subject_id, 
-        school=school, 
-        teacher=teacher
-    )
+    subject = get_object_or_404(Subject, id=subject_id, school=school, teacher=teacher)
 
     # Get students enrolled in this subject
-    students = Student.objects.filter(
-        school=school,
-        enrollments__subject=subject,
-        is_active=True
-    ).select_related('user', 'parent').order_by('user__last_name', 'user__first_name').distinct()
+    students = Student.objects.filter(school=school,enrollments__subject=subject,is_active=True).select_related('user', 'parent').order_by('user__last_name', 'user__first_name').distinct()
 
     if not students.exists():
         messages.warning(request, "No students are enrolled in this subject.")
@@ -703,3 +719,303 @@ def view_result(request, student_id):
     return render(request, "teacher/view_result.html", {"results": results,"student": student,"result_summary": result_summary,})
 
 
+
+def add_assignment(request):
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        school = teacher.school
+    except Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found")
+        return redirect("account:login")
+    
+    # Get subjects this teacher teaches
+    subjects = Subject.objects.filter(teacher=teacher, school=school)
+    if not subjects.exists():
+        messages.error(request, "You are not assigned to any subjects. Cannot add assignments.")
+        return redirect("teacher:teacher-dashboard")
+
+    if request.method == "POST":
+        form = AssignmentForm(school=school, data=request.POST, files=request.FILES)
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.teacher = teacher
+            assignment.status = "published"  
+            
+            assignment.save()
+            
+            # Check if any students will see this assignment
+            students_in_class = Student.objects.filter(
+                school=school,
+                student_class=assignment.student_class,
+                is_active=True
+            )
+            enrolled_students = students_in_class.filter(
+                enrollments__subject=assignment.subject,
+                enrollments__is_active=True
+            )
+            
+            print(f"Students who will see this assignment: {enrolled_students.count()}")
+            
+            messages.success(request, "Assignment created successfully.")
+            return redirect("teacher:assignment-list")
+        else:
+            messages.error(request, "Please correct the errors below.")
+            print("Form errors:", form.errors)
+    else:
+        form = AssignmentForm(school=school)
+
+    return render(request, 'teacher/add_assignment.html', {
+        'form': form, 
+        'title': 'Add Assignment',
+        'subjects': subjects
+    })
+
+
+def edit_assignment(request, assignment_id):
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        school = teacher.school
+    except AttributeError:
+        messages.error(request, "Teacher profile not found.")
+        return redirect("account:login")
+
+    # Ensure the assignment belongs to the teacher AND the subject belongs to the teacher's school
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id,
+        teacher=teacher,
+        subject__school=school  
+    )
+
+    if request.method == "POST":
+        form = AssignmentForm(school=school, data=request.POST, files=request.FILES, instance=assignment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Assignment updated successfully.")
+            return redirect("teacher:assignment-list")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AssignmentForm(school=school, instance=assignment)
+
+    return render(request, 'teacher/add_assignment.html', {
+        'form': form,
+        'title': 'Edit Assignment'
+    })
+
+
+def list_assignment(request):
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        school = teacher.school
+    except AttributeError:
+        messages.error(request, "Teacher profile not found.")
+        return redirect("account:login")
+
+    assignments = Assignment.objects.filter(teacher=teacher,subject__school=school).select_related('subject').order_by('-created_at')
+
+    return render(request, 'teacher/assignment_list.html', {'assignments': assignments})
+
+
+def delete_assignment(request, assignment_id):
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        school = teacher.school
+    except AttributeError:
+        messages.error(request, "Teacher profile not found.")
+        return redirect("account:login")
+
+    assignment = get_object_or_404(Assignment,id=assignment_id,teacher=teacher,subject__school=school  )
+
+    if request.method == 'POST':
+        assignment.delete()
+        messages.success(request, "Assignment deleted successfully.")
+        return redirect('teacher:assignment-list')
+
+    return render(request, 'teacher/assignment_confirm_delete.html', {
+        'assignment': assignment
+    })
+
+
+
+
+def view_assignment_submissions(request, assignment_id):
+    """View all submissions for a specific assignment"""
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        school = teacher.school
+    except AttributeError:
+        messages.error(request, "Teacher profile not found.")
+        return redirect("account:login")
+
+    # Get the assignment
+    assignment = get_object_or_404(
+        Assignment,
+        id=assignment_id,
+        teacher=teacher,
+        subject__school=school
+    )
+
+    # Get all submissions for this assignment
+    submissions = AssignmentSubmission.objects.filter(
+        assignment=assignment
+    ).select_related('student__user').order_by('-submission_date')
+
+    # Statistics
+    total_students = Student.objects.filter(
+        student_class=assignment.student_class,
+        school=school,
+        is_active=True
+    ).count()
+
+    submission_stats = {
+        'total': submissions.count(),
+        'submitted': submissions.filter(status__in=['submitted', 'graded', 'late']).count(),
+        'graded': submissions.filter(status='graded').count(),
+        'pending': submissions.filter(status='pending').count(),
+        'late': submissions.filter(status='late').count(),
+        'not_submitted': total_students - submissions.filter(status__in=['submitted', 'graded', 'late']).count()
+    }
+
+    return render(request, 'teacher/assignment_submissions.html', {
+        'assignment': assignment,
+        'submissions': submissions,
+        'submission_stats': submission_stats,
+        'total_students': total_students
+    })
+
+def download_submission_file(request, submission_id):
+    """Download a submission file"""
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        return HttpResponse("Unauthorized", status=401)
+
+    try:
+        teacher = request.user.teacher_profile
+        submission = get_object_or_404(
+            AssignmentSubmission,
+            id=submission_id,
+            assignment__teacher=teacher
+        )
+        
+        if submission.submission_file:
+            file_path = submission.submission_file.path
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as fh:
+                    response = HttpResponse(fh.read(), content_type="application/octet-stream")
+                    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+                    return response
+            else:
+                messages.error(request, "File not found.")
+                return redirect('teacher:assignment-submissions', assignment_id=submission.assignment.id)
+        else:
+            messages.error(request, "No file attached to this submission.")
+            return redirect('teacher:assignment-submissions', assignment_id=submission.assignment.id)
+            
+    except Exception as e:
+        messages.error(request, f"Error downloading file: {str(e)}")
+        return redirect('teacher:assignment-submissions', assignment_id=submission.assignment.id)
+
+def grade_assignment(request, submission_id):
+    """Grade a student's assignment submission"""
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    try:
+        teacher = request.user.teacher_profile
+        submission = get_object_or_404(
+            AssignmentSubmission,
+            id=submission_id,
+            assignment__teacher=teacher
+        )
+    except AttributeError:
+        messages.error(request, "Teacher profile not found.")
+        return redirect("account:login")
+
+    if request.method == "POST":
+        marks_obtained = request.POST.get('marks_obtained')
+        feedback = request.POST.get('feedback')
+        
+        try:
+            marks_obtained = float(marks_obtained)
+            if marks_obtained < 0 or marks_obtained > submission.assignment.total_marks:
+                messages.error(request, f"Marks must be between 0 and {submission.assignment.total_marks}")
+            else:
+                submission.marks_obtained = marks_obtained
+                submission.feedback = feedback
+                submission.status = 'graded'
+                submission.graded_date = timezone.now()
+                submission.save()
+                
+                messages.success(request, "Assignment graded successfully!")
+                return redirect('teacher:assignment-submissions', assignment_id=submission.assignment.id)
+                
+        except ValueError:
+            messages.error(request, "Please enter valid marks.")
+    
+    return render(request, 'teacher/grade_assignment.html', {
+        'submission': submission
+    })
+
+def bulk_download_submissions(request, assignment_id):
+    """Download all submissions for an assignment as a zip file"""
+    if not request.user.is_authenticated or request.user.role != "teacher":
+        return HttpResponse("Unauthorized", status=401)
+
+    try:
+        teacher = request.user.teacher_profile
+        assignment = get_object_or_404(
+            Assignment,
+            id=assignment_id,
+            teacher=teacher
+        )
+        
+        submissions = AssignmentSubmission.objects.filter(
+            assignment=assignment,
+            submission_file__isnull=False
+        ).select_related('student__user')
+        
+        if not submissions.exists():
+            messages.error(request, "No files to download.")
+            return redirect('teacher:assignment-submissions', assignment_id=assignment_id)
+        
+        import zipfile
+        from io import BytesIO
+        
+        # Create zip file in memory
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            for submission in submissions:
+                if submission.submission_file and os.path.exists(submission.submission_file.path):
+                    file_name = f"{submission.student.user.get_full_name()}_{os.path.basename(submission.submission_file.name)}"
+                    zip_file.write(submission.submission_file.path, file_name)
+        
+        zip_buffer.seek(0)
+        
+        response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{assignment.title}_submissions.zip"'
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Error creating zip file: {str(e)}")
+        return redirect('teacher:assignment-submissions', assignment_id=assignment_id)

@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator, MaxValueValidator
-from account.models import Attendance, ResultSheet, Teacher, Student
+from account.models import Assignment, Attendance, ResultSheet, Student, Teacher,Subject
 from datetime import datetime
 from django.utils import timezone
 
@@ -134,3 +134,30 @@ class AttendanceForm(forms.ModelForm):
         else:
             self.fields['student'].queryset = Student.objects.none()  # type: ignore
             self.fields['teacher'].queryset = Teacher.objects.none()  # type: ignore
+            
+
+
+class AssignmentForm(forms.ModelForm):
+    class Meta:
+        model = Assignment
+        fields = [
+            'title', 'subject', 'student_class', 'description',
+            'instructions', 'due_date', 'total_marks', 'attachment'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'subject': forms.Select(attrs={'class': 'form-select'}),
+            'student_class': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'total_marks': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'attachment': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, school=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if school:
+            self.fields['subject'].queryset = Subject.objects.filter(school=school)
+        else:
+            self.fields['subject'].queryset = Subject.objects.none()

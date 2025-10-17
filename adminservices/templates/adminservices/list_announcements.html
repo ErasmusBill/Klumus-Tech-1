@@ -97,6 +97,11 @@
                           <a href="{% url 'adminservices:announcement_edit' pk=ann.id %}" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-edit"></i> Edit
                           </a>
+                          <a href="{% url 'adminservices:delete-announcement' announcement.id %}"
+                             class="btn btn-sm bg-danger-light"
+                             onclick="return confirm('Are you sure you want to delete {{ request.user.username }}?');">
+                            <i class="fas fa-trash"></i>
+                          </a>
                         </td>
                       </tr>
                     {% endfor %}

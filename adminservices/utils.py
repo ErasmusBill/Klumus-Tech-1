@@ -172,3 +172,193 @@ def _normalize_phone(phone):
         return '+' + digits[-12:]  # Keep last 12 digits max
 
     return None
+
+
+def send_sms(message, recipient_phone):
+    """Send SMS using Twilio"""
+    if not recipient_phone:
+        logger.warning("No recipient phone number provided")
+        return False
+    
+    # Check if Twilio is configured
+    if not all(hasattr(settings, attr) for attr in ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']):
+        logger.error("Twilio credentials not configured in settings")
+        return False
+    
+    # Check if credentials are actually set (not None or empty)
+    if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN or not settings.TWILIO_PHONE_NUMBER:
+        logger.error("Twilio credentials are empty or None")
+        return False
+    
+    # Validate phone number format
+    if not recipient_phone.startswith('+'):
+        logger.warning(f"Phone number {recipient_phone} may not be in international format")
+        # You might want to format it properly here
+    
+    try:
+        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        
+        message = twilio_client.messages.create(
+            body=message,
+            from_=settings.TWILIO_PHONE_NUMBER,
+            to=recipient_phone,    
+        )
+        
+        logger.info(f"SMS sent to {recipient_phone}. SID: {message.sid}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send SMS to {recipient_phone}: {str(e)}")
+        return False
+
+def get_user_contact_info(user):
+    """Get email and phone number from any user type"""
+    email = getattr(user, 'email', None)
+    phone = getattr(user, 'phone_number', None)
+    return email, phone
+
+def get_student_parent_contacts(student):
+    """Get all contact information for a student and their parents"""
+    emails = []
+    phones = []
+    
+    # Student contact info
+    student_email, student_phone = get_user_contact_info(student.user)
+    if student_email:
+        emails.append(student_email)
+    if student_phone:
+        phones.append(student_phone)
+    
+    # Parent contact info
+    if hasattr(student, 'parent') and student.parent:
+        parent = student.parent
+        # Father's contact
+        if parent.father_email:
+            emails.append(parent.father_email)
+        if parent.father_phone:
+            phones.append(parent.father_phone)
+        # Mother's contact
+        if parent.mother_email:
+            emails.append(parent.mother_email)
+        if parent.mother_phone:
+            phones.append(parent.mother_phone)
+    
+    return list(set(emails)), list(set(phones))
+
+def get_teacher_contacts(teacher):
+    """Get contact information for a teacher"""
+    emails = []
+    phones = []
+    
+    teacher_email, teacher_phone = get_user_contact_info(teacher.user)
+    if teacher_email:
+        emails.append(teacher_email)
+    if teacher_phone:
+        phones.append(teacher_phone)
+    
+    return emails, phones
+
+def send_notification(emails, phones, subject, message):
+    """Send both email and SMS notifications"""
+    results = {
+        'email_sent': False,
+        'sms_sent': False,
+        'email_error': None,
+        'sms_error': None
+    }
+    
+    # Send Email
+    if emails:
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=emails,
+                fail_silently=False,
+            )
+            results['email_sent'] = True
+            logger.info(f"Email sent to {emails}")
+        except Exception as e:
+            results['email_error'] = str(e)
+            logger.error(f"Failed to send email to {emails}: {e}")
+    
+    # Send SMS
+    if phones:
+        sms_results = []
+        for phone in phones:
+            try:
+                success = send_sms(message, phone)
+                sms_results.append(success)
+            except Exception as e:
+                sms_results.append(False)
+                logger.error(f"Failed to send SMS to {phone}: {e}")
+        
+        results['sms_sent'] = any(sms_results)
+        if not all(sms_results):
+            results['sms_error'] = "Some SMS messages failed to send"
+    
+    return results
+
+def send_announcement_via_email_and_sms(announcement):
+    """Send announcement to target audience via both email and SMS"""
+    school = announcement.school
+    target_audience = announcement.target_audience
+    
+    emails = []
+    phones = []
+    
+    if target_audience in ['all', 'students', 'parents']:
+        # Get all students and their parents
+        students = Student.objects.filter(school=school, is_active=True)
+        for student in students:
+            student_emails, student_phones = get_student_parent_contacts(student)
+            emails.extend(student_emails)
+            phones.extend(student_phones)
+    
+    if target_audience in ['all', 'teachers']:
+        # Get all teachers
+        teachers = Teacher.objects.filter(school=school, is_active=True)
+        for teacher in teachers:
+            teacher_emails, teacher_phones = get_teacher_contacts(teacher)
+            emails.extend(teacher_emails)
+            phones.extend(teacher_phones)
+    
+    if target_audience in ['all', 'staff']:
+        # Get all staff (admin users for the school)
+        staff_users = CustomUser.objects.filter(
+            managed_school=school, 
+            role='admin',
+            is_active=True
+        )
+        for user in staff_users:
+            user_email, user_phone = get_user_contact_info(user)
+            if user_email:
+                emails.append(user_email)
+            if user_phone:
+                phones.append(user_phone)
+    
+    # Remove duplicates
+    emails = list(set(emails))
+    phones = list(set(phones))
+    
+    # Prepare message
+    sms_message = f"{announcement.title}: {announcement.content[:100]}..."
+    email_message = f"""
+    {announcement.title}
+    
+    {announcement.content}
+    
+    Best regards,
+    {school.name} Administration
+    """
+    
+    # Send notifications
+    results = send_notification(
+        emails=emails,
+        phones=phones,
+        subject=f"Announcement: {announcement.title}",
+        message=email_message
+    )
+    
+    return results

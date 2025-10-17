@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -154,6 +155,11 @@ EMAIL_HOST_PASSWORD = 'ezpa fafz ygjz mxbj'
 
 #Twilio 
 
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")  
+# settings.py - TEMPORARY FIX
+TWILIO_ACCOUNT_SID = "AC5c3421011407596154208db10c780a8b"
+TWILIO_AUTH_TOKEN = "133b95e48830582579c8d9062c55ecc1"
+TWILIO_PHONE_NUMBER = "+233540501163"  # Make sure it has +233 prefix
+
+
+if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
+    print("⚠️  Twilio credentials not properly set in environment variables")

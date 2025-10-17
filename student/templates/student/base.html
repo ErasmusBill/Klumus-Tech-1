@@ -133,33 +133,33 @@
                         <li>
                             <a href="{% url 'student:enrolled-courses' %}"><i class="fas fa-book-reader"></i> <span>Enrolled Courses</span></a>
                         </li>
-                        <li>
-                            <a href="{% url 'student:view-result' student.id %}"><i class="fas fa-chart-line"></i> <span>Grades</span></a>
+                        
+                        <!-- Assignments Management -->
+                        <li class="submenu {% if 'assignment' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#">
+                                <i class="fas fa-tasks"></i> <span>Assignments</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'list-all-assignments' %}active{% endif %}">
+                                    <a href="{% url 'student:list-all-assignments' %}">
+                                        <i class="fas fa-list"></i> All Assignments
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        {% comment %} <li>
-                            <a href="{% url 'student:attendance' %}"><i class="fas fa-calendar-check"></i> <span>Attendance</span></a>
-                        </li>
+
                         <li>
-                            <a href="{% url 'student:assignments' %}"><i class="fas fa-tasks"></i> <span>Assignments</span></a>
+                            <a href="{% url 'student:view-result' request.user.student_profile.id %}"><i class="fas fa-chart-line"></i> <span>Grades</span></a>
                         </li>
-                        <li>
-                            <a href="{% url 'student:timetable' %}"><i class="fas fa-table"></i> <span>Time Table</span></a>
-                        </li> {% endcomment %} 
+                        
                         <li class="menu-title">
                             <span>Financial</span>
                         </li>
                         <li>
-                            <a href="{% url 'student:fees-list' student.id %}"><i class="fas fa-money-bill-wave"></i> <span>Fees & Payments</span></a>
+                            <a href="{% url 'student:fees-list' request.user.student_profile.id %}"><i class="fas fa-money-bill-wave"></i> <span>Fees & Payments</span></a>
                         </li>
-                        <li class="menu-title">
-                            <span>Resources</span>
-                        </li>
-                        {% comment %} <li>
-                            <a href="{% url 'student:library' %}"><i class="fas fa-book"></i> <span>Library</span></a>
-                        </li>
-                        <li>
-                            <a href="{% url 'student:events' %}"><i class="fas fa-calendar-day"></i> <span>Events</span></a>
-                        </li> {% endcomment %}
+                        
                         <li class="menu-title">
                             <span>Settings</span>
                         </li>
@@ -175,7 +175,7 @@
         {% endblock %}
 
         <footer>
-            <p>Copyright © {{ year }} KIDDO CARE. All rights reserved.</p>
+            <p>Copyright © {% now "Y" %} KIDDO CARE. All rights reserved.</p>
         </footer>
     </div>
 

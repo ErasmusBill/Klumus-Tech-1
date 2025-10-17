@@ -1,7 +1,7 @@
 {% extends 'teacher/base.html' %}
 {% load static %}
 
-{% block title %}Attendance Records{% endblock %}
+{% block title %}Attendance Records - KIDDO CARE{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -9,25 +9,28 @@
     <div class="card">
       <div class="card-header">
         <h4 class="card-title">Attendance Records</h4>
-        <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-primary float-right">
-          <i class="fas fa-plus"></i> Add New
-        </a>
+        <div class="float-right">
+          <button id="export-csv" class="btn btn-success mr-2">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+          <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New
+          </a>
+        </div>
       </div>
       <div class="card-body">
         {% if messages %}
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
               {{ message }}
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           {% endfor %}
         {% endif %}
 
         {% if attendances %}
           <div class="table-responsive">
-            <table class="table table-hover table-center mb-0">
+            <table id="attendance-table" class="table table-hover table-center mb-0">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -42,13 +45,13 @@
               <tbody>
                 {% for att in attendances %}
                 <tr>
-                  <td>{{ att.date }}</td>
-                  <td>
+                  <td data-label="Date">{{ att.date|date:"Y-m-d" }}</td>
+                  <td data-label="Type">
                     <span class="badge badge-{% if att.attendance_type == 'student' %}info{% else %}warning{% endif %}">
                       {{ att.get_attendance_type_display }}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Name">
                     {% if att.student %}
                       {{ att.student.user.get_full_name }}
                     {% elif att.teacher %}
@@ -57,16 +60,16 @@
                       —
                     {% endif %}
                   </td>
-                  <td>{{ att.get_class_attendance_display }}</td>
-                  <td>
+                  <td data-label="Class">{{ att.get_class_attendance_display }}</td>
+                  <td data-label="Status">
                     <span class="badge badge-{% if att.status == 'present' %}success{% elif att.status == 'absent' %}danger{% elif att.status == 'late' %}warning{% else %}secondary{% endif %}">
                       {{ att.get_status_display }}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Marked By">
                     {{ att.marked_by.get_full_name|default:att.marked_by.username }}
                   </td>
-                  <td class="text-right">
+                  <td class="text-right" data-label="Actions">
                     <a href="{% url 'teacher:attendance-update' attendance_id=att.id %}" class="btn btn-sm btn-warning">
                       <i class="fas fa-edit"></i>
                     </a>
@@ -88,4 +91,79 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    function exportTableToCSV() {
+        const table = document.getElementById('attendance-table');
+        if (!table) {
+            alert('No attendance table found.');
+            return;
+        }
+
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            const row = [];
+            const cols = rows[i].querySelectorAll('td, th');
+
+            // Skip the "Actions" column (last column)
+            for (let j = 0; j < cols.length - 1; j++) {
+                // Extract visible text (ignores icons, badges, etc.)
+                let text = cols[j].textContent || cols[j].innerText || "";
+                // Clean extra whitespace and trim
+                text = text.trim().replace(/\s+/g, ' ');
+                // Escape commas, quotes, and newlines
+                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                    text = '"' + text.replace(/"/g, '""') + '"';
+                }
+                row.push(text);
+            }
+
+            // Only add row if it has data (avoids empty header/footer rows)
+            if (row.some(cell => cell !== '')) {
+                csv.push(row.join(','));
+            }
+        }
+
+        if (csv.length === 0) {
+            alert('No data to export.');
+            return;
+        }
+
+        // Create CSV content
+        const csvString = csv.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        // Create download link
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attendance_records_${new Date().toISOString().split('T')[0]}.csv`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    // Attach event listener when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            const exportBtn = document.getElementById('export-csv');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportTableToCSV);
+            }
+        });
+    } else {
+        const exportBtn = document.getElementById('export-csv');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportTableToCSV);
+        }
+    }
+})();
+</script>
 {% endblock %}

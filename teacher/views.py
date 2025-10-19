@@ -1073,11 +1073,12 @@ def promotion_dashboard(request):
         'classes': classes_data,
         'recent_promotions': recent_promotions,
         'school': school,
-        'student_class_keys': Student.CLASS_CHOICES,  # Add this line
+        'student_class_keys': Student.CLASS_CHOICES,  
         'title': 'Student Promotion Management'
     }
     
     return render(request, "teacher/promotion_dashboard.html", context)
+
 @login_required
 def view_class_students(request, class_name):
     """View students in a specific class for promotion"""

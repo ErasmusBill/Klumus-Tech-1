@@ -14,7 +14,9 @@ from django.core.exceptions import PermissionDenied
 
 
 def home(request):
-    return render(request,"account/home.html")
+    subscription = Subscription.objects.all()
+    packages = Package.objects.all()
+    return render(request,"account/home.html",{"subscription":subscription,"packages":packages})
 
 def register_school(request):
     if request.method == "POST":

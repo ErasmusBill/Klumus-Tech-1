@@ -21,7 +21,7 @@ def export_training_data():
         data.append({
             "student_id": result.student.id,
             "student_name": result.student.user.get_full_name(),
-            "attendance": 90,     # optional placeholder if you don’t track attendance yet
+            "attendance": 90,     
             "average_score": total / 3,
             "discipline": 4,      # placeholder
             "homework": 3,        # placeholder

@@ -11,7 +11,7 @@ def train_model():
    
     grade_map = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
     if "final_grade" not in df.columns:
-        raise ValueError("❌ The dataset must contain a 'final_grade' column.")
+        raise ValueError("The dataset must contain a 'final_grade' column.")
     
     df["final_grade"] = df["final_grade"].map(grade_map)
 
@@ -30,10 +30,10 @@ def train_model():
 
     preds = model.predict(X_test)
     acc = accuracy_score(y_test, preds)
-    print(f"✅ Model trained successfully! Accuracy: {acc*100:.2f}%")
+    print(f"Model trained successfully! Accuracy: {acc*100:.2f}%")
 
 
     os.makedirs("ai_predictor", exist_ok=True)
     joblib.dump(model, "ai_predictor/performance_model.pkl")
-    print("📦 Model saved as ai_predictor/performance_model.pkl")
+    print("Model saved as ai_predictor/performance_model.pkl")
 

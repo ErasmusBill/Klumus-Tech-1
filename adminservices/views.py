@@ -1,4 +1,3 @@
-# adminservices/views.py
 import logging
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render, redirect
@@ -9,7 +8,7 @@ from django.db.models import Q
 from django.conf import settings
 
 from account.models import (
-    Subscription, Teacher, CustomUser, Department, School, 
+     Teacher, CustomUser, Department, School, 
     Student, Parent, Fees, Subject, Announcement, Notification
 )
 from .forms import (
@@ -24,8 +23,6 @@ from .utils import (
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from datetime import datetime
-import random
-import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required

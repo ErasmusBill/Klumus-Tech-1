@@ -23,7 +23,7 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 # Render provides your domain automatically
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
 
-DOMAIN_URL = os.getenv("DOMAIN_URL", "https://your-app-name.onrender.com")
+DOMAIN_URL = os.getenv("DOMAIN_URL", "https://klumus-tech-1.onrender.com")
 
 # ========================
 # APPLICATION DEFINITION

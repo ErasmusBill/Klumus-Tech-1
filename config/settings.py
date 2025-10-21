@@ -1,12 +1,12 @@
 """
 Django settings for config project.
-Updated for Render Deployment
+Updated for Render Deployment and SendGrid Integration
 """
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url  # type: ignore # ✅ Needed for PostgreSQL on Render
+import dj_database_url  # type: ignore
 
 # Load environment variables
 load_dotenv()
@@ -20,8 +20,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-
-# Render provides your domain automatically
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
 
 DOMAIN_URL = os.getenv("DOMAIN_URL", "https://klumus-tech-1.onrender.com")
@@ -51,17 +49,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-
-    # ✅ Required for Render static files
     'whitenoise.middleware.WhiteNoiseMiddleware',
-
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -87,15 +81,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # DATABASE CONFIGURATION
 # ========================
 
-# Render provides DATABASE_URL (PostgreSQL)
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
     }
 else:
-    # Local development fallback
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -131,15 +122,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# ✅ Enable WhiteNoise for Render
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# ========================
-# DEFAULT PRIMARY KEY FIELD TYPE
-# ========================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "account.CustomUser"
@@ -153,16 +139,24 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "sk_test_b6d9f67e05a07f02
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 # ========================
-# EMAIL SETTINGS
+# SENDGRID EMAIL CONFIGURATION
 # ========================
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "erasmuschawey12345@gmail.com")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "ezpa fafz ygjz mxbj")
+if DEBUG:
+    # ✅ Local development - print emails to console instead of sending
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    # ✅ Production - use SendGrid for real emails
+    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+
+    SENDGRID_API_KEY = os.getenv(
+        "SENDGRID_API_KEY",
+        "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"
+    )
+
+    DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"  
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+    SENDGRID_ECHO_TO_STDOUT = True
 
 # ========================
 # TWILIO CONFIGURATION
@@ -179,11 +173,8 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
 # RENDER DEPLOYMENT SETTINGS
 # ========================
 
-# Redirect HTTP to HTTPS on Render
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Allow serving static files via Render
 CSRF_TRUSTED_ORIGINS = [
     f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}",
 ]
-

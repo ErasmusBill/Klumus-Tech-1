@@ -158,6 +158,6 @@ class AssignmentForm(forms.ModelForm):
     def __init__(self, school=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if school:
-            self.fields['subject'].queryset = Subject.objects.filter(school=school)
+            self.fields['subject'].queryset = Subject.objects.filter(school=school) # type: ignore
         else:
-            self.fields['subject'].queryset = Subject.objects.none()
+            self.fields['subject'].queryset = Subject.objects.none() # type: ignore

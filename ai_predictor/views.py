@@ -2,15 +2,21 @@ import numpy as np
 import joblib
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from account.models import Student, ResultSheet  # Make sure ResultSheet is imported
+from account.models import Student, ResultSheet
 from .models import PredictedPerformance
 from django.db.models import Count
 from django.shortcuts import render
-from .models import PredictedPerformance
 from django.contrib.auth.decorators import login_required
 
-# Load trained model
-model = joblib.load("ai_predictor/performance_model.pkl")
+# Lazy load model to prevent startup crashes
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = joblib.load("ai_predictor/performance_model.pkl")
+    return _model
+
 @login_required
 def predict_student_performance(request, student_id):
     """
@@ -29,7 +35,8 @@ def predict_student_performance(request, student_id):
                           student.discipline_points,
                           student.homework_completion]])
 
-    # Predict grade
+    # Predict grade - use lazy loaded model
+    model = get_model()
     prediction = model.predict(features)[0]
     grade_map_reverse = {5: "A", 4: "B", 3: "C", 2: "D", 1: "E"}
     predicted_grade = grade_map_reverse.get(prediction, "N/A")

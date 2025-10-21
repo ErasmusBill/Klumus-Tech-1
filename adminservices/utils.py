@@ -14,33 +14,37 @@ logger = logging.getLogger(__name__)
 # ASYNC EMAIL HELPERS
 # ========================
 
-def send_email_async(subject, message, recipient_list, from_email=None):
+def send_email_async_with_retry(subject, message, recipient_list, max_retries=3, from_email=None):
     """
-    Send email in a background thread to avoid blocking requests.
-    This prevents worker timeouts on slow SMTP connections.
+    Send email in background thread with retry logic to handle timeouts
     """
-    def _send():
-        try:
-            result = send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                recipient_list=recipient_list,
-                fail_silently=False,
-            )
-            logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients")
-            return result
-        except Exception as e:
-            logger.error(f"❌ Failed to send email to {recipient_list}: {str(e)}")
-            return 0
+    def _send_with_retry():
+        for attempt in range(max_retries):
+            try:
+                result = send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=recipient_list,
+                    fail_silently=False,
+                )
+                logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients (attempt {attempt + 1})")
+                return result
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Email attempt {attempt + 1} failed: {str(e)}")
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 5  # 5, 10, 15 seconds
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"❌ All email attempts failed for {recipient_list}: {str(e)}")
+                    return 0
     
-    # Start email sending in background thread
-    thread = Thread(target=_send)
+    thread = Thread(target=_send_with_retry)
     thread.daemon = True
     thread.start()
-    
-    return True  # Return immediately, don't wait for email to send
-
+    return True
 
 # ========================
 # ANNOUNCEMENT SENDING

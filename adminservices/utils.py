@@ -1,5 +1,5 @@
-# adminservices/utils.py
 import logging
+from threading import Thread
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
@@ -10,11 +10,47 @@ from account.models import CustomUser, Teacher, Student, Parent, Notification
 logger = logging.getLogger(__name__)
 
 
+# ========================
+# ASYNC EMAIL HELPERS
+# ========================
+
+def send_email_async(subject, message, recipient_list, from_email=None):
+    """
+    Send email in a background thread to avoid blocking requests.
+    This prevents worker timeouts on slow SMTP connections.
+    """
+    def _send():
+        try:
+            result = send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients")
+            return result
+        except Exception as e:
+            logger.error(f"❌ Failed to send email to {recipient_list}: {str(e)}")
+            return 0
+    
+    # Start email sending in background thread
+    thread = Thread(target=_send)
+    thread.daemon = True
+    thread.start()
+    
+    return True  # Return immediately, don't wait for email to send
+
+
+# ========================
+# ANNOUNCEMENT SENDING
+# ========================
+
 def send_announcement_via_email_and_sms(announcement):
     """
     Send announcement to selected audience via:
     - In-app Notification
-    - Email
+    - Email (async)
     - SMS (Twilio)
     
     Only sends if announcement.published is True and within active window.
@@ -52,10 +88,13 @@ def send_announcement_via_email_and_sms(announcement):
 
     results = {
         'notifications_created': 0,
-        'emails_sent': 0,
+        'emails_queued': 0,
         'sms_sent': 0,
         'errors': []
     }
+
+    # Collect all emails for batch sending
+    email_recipients = []
 
     for user in recipients:
         logger.info(f"Processing recipient: {user.username} (Email: {user.email}, Phone: {_get_user_phone(user)})")
@@ -75,22 +114,9 @@ def send_announcement_via_email_and_sms(announcement):
             logger.error(error_msg)
             results['errors'].append(error_msg)
 
-        # 2. Email
+        # 2. Collect email addresses
         if user.email:
-            try:
-                send_mail(
-                    subject=f"📢 Announcement: {announcement.title}",
-                    message=announcement.content,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                logger.info(f"Email sent to {user.email}")
-                results['emails_sent'] += 1
-            except Exception as e:
-                error_msg = f"Email failed for {user.email}: {e}"
-                logger.error(error_msg)
-                results['errors'].append(error_msg)
+            email_recipients.append(user.email)
 
         # 3. SMS
         phone = _get_user_phone(user)
@@ -113,6 +139,21 @@ def send_announcement_via_email_and_sms(announcement):
                     error_msg = f"SMS failed to {phone} (normalized: {clean_phone}) for user {user.id}: {e}"
                     logger.error(error_msg)
                     results['errors'].append(error_msg)
+
+    # Send all emails asynchronously in one batch
+    if email_recipients:
+        try:
+            send_email_async(
+                subject=f"📢 Announcement: {announcement.title}",
+                message=announcement.content,
+                recipient_list=email_recipients,
+            )
+            results['emails_queued'] = len(email_recipients)
+            logger.info(f"✉️ Queued emails for {len(email_recipients)} recipients")
+        except Exception as e:
+            error_msg = f"Failed to queue emails: {e}"
+            logger.error(error_msg)
+            results['errors'].append(error_msg)
 
     logger.info(f"Announcement sending completed: {results}")
     return results
@@ -149,6 +190,10 @@ def get_announcement_recipients(school, audience):
     else:
         return CustomUser.objects.none()
 
+
+# ========================
+# PHONE HELPERS
+# ========================
 
 def _get_user_phone(user):
     """Extract the best available phone number for a user."""
@@ -203,6 +248,10 @@ def _normalize_phone(phone):
     return None
 
 
+# ========================
+# SMS FUNCTIONS
+# ========================
+
 def send_sms(message, recipient_phone):
     """Send SMS using Twilio"""
     if not recipient_phone:
@@ -251,6 +300,10 @@ def is_twilio_configured():
     
     return True
 
+
+# ========================
+# CONTACT INFO HELPERS
+# ========================
 
 def get_user_contact_info(user):
     """Get email and phone number from any user type"""
@@ -302,8 +355,78 @@ def get_teacher_contacts(teacher):
     return emails, phones
 
 
+# ========================
+# MAIN NOTIFICATION FUNCTION (FIXED)
+# ========================
+
 def send_notification(emails, phones, subject, message):
-    """Send both email and SMS notifications"""
+    """
+    Send both email and SMS notifications.
+    FIXED: Emails are now sent asynchronously to prevent worker timeouts.
+    
+    Args:
+        emails: List of email addresses
+        phones: List of phone numbers
+        subject: Email subject
+        message: Message content (for both email and SMS)
+    
+    Returns:
+        dict: Results of notification sending
+    """
+    results = {
+        'email_sent': False,
+        'sms_sent': False,
+        'email_error': None,
+        'sms_error': None,
+        'emails_queued': 0,
+        'sms_sent_count': 0
+    }
+    
+    # Send Email (ASYNC - Won't block the request)
+    if emails:
+        try:
+            send_email_async(
+                subject=subject,
+                message=message,
+                recipient_list=emails,
+            )
+            results['email_sent'] = True
+            results['emails_queued'] = len(emails)
+            logger.info(f"✉️ Queued emails for {len(emails)} recipients (sending in background)")
+        except Exception as e:
+            results['email_error'] = str(e)
+            logger.error(f"❌ Failed to queue email to {emails}: {e}")
+    
+    # Send SMS (Synchronous - usually fast)
+    if phones:
+        sms_results = []
+        for phone in phones:
+            try:
+                success = send_sms(message, phone)
+                sms_results.append(success)
+                if success:
+                    results['sms_sent_count'] += 1
+            except Exception as e:
+                sms_results.append(False)
+                logger.error(f"Failed to send SMS to {phone}: {e}")
+        
+        results['sms_sent'] = any(sms_results)
+        if sms_results and not all(sms_results):
+            failed_count = sms_results.count(False)
+            results['sms_error'] = f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
+    
+    return results
+
+
+# ========================
+# ALTERNATIVE: Synchronous with Timeout Protection
+# ========================
+
+def send_notification_sync(emails, phones, subject, message):
+    """
+    Alternative function that sends emails synchronously but with fail_silently=True
+    Use this if you need to know immediately if emails failed (not recommended for production)
+    """
     results = {
         'email_sent': False,
         'sms_sent': False,
@@ -313,19 +436,22 @@ def send_notification(emails, phones, subject, message):
         'sms_sent_count': 0
     }
     
-    # Send Email
+    # Send Email (with fail_silently to prevent crashes)
     if emails:
         try:
-            send_mail(
+            count = send_mail(
                 subject=subject,
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=emails,
-                fail_silently=False,
+                fail_silently=True,  # Don't crash if email fails
             )
-            results['email_sent'] = True
-            results['emails_sent_count'] = len(emails)
-            logger.info(f"Email sent to {len(emails)} recipients")
+            results['email_sent'] = count > 0
+            results['emails_sent_count'] = count
+            if count > 0:
+                logger.info(f"Email sent to {count} recipients")
+            else:
+                logger.warning("Email sending returned 0 - may have failed silently")
         except Exception as e:
             results['email_error'] = str(e)
             logger.error(f"Failed to send email to {emails}: {e}")
@@ -344,7 +470,8 @@ def send_notification(emails, phones, subject, message):
                 logger.error(f"Failed to send SMS to {phone}: {e}")
         
         results['sms_sent'] = any(sms_results)
-        if not all(sms_results):
-            results['sms_error'] = f"{sms_results.count(False)} out of {len(sms_results)} SMS messages failed to send"
+        if sms_results and not all(sms_results):
+            failed_count = sms_results.count(False)
+            results['sms_error'] = f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
     
     return results

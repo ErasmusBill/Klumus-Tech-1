@@ -1,12 +1,12 @@
 """
 Django settings for config project.
-Updated for Render Deployment and SendGrid Integration
+Updated for Render Deployment with SendGrid & Twilio Integration
 """
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-import dj_database_url  # type: ignore
+import dj_database_url
 
 # Load environment variables
 load_dotenv()
@@ -19,7 +19,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
-
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
 
 DOMAIN_URL = os.getenv("DOMAIN_URL", "https://klumus-tech-1.onrender.com")
@@ -121,7 +120,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -134,29 +132,21 @@ AUTH_USER_MODEL = "account.CustomUser"
 # PAYSTACK CONFIGURATION
 # ========================
 
-PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "pk_test_7a4cf6b1079aacdf776d6fe2290490acfe7ba671")
-PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "sk_test_b6d9f67e05a07f026da32a528b5917d60dde7773")
+PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY")
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 # ========================
 # SENDGRID EMAIL CONFIGURATION
 # ========================
 
-if DEBUG:
-    # ✅ Local development - print emails to console instead of sending
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    # ✅ Production - use SendGrid for real emails
-    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-
-    SENDGRID_API_KEY = os.getenv(
-        "SENDGRID_API_KEY",
-        "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"
-    )
-
-    DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"  
-    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-    SENDGRID_ECHO_TO_STDOUT = True
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.sendgrid.net"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "apikey"  # ← This literal word must stay 'apikey'
+EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
+DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"  # Use your verified sender email
 
 # ========================
 # TWILIO CONFIGURATION
@@ -174,7 +164,4 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
 # ========================
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-CSRF_TRUSTED_ORIGINS = [
-    f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}",
-]
+CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"]

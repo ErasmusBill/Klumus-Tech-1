@@ -1,4 +1,5 @@
 import logging
+import time
 from threading import Thread
 from django.core.mail import send_mail
 from django.conf import settings
@@ -9,10 +10,33 @@ from account.models import CustomUser, Teacher, Student, Parent, Notification
 
 logger = logging.getLogger(__name__)
 
-
 # ========================
 # ASYNC EMAIL HELPERS
 # ========================
+
+def send_email_async(subject, message, recipient_list, from_email=None):
+    """
+    Send email in a background thread to avoid blocking requests.
+    """
+    def _send():
+        try:
+            result = send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                recipient_list=recipient_list,
+                fail_silently=False,
+            )
+            logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients")
+            return result
+        except Exception as e:
+            logger.error(f"❌ Failed to send email to {recipient_list}: {str(e)}")
+            return 0
+    
+    thread = Thread(target=_send)
+    thread.daemon = True
+    thread.start()
+    return True
 
 def send_email_async_with_retry(subject, message, recipient_list, max_retries=3, from_email=None):
     """
@@ -56,8 +80,6 @@ def send_announcement_via_email_and_sms(announcement):
     - In-app Notification
     - Email (async)
     - SMS (Twilio)
-    
-    Only sends if announcement.published is True and within active window.
     """
     if not announcement.published:
         logger.info(f"Announcement '{announcement.title}' is not published. Skipping send.")
@@ -147,13 +169,14 @@ def send_announcement_via_email_and_sms(announcement):
     # Send all emails asynchronously in one batch
     if email_recipients:
         try:
-            send_email_async(
+            send_email_async_with_retry(
                 subject=f"📢 Announcement: {announcement.title}",
                 message=announcement.content,
                 recipient_list=email_recipients,
+                max_retries=3
             )
             results['emails_queued'] = len(email_recipients)
-            logger.info(f"✉️ Queued emails for {len(email_recipients)} recipients")
+            logger.info(f"✉️ Queued emails for {len(email_recipients)} recipients with retry logic")
         except Exception as e:
             error_msg = f"Failed to queue emails: {e}"
             logger.error(error_msg)
@@ -225,7 +248,6 @@ def _normalize_phone(phone):
     """
     Normalize phone number to E.164 format.
     Assumes Ghana numbers (country code +233).
-    Adjust logic if supporting other countries.
     """
     if not phone:
         return None
@@ -241,12 +263,10 @@ def _normalize_phone(phone):
     elif len(digits) == 9:
         return '+233' + digits
     elif digits.startswith('233') and len(digits) in (11, 12):
-        # Handle cases like '233241234567' → '+233241234567'
         return '+' + digits[-12:] if len(digits) == 12 else '+233' + digits[3:]
     elif digits.startswith('+'):
         return digits
     elif len(digits) >= 10:
-        # Fallback: assume international format without +
         return '+' + digits[-12:]  # Keep last 12 digits max
 
     return None
@@ -274,13 +294,13 @@ def send_sms(message, recipient_phone):
     try:
         twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
         
-        message = twilio_client.messages.create(
+        sms_message = twilio_client.messages.create(
             body=message,
             from_=settings.TWILIO_PHONE_NUMBER,
             to=clean_phone,    
         )
         
-        logger.info(f"SMS sent to {clean_phone}. SID: {message.sid}")
+        logger.info(f"SMS sent to {clean_phone}. SID: {sms_message.sid}")
         return True
         
     except TwilioRestException as e:
@@ -298,7 +318,7 @@ def is_twilio_configured():
     if not all(hasattr(settings, attr) for attr in required_attrs):
         return False
     
-    # Check if credentials are actually set (not None or empty)
+    # Check if credentials are actually set
     if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN or not settings.TWILIO_PHONE_NUMBER:
         return False
     
@@ -360,22 +380,12 @@ def get_teacher_contacts(teacher):
 
 
 # ========================
-# MAIN NOTIFICATION FUNCTION (FIXED)
+# MAIN NOTIFICATION FUNCTION
 # ========================
 
 def send_notification(emails, phones, subject, message):
     """
-    Send both email and SMS notifications.
-    FIXED: Emails are now sent asynchronously to prevent worker timeouts.
-    
-    Args:
-        emails: List of email addresses
-        phones: List of phone numbers
-        subject: Email subject
-        message: Message content (for both email and SMS)
-    
-    Returns:
-        dict: Results of notification sending
+    Send both email and SMS notifications asynchronously.
     """
     results = {
         'email_sent': False,
@@ -386,22 +396,23 @@ def send_notification(emails, phones, subject, message):
         'sms_sent_count': 0
     }
     
-    # Send Email (ASYNC - Won't block the request)
+    # Send Email (ASYNC)
     if emails:
         try:
-            send_email_async(
+            send_email_async_with_retry(
                 subject=subject,
                 message=message,
                 recipient_list=emails,
+                max_retries=3
             )
             results['email_sent'] = True
             results['emails_queued'] = len(emails)
-            logger.info(f"✉️ Queued emails for {len(emails)} recipients (sending in background)")
+            logger.info(f"✉️ Queued emails for {len(emails)} recipients with retry logic")
         except Exception as e:
             results['email_error'] = str(e)
             logger.error(f"❌ Failed to queue email to {emails}: {e}")
     
-    # Send SMS (Synchronous - usually fast)
+    # Send SMS
     if phones:
         sms_results = []
         for phone in phones:
@@ -422,14 +433,9 @@ def send_notification(emails, phones, subject, message):
     return results
 
 
-# ========================
-# ALTERNATIVE: Synchronous with Timeout Protection
-# ========================
-
 def send_notification_sync(emails, phones, subject, message):
     """
-    Alternative function that sends emails synchronously but with fail_silently=True
-    Use this if you need to know immediately if emails failed (not recommended for production)
+    Alternative function that sends emails synchronously with fail_silently=True
     """
     results = {
         'email_sent': False,
@@ -440,7 +446,7 @@ def send_notification_sync(emails, phones, subject, message):
         'sms_sent_count': 0
     }
     
-    # Send Email (with fail_silently to prevent crashes)
+    # Send Email (synchronous with fail_silently)
     if emails:
         try:
             count = send_mail(

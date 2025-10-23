@@ -1,11 +1,14 @@
 import logging
 import time
+import os
 from threading import Thread
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 from account.models import CustomUser, Teacher, Student, Parent, Notification
 
 logger = logging.getLogger(__name__)
@@ -18,12 +21,14 @@ def send_email_async(subject, message, recipient_list, from_email=None):
     """
     Send email in a background thread to avoid blocking requests.
     """
+    email_from = from_email or settings.DEFAULT_FROM_EMAIL
+    
     def _send():
         try:
             result = send_mail(
                 subject=subject,
                 message=message,
-                from_email=from_email or settings.DEFAULT_FROM_EMAIL,
+                from_email=email_from,
                 recipient_list=recipient_list,
                 fail_silently=False,
             )
@@ -38,21 +43,31 @@ def send_email_async(subject, message, recipient_list, from_email=None):
     thread.start()
     return True
 
+
 def send_email_async_with_retry(subject, message, recipient_list, max_retries=3, from_email=None):
+    """
+    Send email asynchronously with retry logic using SendGrid.
+    """
+    email_from = from_email or settings.DEFAULT_FROM_EMAIL
+    
     def _send_with_retry():
-        from_email = from_email or settings.DEFAULT_FROM_EMAIL
         for attempt in range(max_retries):
             try:
                 # Build SendGrid email
                 email = Mail(
-                    from_email=from_email,
+                    from_email=email_from,
                     to_emails=recipient_list,
                     subject=subject,
                     plain_text_content=message
                 )
+                
                 sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
                 response = sg.send(email)
-                logger.info(f"✅ SendGrid email sent (status {response.status_code}) to {len(recipient_list)} recipients (attempt {attempt + 1})")
+                
+                logger.info(
+                    f"✅ SendGrid email sent (status {response.status_code}) "
+                    f"to {len(recipient_list)} recipients (attempt {attempt + 1})"
+                )
                 return response
                 
             except Exception as e:
@@ -69,6 +84,7 @@ def send_email_async_with_retry(subject, message, recipient_list, max_retries=3,
     thread.daemon = True
     thread.start()
     return True
+
 
 # ========================
 # ANNOUNCEMENT SENDING
@@ -100,9 +116,16 @@ def send_announcement_via_email_and_sms(announcement):
     # Build recipient queryset based on audience
     recipients = get_announcement_recipients(school, audience)
     
-    logger.info(f"Announcement '{announcement.title}' (ID: {announcement.id}) sending to {recipients.count()} recipients.")
+    logger.info(
+        f"Announcement '{announcement.title}' (ID: {announcement.id}) "
+        f"sending to {recipients.count()} recipients."
+    )
 
-    short_msg = (announcement.content[:150] + "...") if len(announcement.content) > 150 else announcement.content
+    short_msg = (
+        (announcement.content[:150] + "...") 
+        if len(announcement.content) > 150 
+        else announcement.content
+    )
 
     # Initialize Twilio client
     twilio_client = None
@@ -123,7 +146,10 @@ def send_announcement_via_email_and_sms(announcement):
     email_recipients = []
 
     for user in recipients:
-        logger.info(f"Processing recipient: {user.username} (Email: {user.email}, Phone: {_get_user_phone(user)})")
+        logger.info(
+            f"Processing recipient: {user.username} "
+            f"(Email: {user.email}, Phone: {_get_user_phone(user)})"
+        )
 
         # 1. In-app notification
         try:
@@ -158,11 +184,17 @@ def send_announcement_via_email_and_sms(announcement):
                     logger.info(f"SMS sent to {clean_phone}")
                     results['sms_sent'] += 1
                 except TwilioRestException as e:
-                    error_msg = f"SMS failed to {phone} (normalized: {clean_phone}) for user {user.id}: {e.msg}"
+                    error_msg = (
+                        f"SMS failed to {phone} (normalized: {clean_phone}) "
+                        f"for user {user.id}: {e.msg}"
+                    )
                     logger.error(error_msg)
                     results['errors'].append(error_msg)
                 except Exception as e:
-                    error_msg = f"SMS failed to {phone} (normalized: {clean_phone}) for user {user.id}: {e}"
+                    error_msg = (
+                        f"SMS failed to {phone} (normalized: {clean_phone}) "
+                        f"for user {user.id}: {e}"
+                    )
                     logger.error(error_msg)
                     results['errors'].append(error_msg)
 
@@ -264,8 +296,8 @@ def _normalize_phone(phone):
         return '+233' + digits
     elif digits.startswith('233') and len(digits) in (11, 12):
         return '+' + digits[-12:] if len(digits) == 12 else '+233' + digits[3:]
-    elif digits.startswith('+'):
-        return digits
+    elif phone.startswith('+'):
+        return phone  # Already normalized
     elif len(digits) >= 10:
         return '+' + digits[-12:]  # Keep last 12 digits max
 
@@ -319,7 +351,11 @@ def is_twilio_configured():
         return False
     
     # Check if credentials are actually set
-    if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN or not settings.TWILIO_PHONE_NUMBER:
+    if not all([
+        settings.TWILIO_ACCOUNT_SID, 
+        settings.TWILIO_AUTH_TOKEN, 
+        settings.TWILIO_PHONE_NUMBER
+    ]):
         return False
     
     return True
@@ -428,7 +464,9 @@ def send_notification(emails, phones, subject, message):
         results['sms_sent'] = any(sms_results)
         if sms_results and not all(sms_results):
             failed_count = sms_results.count(False)
-            results['sms_error'] = f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
+            results['sms_error'] = (
+                f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
+            )
     
     return results
 
@@ -482,6 +520,8 @@ def send_notification_sync(emails, phones, subject, message):
         results['sms_sent'] = any(sms_results)
         if sms_results and not all(sms_results):
             failed_count = sms_results.count(False)
-            results['sms_error'] = f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
+            results['sms_error'] = (
+                f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
+            )
     
     return results

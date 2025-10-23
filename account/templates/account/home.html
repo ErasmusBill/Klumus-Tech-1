@@ -8,18 +8,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
 
-    html { scroll-behavior: smooth; }
+    html { 
+      scroll-behavior: smooth; 
+    }
 
     body {
       font-family: 'Poppins', sans-serif;
       line-height: 1.6;
       color: #333;
       background-color: #fff;
+      overflow-x: hidden;
     }
 
-    /* Navbar */
+    /* ==================== NAVBAR ==================== */
     nav {
       background: linear-gradient(135deg, #667eea, #764ba2);
       padding: 1rem 5%;
@@ -28,7 +35,7 @@
       width: 100%;
       z-index: 1000;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: padding 0.3s ease;
+      transition: padding 0.3s ease, box-shadow 0.3s ease;
     }
 
     nav.scrolled {
@@ -42,6 +49,7 @@
       align-items: center;
       max-width: 1200px;
       margin: auto;
+      position: relative;
     }
 
     .logo {
@@ -50,6 +58,7 @@
       font-size: 1.7rem;
       cursor: pointer;
       transition: transform 0.3s;
+      z-index: 1002;
     }
 
     .logo:hover {
@@ -60,6 +69,7 @@
       display: flex;
       gap: 2rem;
       list-style: none;
+      align-items: center;
     }
 
     .nav-links a {
@@ -102,15 +112,24 @@
       flex-direction: column;
       gap: 5px;
       cursor: pointer;
-      padding: 5px;
+      padding: 8px;
+      z-index: 1002;
+      background: transparent;
+      border: none;
+      transition: transform 0.3s;
+    }
+
+    .mobile-toggle:hover {
+      transform: scale(1.1);
     }
 
     .mobile-toggle span {
-      width: 25px;
+      width: 28px;
       height: 3px;
       background: white;
       border-radius: 3px;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
+      display: block;
     }
 
     .mobile-toggle.active span:nth-child(1) {
@@ -119,6 +138,7 @@
 
     .mobile-toggle.active span:nth-child(2) {
       opacity: 0;
+      transform: translateX(20px);
     }
 
     .mobile-toggle.active span:nth-child(3) {
@@ -138,6 +158,8 @@
       border-radius: 20px;
       transition: all 0.3s;
       border: 2px solid transparent;
+      white-space: nowrap;
+      font-weight: 500;
     }
 
     .login-btn:hover { 
@@ -154,6 +176,7 @@
       text-decoration: none;
       transition: all 0.3s;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      white-space: nowrap;
     }
 
     .cta-btn:hover {
@@ -162,7 +185,7 @@
       background: #f8f9fa;
     }
 
-    /* Hero (Slideshow) */
+    /* ==================== HERO SLIDESHOW ==================== */
     .hero {
       margin-top: 80px;
       height: 550px;
@@ -184,7 +207,6 @@
       opacity: 1;
     }
 
-    /* Slideshow Controls */
     .slide-controls {
       position: absolute;
       bottom: 30px;
@@ -339,7 +361,7 @@
       background: rgba(255,255,255,0.2);
     }
 
-    /* Features */
+    /* ==================== FEATURES ==================== */
     .features {
       padding: 5rem 5%;
       background: #f8f9fa;
@@ -431,7 +453,7 @@
       line-height: 1.6;
     }
 
-    /* Pricing */
+    /* ==================== PRICING ==================== */
     .pricing {
       padding: 5rem 5%;
       background: #fff;
@@ -566,7 +588,7 @@
       box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
 
-    /* Testimonials */
+    /* ==================== TESTIMONIALS ==================== */
     .testimonials {
       padding: 5rem 5%;
       background: #f8f9fa;
@@ -628,7 +650,7 @@
       font-size: 0.9rem;
     }
 
-    /* Scroll to Top Button */
+    /* ==================== SCROLL TO TOP ==================== */
     .scroll-top {
       position: fixed;
       bottom: 30px;
@@ -658,7 +680,7 @@
       box-shadow: 0 6px 20px rgba(102,126,234,0.4);
     }
 
-    /* Footer */
+    /* ==================== FOOTER ==================== */
     footer {
       background: #2c3e50;
       color: white;
@@ -688,7 +710,7 @@
       text-decoration: underline;
     }
 
-    /* Loading Animation */
+    /* ==================== LOADING ANIMATION ==================== */
     .loading {
       opacity: 0;
       animation: fadeIn 0.6s ease forwards;
@@ -698,41 +720,119 @@
       to { opacity: 1; }
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
+    /* ==================== MOBILE MENU OVERLAY ==================== */
+    .mobile-menu-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .mobile-menu-overlay.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* ==================== RESPONSIVE DESIGN ==================== */
+    @media (max-width: 968px) {
+      .nav-container {
+        position: relative;
+      }
+
       .mobile-toggle {
         display: flex;
       }
 
       .nav-links {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
+        position: fixed;
+        top: 80px;
+        left: -100%;
+        width: 280px;
+        height: calc(100vh - 80px);
         background: linear-gradient(135deg, #667eea, #764ba2);
         flex-direction: column;
-        padding: 1rem 0;
+        padding: 2rem 0;
         gap: 0;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
+        overflow-y: auto;
+        transition: left 0.4s ease;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.2);
+        z-index: 1001;
       }
 
       .nav-links.active {
-        max-height: 300px;
+        left: 0;
       }
 
       .nav-links li {
-        padding: 0.5rem 5%;
+        width: 100%;
+        opacity: 0;
+        transform: translateX(-20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
       }
+
+      .nav-links.active li {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .nav-links.active li:nth-child(1) { transition-delay: 0.1s; }
+      .nav-links.active li:nth-child(2) { transition-delay: 0.15s; }
+      .nav-links.active li:nth-child(3) { transition-delay: 0.2s; }
+      .nav-links.active li:nth-child(4) { transition-delay: 0.25s; }
 
       .nav-links a {
         display: block;
-        padding: 0.5rem;
+        padding: 1rem 2rem;
+        border-radius: 0;
+        width: 100%;
       }
 
+      .nav-links a::after {
+        display: none;
+      }
+
+      .nav-auth {
+        position: fixed;
+        bottom: 0;
+        left: -100%;
+        width: 280px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        flex-direction: column;
+        padding: 1.5rem 2rem;
+        gap: 1rem;
+        transition: left 0.4s ease;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.2);
+        z-index: 1001;
+        border-top: 1px solid rgba(255,255,255,0.2);
+      }
+
+      .nav-links.active ~ .nav-auth {
+        left: 0;
+      }
+
+      .login-btn,
+      .cta-btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+        padding: 0.8rem 1.5rem;
+      }
+
+      .cta-btn {
+        margin-top: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
       .hero {
         height: 450px;
+        margin-top: 70px;
       }
 
       .slide-nav {
@@ -771,25 +871,94 @@
         height: 45px;
       }
     }
+
+    @media (max-width: 480px) {
+      nav {
+        padding: 0.8rem 4%;
+      }
+
+      .logo {
+        font-size: 1.4rem;
+      }
+
+      .hero {
+        height: 400px;
+      }
+
+      .hero-content {
+        padding: 1.2rem;
+      }
+
+      .hero-content h1 {
+        font-size: 1.6rem;
+      }
+
+      .hero-content p {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.8rem;
+      }
+
+      .hero-buttons a {
+        width: 100%;
+        text-align: center;
+      }
+
+      .section-title {
+        font-size: 1.6rem;
+      }
+
+      .feature-card,
+      .pricing-card,
+      .testimonial-card {
+        padding: 1.5rem;
+      }
+
+      .features,
+      .pricing,
+      .testimonials {
+        padding: 3rem 4%;
+      }
+
+      .slide-nav {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+      }
+
+      .slide-nav.prev { left: 10px; }
+      .slide-nav.next { right: 10px; }
+    }
   </style>
 </head>
 
 <body>
+  <!-- MOBILE MENU OVERLAY -->
+  <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
   <!-- NAVBAR -->
   <nav id="navbar">
     <div class="nav-container">
       <div class="logo" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">🎓 KiddoCore</div>
-      <div class="mobile-toggle" id="mobileToggle">
+      
+      <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
         <span></span>
         <span></span>
         <span></span>
-      </div>
+      </button>
+
       <ul class="nav-links" id="navLinks">
         <li><a href="#features" data-section="features">Features</a></li>
         <li><a href="#pricing" data-section="pricing">Pricing</a></li>
         <li><a href="#testimonials" data-section="testimonials">Testimonials</a></li>
         <li><a href="#contact" data-section="contact">Contact</a></li>
       </ul>
+
       <div class="nav-auth">
         <a href="{% url 'account:login' %}" class="login-btn">Login</a>
         <a href="{% url 'account:register-school' %}" class="cta-btn">Register School</a>
@@ -804,7 +973,6 @@
          style="background-image: url('{% static slide.image %}');">
     </div>
     {% empty %}
-    <!-- Default slides if none from database -->
     <div class="slide active" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
     <div class="slide" style="background: linear-gradient(135deg, #f093fb, #f5576c);"></div>
     <div class="slide" style="background: linear-gradient(135deg, #4facfe, #00f2fe);"></div>
@@ -844,7 +1012,6 @@
         <p>{{ feature.description }}</p>
       </div>
       {% empty %}
-      <!-- Default features if none from database -->
       <div class="feature-card">
         <div class="feature-icon">👨‍🏫</div>
         <h3>Teacher Management</h3>
@@ -935,7 +1102,6 @@
         <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
       </div>
       {% empty %}
-      <!-- Default pricing if none from database -->
       <div class="pricing-card">
         <h3>Starter</h3>
         <div class="plan-price">₵150</div>
@@ -947,7 +1113,7 @@
           <li><span class="icon" style="color:green;">✔</span> Email Support</li>
           <li><span class="icon" style="color:red;">✖</span> Advanced Analytics</li>
         </ul>
-        <a href="#" class="plan-btn"><span>Get Started</span></a>
+        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
       </div>
       <div class="pricing-card">
         <h3>Professional</h3>
@@ -960,7 +1126,7 @@
           <li><span class="icon" style="color:green;">✔</span> Priority Support</li>
           <li><span class="icon" style="color:green;">✔</span> Advanced Analytics</li>
         </ul>
-        <a href="#" class="plan-btn"><span>Get Started</span></a>
+        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
       </div>
       <div class="pricing-card">
         <h3>Enterprise</h3>
@@ -973,7 +1139,7 @@
           <li><span class="icon" style="color:green;">✔</span> 24/7 Support</li>
           <li><span class="icon" style="color:green;">✔</span> White Label Option</li>
         </ul>
-        <a href="#" class="plan-btn"><span>Get Started</span></a>
+        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
       </div>
       {% endfor %}
     </div>
@@ -995,7 +1161,6 @@
         </div>
       </div>
       {% empty %}
-      <!-- Default testimonials if none from database -->
       <div class="testimonial-card">
         <div class="testimonial-content">"KiddoCore has transformed how we manage our preschool. The fee automation alone has saved us 10 hours per week!"</div>
         <div class="testimonial-author">
@@ -1039,12 +1204,12 @@
   <footer id="contact">
     <h3>🎓 KiddoCore</h3>
     <p>Empowering preschools with modern digital solutions.</p>
-    <p>Email: <a href="mailto:erasmuschawey12345@gmail.com">support@kiddocore.com</a> | Phone: <a href="tel:+233551234567">+233 540 501 1163</a></p>
+    <p>Email: <a href="mailto:support@kiddocore.com">support@kiddocore.com</a> | Phone: <a href="tel:+233540501163">+233 540 501 1163</a></p>
     <p>&copy; 2025 KiddoCore. All rights reserved.</p>
   </footer>
 
   <script>
-    // Slideshow functionality
+    // ==================== SLIDESHOW FUNCTIONALITY ====================
     let current = 0;
     const slides = document.querySelectorAll('.slide');
     const dots = document.querySelectorAll('.slide-dot');
@@ -1079,16 +1244,47 @@
 
     resetInterval();
 
-    // Mobile menu toggle
-    const mobileToggle = document.getElementById('mobileToggle');
-    const navLinks = document.getElementById('navLinks');
+    // Pause slideshow on hover
+    const hero = document.querySelector('.hero');
+    hero.addEventListener('mouseenter', () => clearInterval(slideInterval));
+    hero.addEventListener('mouseleave', () => resetInterval());
 
-    mobileToggle.addEventListener('click', () => {
-      mobileToggle.classList.toggle('active');
-      navLinks.classList.toggle('active');
+    // Keyboard navigation for slideshow
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') changeSlide(-1);
+      else if (e.key === 'ArrowRight') changeSlide(1);
     });
 
-    // Enhanced smooth scrolling function
+    // ==================== MOBILE MENU FUNCTIONALITY ====================
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+    function toggleMobileMenu() {
+      mobileToggle.classList.toggle('active');
+      navLinks.classList.toggle('active');
+      mobileMenuOverlay.classList.toggle('active');
+      document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
+    }
+
+    function closeMobileMenu() {
+      mobileToggle.classList.remove('active');
+      navLinks.classList.remove('active');
+      mobileMenuOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    mobileToggle.addEventListener('click', toggleMobileMenu);
+    mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+
+    // Close menu on window resize to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 968) {
+        closeMobileMenu();
+      }
+    });
+
+    // ==================== SMOOTH SCROLLING ====================
     function smoothScrollTo(targetId) {
       const target = document.querySelector(targetId);
       if (target) {
@@ -1108,17 +1304,12 @@
       anchor.addEventListener('click', function(e) {
         e.preventDefault();
         const targetId = this.getAttribute('href');
-        
-        // Close mobile menu if open
-        mobileToggle.classList.remove('active');
-        navLinks.classList.remove('active');
-        
-        // Use our enhanced smooth scroll function
+        closeMobileMenu();
         smoothScrollTo(targetId);
       });
     });
 
-    // Active nav link on scroll
+    // ==================== ACTIVE NAV LINK ON SCROLL ====================
     const sections = document.querySelectorAll('section[id]');
     const navLinksItems = document.querySelectorAll('.nav-links a');
 
@@ -1140,7 +1331,7 @@
       });
     });
 
-    // Navbar scroll effect
+    // ==================== NAVBAR SCROLL EFFECT ====================
     const navbar = document.getElementById('navbar');
     window.addEventListener('scroll', () => {
       if (window.scrollY > 50) {
@@ -1150,7 +1341,7 @@
       }
     });
 
-    // Scroll to top button
+    // ==================== SCROLL TO TOP BUTTON ====================
     const scrollTop = document.getElementById('scrollTop');
     window.addEventListener('scroll', () => {
       if (window.scrollY > 300) {
@@ -1160,7 +1351,7 @@
       }
     });
 
-    // Intersection Observer for fade-in animations
+    // ==================== INTERSECTION OBSERVER FOR FADE-IN ====================
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -50px 0px'
@@ -1176,25 +1367,6 @@
 
     document.querySelectorAll('.loading').forEach(el => {
       observer.observe(el);
-    });
-
-    // Add keyboard navigation for accessibility
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        changeSlide(-1);
-      } else if (e.key === 'ArrowRight') {
-        changeSlide(1);
-      }
-    });
-
-    // Pause slideshow on hover
-    const hero = document.querySelector('.hero');
-    hero.addEventListener('mouseenter', () => {
-      clearInterval(slideInterval);
-    });
-
-    hero.addEventListener('mouseleave', () => {
-      resetInterval();
     });
   </script>
 </body>

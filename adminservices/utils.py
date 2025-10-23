@@ -39,32 +39,32 @@ def send_email_async(subject, message, recipient_list, from_email=None):
     return True
 
 def send_email_async_with_retry(subject, message, recipient_list, max_retries=3, from_email=None):
-    """
-    Send email in background thread with retry logic to handle timeouts
-    """
     def _send_with_retry():
+        from_email = from_email or settings.DEFAULT_FROM_EMAIL
         for attempt in range(max_retries):
             try:
-                result = send_mail(
+                # Build SendGrid email
+                email = Mail(
+                    from_email=from_email,
+                    to_emails=recipient_list,
                     subject=subject,
-                    message=message,
-                    from_email=from_email or settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=recipient_list,
-                    fail_silently=False,
+                    plain_text_content=message
                 )
-                logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients (attempt {attempt + 1})")
-                return result
+                sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
+                response = sg.send(email)
+                logger.info(f"✅ SendGrid email sent (status {response.status_code}) to {len(recipient_list)} recipients (attempt {attempt + 1})")
+                return response
                 
             except Exception as e:
                 logger.warning(f"⚠️ Email attempt {attempt + 1} failed: {str(e)}")
                 if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 5  # 5, 10, 15 seconds
+                    wait_time = (attempt + 1) * 5
                     logger.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
                     logger.error(f"❌ All email attempts failed for {recipient_list}: {str(e)}")
-                    return 0
-    
+                    return None
+
     thread = Thread(target=_send_with_retry)
     thread.daemon = True
     thread.start()

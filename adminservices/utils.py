@@ -217,6 +217,9 @@ def send_announcement_via_email_and_sms(announcement):
     logger.info(f"Announcement sending completed: {results}")
     return results
 
+# ========================
+# RECIPIENT HELPERS
+# ========================
 
 def get_announcement_recipients(school, audience):
     """Get recipients based on audience type"""

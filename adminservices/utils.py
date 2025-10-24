@@ -8,7 +8,7 @@ from django.utils import timezone
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Mail, To, From
 from account.models import CustomUser, Teacher, Student, Parent, Notification
 
 logger = logging.getLogger(__name__)
@@ -53,20 +53,35 @@ def send_email_async_with_retry(subject, message, recipient_list, max_retries=3,
     def _send_with_retry():
         for attempt in range(max_retries):
             try:
-                # Build SendGrid email
-                email = Mail(
-                    from_email=email_from,
-                    to_emails=recipient_list,
-                    subject=subject,
-                    plain_text_content=message
-                )
+                # Ensure recipient_list is a list
+                if isinstance(recipient_list, str):
+                    recipients = [recipient_list]
+                else:
+                    recipients = list(recipient_list)
                 
+                # Remove duplicates and empty emails
+                recipients = list(set(filter(None, recipients)))
+                
+                if not recipients:
+                    logger.warning("No valid recipients provided")
+                    return None
+                
+                # Build SendGrid email message
+                message_obj = Mail()
+                message_obj.from_email = From(email_from)
+                message_obj.subject = subject
+                message_obj.plain_text_content = message
+                
+                # Add all recipients as To addresses
+                message_obj.to = [To(email) for email in recipients]
+                
+                # Send via SendGrid
                 sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
-                response = sg.send(email)
+                response = sg.send(message_obj)
                 
                 logger.info(
                     f"✅ SendGrid email sent (status {response.status_code}) "
-                    f"to {len(recipient_list)} recipients (attempt {attempt + 1})"
+                    f"to {len(recipients)} recipients (attempt {attempt + 1})"
                 )
                 return response
                 
@@ -77,7 +92,7 @@ def send_email_async_with_retry(subject, message, recipient_list, max_retries=3,
                     logger.info(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
-                    logger.error(f"❌ All email attempts failed for {recipient_list}: {str(e)}")
+                    logger.error(f"❌ All email attempts failed for {len(recipients) if 'recipients' in locals() else 0} recipients: {str(e)}")
                     return None
 
     thread = Thread(target=_send_with_retry)

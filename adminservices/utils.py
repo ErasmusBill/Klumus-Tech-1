@@ -10,6 +10,14 @@ from asgiref.sync import sync_to_async
 
 # Third-party imports
 try:
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail, Email, To, Content
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+    logging.warning("SendGrid not available. Install with: pip install sendgrid")
+
+try:
     from twilio.rest import Client
     from twilio.base.exceptions import TwilioRestException
     TWILIO_AVAILABLE = True
@@ -30,16 +38,12 @@ def check_email_config():
         if hasattr(settings, 'EMAIL_BACKEND') and 'console' in settings.EMAIL_BACKEND:
             return True, "Using console email backend for development"
         
-        # Check required settings for SMTP
-        if not hasattr(settings, 'EMAIL_HOST') or not settings.EMAIL_HOST:
-            return False, "EMAIL_HOST not configured"
+        # Check if we're using SendGrid backend
+        if hasattr(settings, 'EMAIL_BACKEND') and 'sendgrid' in settings.EMAIL_BACKEND.lower():
+            if not hasattr(settings, 'SENDGRID_API_KEY') or not settings.SENDGRID_API_KEY:
+                return False, "SENDGRID_API_KEY not configured"
         
-        if not hasattr(settings, 'EMAIL_HOST_USER') or not settings.EMAIL_HOST_USER:
-            return False, "EMAIL_HOST_USER not configured"
-        
-        if not hasattr(settings, 'EMAIL_HOST_PASSWORD') or not settings.EMAIL_HOST_PASSWORD:
-            return False, "EMAIL_HOST_PASSWORD not configured"
-        
+        # Check required settings
         if not hasattr(settings, 'DEFAULT_FROM_EMAIL') or not settings.DEFAULT_FROM_EMAIL:
             return False, "DEFAULT_FROM_EMAIL not configured"
         
@@ -211,7 +215,7 @@ async def send_email_async(
     html_message: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Send email asynchronously using Django's email backend
+    Send email asynchronously using SendGrid API
     Returns: {'success': bool, 'message_id': str, 'error': str}
     """
     result = {'success': False, 'message_id': None, 'error': None}
@@ -224,21 +228,69 @@ async def send_email_async(
         # Remove duplicates and validate emails
         to_emails = list(set([email.strip() for email in to_emails if email.strip()]))
         
-        # Use Django's built-in send_mail which respects your EMAIL_BACKEND setting
-        from django.core.mail import send_mail
+        # Use SendGrid API directly
+        if SENDGRID_AVAILABLE:
+            if not hasattr(settings, 'SENDGRID_API_KEY') or not settings.SENDGRID_API_KEY:
+                result['error'] = "SENDGRID_API_KEY not configured"
+                return result
+            
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            
+            from_email = Email(settings.DEFAULT_FROM_EMAIL)
+            to_emails_list = [To(email) for email in to_emails]
+            
+            # Create content
+            if html_message:
+                content = Content("text/html", html_message)
+            else:
+                content = Content("text/plain", message)
+            
+            # Send to multiple recipients
+            successful_sends = 0
+            errors = []
+            
+            for to_email in to_emails_list:
+                try:
+                    mail = Mail(from_email, to_email, subject, content)
+                    
+                    # Add plain text alternative if sending HTML
+                    if html_message:
+                        mail.add_content(Content("text/plain", message))
+                    
+                    response = await sync_to_async(sg.send)(mail)
+                    
+                    if response.status_code in [200, 202]:
+                        successful_sends += 1
+                        result['message_id'] = response.headers.get('X-Message-Id', 'Unknown')
+                        logger.info(f"Email sent successfully to {to_email.email}. Message ID: {result['message_id']}")
+                    else:
+                        error_msg = f"SendGrid API error: {response.status_code} - {response.body}"
+                        errors.append(error_msg)
+                        logger.error(f"Failed to send email to {to_email.email}: {error_msg}")
+                        
+                except Exception as e:
+                    error_msg = f"Failed to send email to {to_email.email}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+            
+            result['success'] = successful_sends > 0
+            if errors:
+                result['error'] = "; ".join(errors)
         
-        send_mail(
-            subject=subject,
-            message=message,
-            html_message=html_message,
-            from_email=None,  # Uses DEFAULT_FROM_EMAIL from settings
-            recipient_list=to_emails,
-            fail_silently=False,
-        )
-        
-        result['success'] = True
-        result['message_id'] = "django-email-sent"
-        logger.info(f"Email sent successfully to {len(to_emails)} recipients via Django backend")
+        # Fallback to Django's send_mail
+        else:
+            send_mail(
+                subject=subject,
+                message=message,
+                html_message=html_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=to_emails,
+                fail_silently=False,
+            )
+            
+            result['success'] = True
+            result['message_id'] = "django-fallback-sent"
+            logger.info(f"Email sent via Django fallback to {len(to_emails)} recipients")
             
     except Exception as e:
         error_msg = f"Failed to send email: {str(e)}"
@@ -264,6 +316,24 @@ def send_email_sync(
 
 # ===== SMS FUNCTIONS =====
 
+def send_sms_mock(to_phones: List[str], message: str) -> Dict[str, Any]:
+    """
+    Mock SMS function for development - logs instead of sending real SMS
+    """
+    result = {'success': True, 'message_id': 'mock-sms-id', 'error': None}
+    
+    logger.info(f"📱 MOCK SMS - Would send to: {to_phones}")
+    logger.info(f"📱 MOCK SMS Message: {message}")
+    
+    for phone in to_phones:
+        logger.info(f"📱 MOCK: SMS sent to {phone}: {message[:50]}...")
+    
+    # Also print to console for visibility
+    print(f"📱 MOCK SMS sent to {to_phones}")
+    print(f"📱 Message: {message}")
+    
+    return result
+
 async def send_sms_async(
     to_phones: List[str], 
     message: str
@@ -278,19 +348,25 @@ async def send_sms_async(
         result['error'] = "No recipient phone numbers provided"
         return result
     
-    # Check if Twilio is available and configured
+    # Check if Twilio is available
     if not TWILIO_AVAILABLE:
         result['error'] = "Twilio not available"
         return result
     
+    # Check if Twilio settings are configured
+    if not all([hasattr(settings, 'TWILIO_ACCOUNT_SID'), 
+                hasattr(settings, 'TWILIO_AUTH_TOKEN'),
+                hasattr(settings, 'TWILIO_PHONE_NUMBER')]):
+        result['error'] = "Twilio configuration missing in settings"
+        return result
+    
+    if not all([settings.TWILIO_ACCOUNT_SID, 
+                settings.TWILIO_AUTH_TOKEN, 
+                settings.TWILIO_PHONE_NUMBER]):
+        result['error'] = "Twilio credentials not set in environment variables"
+        return result
+    
     try:
-        # Check if Twilio settings are properly configured
-        required_settings = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
-        for setting in required_settings:
-            if not hasattr(settings, setting) or not getattr(settings, setting):
-                result['error'] = f"Twilio {setting} not configured"
-                return result
-        
         client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
         
         successful_sends = 0
@@ -298,30 +374,31 @@ async def send_sms_async(
         
         for phone in to_phones:
             try:
-                # Format phone number if needed (ensure E.164 format)
+                # Format phone number (ensure E.164 format)
+                formatted_phone = phone
                 if not phone.startswith('+'):
-                    # Add your country code logic here if needed
-                    phone = f"+1{phone}"  # Default to US, adjust as needed
+                    formatted_phone = f"+1{phone}"  # Default to US
                 
+                # Send SMS
                 twilio_message = await sync_to_async(client.messages.create)(
                     body=message,
                     from_=settings.TWILIO_PHONE_NUMBER,
-                    to=phone
+                    to=formatted_phone
                 )
                 
                 if twilio_message.sid:
                     successful_sends += 1
                     result['message_sid'] = twilio_message.sid
-                    logger.info(f"SMS sent successfully to {phone}. SID: {twilio_message.sid}")
+                    logger.info(f"SMS sent successfully to {formatted_phone}. SID: {twilio_message.sid}")
                 else:
-                    errors.append(f"Twilio returned no SID for {phone}")
+                    errors.append(f"Twilio returned no SID for {formatted_phone}")
                     
             except TwilioRestException as e:
-                error_msg = f"Twilio error for {phone}: {e.msg}"
+                error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"
                 errors.append(error_msg)
                 logger.error(error_msg)
             except Exception as e:
-                error_msg = f"Unexpected error sending to {phone}: {str(e)}"
+                error_msg = f"Unexpected error sending to {formatted_phone}: {str(e)}"
                 errors.append(error_msg)
                 logger.error(error_msg)
         
@@ -340,11 +417,15 @@ def send_sms_sync(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     Synchronous wrapper for SMS sending
     """
-    try:
-        return asyncio.run(send_sms_async(to_phones, message))
-    except Exception as e:
-        logger.error(f"Error in synchronous SMS send: {str(e)}")
-        return {'success': False, 'error': str(e)}
+    # Use mock SMS for development - comment out when ready for production
+    return send_sms_mock(to_phones, message)
+    
+    # Uncomment this when you fix Twilio credentials:
+    # try:
+    #     return asyncio.run(send_sms_async(to_phones, message))
+    # except Exception as e:
+    #     logger.error(f"Error in synchronous SMS send: {str(e)}")
+    #     return {'success': False, 'error': str(e)}
 
 # ===== NOTIFICATION MANAGEMENT =====
 

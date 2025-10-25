@@ -150,15 +150,21 @@ PAYSTACK_BASE_URL = "https://api.paystack.co"
 # DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"
 # SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+SENDGRID_ECHO_TO_STDOUT = True
+
 
 # In settings.py
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_PORT = 587 # Changed from  2525 
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "apikey"
-EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
-DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.sendgrid.net"
+# EMAIL_PORT = 587 # Changed from  2525 
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = "apikey"
+# EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
+# DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
 # ========================
 # TWILIO CONFIGURATION
 # ========================
@@ -166,6 +172,14 @@ DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
+
+# Debug: Check if environment variables are loaded
+print("=== ENVIRONMENT VARIABLE DEBUG ===")
+print(f"TWILIO_ACCOUNT_SID: {'SET' if TWILIO_ACCOUNT_SID else 'NOT SET'}")
+print(f"TWILIO_AUTH_TOKEN: {'SET' if TWILIO_AUTH_TOKEN else 'NOT SET'}")
+print(f"TWILIO_PHONE_NUMBER: {'SET' if TWILIO_PHONE_NUMBER else 'NOT SET'}")
+print("===================================")
 
 if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
     print("⚠️  Twilio credentials not properly set in environment variables")

@@ -1,545 +1,602 @@
+# adminservices/utils.py
 import logging
-import time
-import os
-from threading import Thread
-from django.core.mail import send_mail
+import asyncio
+from typing import List, Dict, Any, Optional, Tuple
 from django.conf import settings
-from django.utils import timezone
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, To, From
-from account.models import CustomUser, Teacher, Student, Parent, Notification
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from asgiref.sync import sync_to_async
+
+# Third-party imports
+try:
+    from twilio.rest import Client
+    from twilio.base.exceptions import TwilioRestException
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    logging.warning("Twilio not available. Install with: pip install twilio")
 
 logger = logging.getLogger(__name__)
 
-# ========================
-# ASYNC EMAIL HELPERS
-# ========================
+# ===== CONFIGURATION CHECK =====
 
-def send_email_async(subject, message, recipient_list, from_email=None):
-    """
-    Send email in a background thread to avoid blocking requests.
-    """
-    email_from = from_email or settings.DEFAULT_FROM_EMAIL
-    
-    def _send():
-        try:
-            result = send_mail(
-                subject=subject,
-                message=message,
-                from_email=email_from,
-                recipient_list=recipient_list,
-                fail_silently=False,
-            )
-            logger.info(f"✅ Email sent successfully to {len(recipient_list)} recipients")
-            return result
-        except Exception as e:
-            logger.error(f"❌ Failed to send email to {recipient_list}: {str(e)}")
-            return 0
-    
-    thread = Thread(target=_send)
-    thread.daemon = True
-    thread.start()
-    return True
+def check_email_config():
+    """Check if email configuration is available"""
+    try:
+        from django.conf import settings
+        
+        # Check if we're using console backend (for development)
+        if hasattr(settings, 'EMAIL_BACKEND') and 'console' in settings.EMAIL_BACKEND:
+            return True, "Using console email backend for development"
+        
+        # Check required settings for SMTP
+        if not hasattr(settings, 'EMAIL_HOST') or not settings.EMAIL_HOST:
+            return False, "EMAIL_HOST not configured"
+        
+        if not hasattr(settings, 'EMAIL_HOST_USER') or not settings.EMAIL_HOST_USER:
+            return False, "EMAIL_HOST_USER not configured"
+        
+        if not hasattr(settings, 'EMAIL_HOST_PASSWORD') or not settings.EMAIL_HOST_PASSWORD:
+            return False, "EMAIL_HOST_PASSWORD not configured"
+        
+        if not hasattr(settings, 'DEFAULT_FROM_EMAIL') or not settings.DEFAULT_FROM_EMAIL:
+            return False, "DEFAULT_FROM_EMAIL not configured"
+        
+        return True, "Email configuration OK"
+        
+    except Exception as e:
+        return False, f"Email configuration error: {str(e)}"
 
-
-def send_email_async_with_retry(subject, message, recipient_list, max_retries=3, from_email=None):
-    """
-    Send email asynchronously with retry logic using SendGrid.
-    """
-    email_from = from_email or settings.DEFAULT_FROM_EMAIL
+def check_sms_config():
+    """Check if SMS configuration is available"""
+    if not TWILIO_AVAILABLE:
+        return False, "Twilio not installed"
     
-    def _send_with_retry():
-        for attempt in range(max_retries):
+    required_settings = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
+    for setting in required_settings:
+        if not hasattr(settings, setting) or not getattr(settings, setting):
+            return False, f"{setting} not configured"
+    
+    return True, "SMS configuration OK"
+
+# ===== CONTACT INFORMATION GATHERING =====
+
+def get_teacher_contacts(teacher) -> Tuple[List[str], List[str]]:
+    """
+    Get email and phone numbers for a teacher
+    Returns: (emails_list, phones_list)
+    """
+    emails = []
+    phones = []
+    
+    try:
+        # Teacher's primary contact
+        if teacher.user.email:
+            emails.append(teacher.user.email)
+        
+        if teacher.user.phone_number:
+            phones.append(teacher.user.phone_number)
+            
+    except Exception as e:
+        logger.error(f"Error getting teacher contacts for {teacher}: {str(e)}")
+    
+    return emails, phones
+
+def get_student_parent_contacts(student) -> Tuple[List[str], List[str]]:
+    """
+    Get email and phone numbers for a student's parents
+    Returns: (emails_list, phones_list)
+    """
+    emails = []
+    phones = []
+    
+    try:
+        # Student's own contact (if applicable)
+        if student.user.email:
+            emails.append(student.user.email)
+        
+        # Parent contacts - using the actual Parent model structure
+        if student.parent:
+            parent = student.parent
+            
+            # Father's contact information
+            if parent.father_email:
+                emails.append(parent.father_email)
+            if parent.father_phone:
+                phones.append(parent.father_phone)
+            
+            # Mother's contact information
+            if parent.mother_email:
+                emails.append(parent.mother_email)
+            if parent.mother_phone:
+                phones.append(parent.mother_phone)
+                
+            # Emergency contact (if available)
+            if hasattr(parent, 'emergency_contact_phone') and parent.emergency_contact_phone:
+                phones.append(parent.emergency_contact_phone)
+                
+        else:
+            logger.warning(f"Student {student} has no parent associated")
+                
+    except Exception as e:
+        logger.error(f"Error getting parent contacts for student {student}: {str(e)}")
+    
+    # Remove any empty strings and duplicates
+    emails = [email for email in emails if email]
+    phones = [phone for phone in phones if phone]
+    
+    logger.info(f"Found contacts for {student}: {len(emails)} emails, {len(phones)} phones")
+    
+    return emails, phones
+
+def get_user_contact_info(user) -> Tuple[List[str], List[str]]:
+    """
+    Get email and phone numbers for any user
+    Returns: (emails_list, phones_list)
+    """
+    emails = []
+    phones = []
+    
+    try:
+        if user.email:
+            emails.append(user.email)
+        
+        if user.phone_number:
+            phones.append(user.phone_number)
+            
+    except Exception as e:
+        logger.error(f"Error getting contacts for user {user}: {str(e)}")
+    
+    return emails, phones
+
+def get_all_teachers_contacts(school) -> Tuple[List[str], List[str]]:
+    """
+    Get all active teachers' contacts for a school
+    Returns: (emails_list, phones_list)
+    """
+    emails = []
+    phones = []
+    
+    try:
+        from account.models import Teacher
+        teachers = Teacher.objects.filter(school=school, is_active=True).select_related('user')
+        
+        for teacher in teachers:
+            teacher_emails, teacher_phones = get_teacher_contacts(teacher)
+            emails.extend(teacher_emails)
+            phones.extend(teacher_phones)
+            
+    except Exception as e:
+        logger.error(f"Error getting all teachers contacts for school {school}: {str(e)}")
+    
+    # Remove duplicates
+    emails = list(set(emails))
+    phones = list(set(phones))
+    
+    return emails, phones
+
+def get_all_students_parents_contacts(school) -> Tuple[List[str], List[str]]:
+    """
+    Get all students and parents contacts for a school
+    Returns: (emails_list, phones_list)
+    """
+    emails = []
+    phones = []
+    
+    try:
+        from account.models import Student
+        students = Student.objects.filter(school=school, is_active=True).select_related('user', 'parent')
+        
+        for student in students:
+            student_emails, student_phones = get_student_parent_contacts(student)
+            emails.extend(student_emails)
+            phones.extend(student_phones)
+            
+    except Exception as e:
+        logger.error(f"Error getting all students contacts for school {school}: {str(e)}")
+    
+    # Remove duplicates
+    emails = list(set(emails))
+    phones = list(set(phones))
+    
+    return emails, phones
+
+# ===== EMAIL FUNCTIONS =====
+
+async def send_email_async(
+    to_emails: List[str], 
+    subject: str, 
+    message: str, 
+    html_message: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Send email asynchronously using Django's email backend
+    Returns: {'success': bool, 'message_id': str, 'error': str}
+    """
+    result = {'success': False, 'message_id': None, 'error': None}
+    
+    if not to_emails:
+        result['error'] = "No recipient emails provided"
+        return result
+    
+    try:
+        # Remove duplicates and validate emails
+        to_emails = list(set([email.strip() for email in to_emails if email.strip()]))
+        
+        # Use Django's built-in send_mail which respects your EMAIL_BACKEND setting
+        from django.core.mail import send_mail
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            html_message=html_message,
+            from_email=None,  # Uses DEFAULT_FROM_EMAIL from settings
+            recipient_list=to_emails,
+            fail_silently=False,
+        )
+        
+        result['success'] = True
+        result['message_id'] = "django-email-sent"
+        logger.info(f"Email sent successfully to {len(to_emails)} recipients via Django backend")
+            
+    except Exception as e:
+        error_msg = f"Failed to send email: {str(e)}"
+        result['error'] = error_msg
+        logger.error(error_msg, exc_info=True)
+    
+    return result
+
+def send_email_sync(
+    to_emails: List[str], 
+    subject: str, 
+    message: str, 
+    html_message: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for email sending
+    """
+    try:
+        return asyncio.run(send_email_async(to_emails, subject, message, html_message))
+    except Exception as e:
+        logger.error(f"Error in synchronous email send: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+# ===== SMS FUNCTIONS =====
+
+async def send_sms_async(
+    to_phones: List[str], 
+    message: str
+) -> Dict[str, Any]:
+    """
+    Send SMS asynchronously using Twilio
+    Returns: {'success': bool, 'message_sid': str, 'error': str}
+    """
+    result = {'success': False, 'message_sid': None, 'error': None}
+    
+    if not to_phones:
+        result['error'] = "No recipient phone numbers provided"
+        return result
+    
+    # Check if Twilio is available and configured
+    if not TWILIO_AVAILABLE:
+        result['error'] = "Twilio not available"
+        return result
+    
+    try:
+        # Check if Twilio settings are properly configured
+        required_settings = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
+        for setting in required_settings:
+            if not hasattr(settings, setting) or not getattr(settings, setting):
+                result['error'] = f"Twilio {setting} not configured"
+                return result
+        
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        
+        successful_sends = 0
+        errors = []
+        
+        for phone in to_phones:
             try:
-                # Ensure recipient_list is a list
-                if isinstance(recipient_list, str):
-                    recipients = [recipient_list]
-                else:
-                    recipients = list(recipient_list)
+                # Format phone number if needed (ensure E.164 format)
+                if not phone.startswith('+'):
+                    # Add your country code logic here if needed
+                    phone = f"+1{phone}"  # Default to US, adjust as needed
                 
-                # Remove duplicates and empty emails
-                recipients = list(set(filter(None, recipients)))
-                
-                if not recipients:
-                    logger.warning("No valid recipients provided")
-                    return None
-                
-                # Build SendGrid email message
-                message_obj = Mail()
-                message_obj.from_email = From(email_from)
-                message_obj.subject = subject
-                message_obj.plain_text_content = message
-                
-                # Add all recipients as To addresses
-                message_obj.to = [To(email) for email in recipients]
-                
-                # Send via SendGrid
-                sg = SendGridAPIClient(api_key=os.getenv('SENDGRID_API_KEY'))
-                response = sg.send(message_obj)
-                
-                logger.info(
-                    f"✅ SendGrid email sent (status {response.status_code}) "
-                    f"to {len(recipients)} recipients (attempt {attempt + 1})"
+                twilio_message = await sync_to_async(client.messages.create)(
+                    body=message,
+                    from_=settings.TWILIO_PHONE_NUMBER,
+                    to=phone
                 )
-                return response
                 
-            except Exception as e:
-                logger.warning(f"⚠️ Email attempt {attempt + 1} failed: {str(e)}")
-                if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 5
-                    logger.info(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
+                if twilio_message.sid:
+                    successful_sends += 1
+                    result['message_sid'] = twilio_message.sid
+                    logger.info(f"SMS sent successfully to {phone}. SID: {twilio_message.sid}")
                 else:
-                    logger.error(f"❌ All email attempts failed for {len(recipients) if 'recipients' in locals() else 0} recipients: {str(e)}")
-                    return None
-
-    thread = Thread(target=_send_with_retry)
-    thread.daemon = True
-    thread.start()
-    return True
-
-
-# ========================
-# ANNOUNCEMENT SENDING
-# ========================
-
-def send_announcement_via_email_and_sms(announcement):
-    """
-    Send announcement to selected audience via:
-    - In-app Notification
-    - Email (async)
-    - SMS (Twilio)
-    """
-    if not announcement.published:
-        logger.info(f"Announcement '{announcement.title}' is not published. Skipping send.")
-        return
-
-    now = timezone.now()
-    if announcement.publish_date and now < announcement.publish_date:
-        logger.info(f"Announcement '{announcement.title}' scheduled for future. Skipping send.")
-        return
-
-    if announcement.expiry_date and now > announcement.expiry_date:
-        logger.info(f"Announcement '{announcement.title}' has expired. Skipping send.")
-        return
-
-    school = announcement.school
-    audience = announcement.target_audience
-
-    # Build recipient queryset based on audience
-    recipients = get_announcement_recipients(school, audience)
+                    errors.append(f"Twilio returned no SID for {phone}")
+                    
+            except TwilioRestException as e:
+                error_msg = f"Twilio error for {phone}: {e.msg}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+            except Exception as e:
+                error_msg = f"Unexpected error sending to {phone}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+        
+        result['success'] = successful_sends > 0
+        if errors:
+            result['error'] = "; ".join(errors)
+            
+    except Exception as e:
+        error_msg = f"Failed to send SMS: {str(e)}"
+        result['error'] = error_msg
+        logger.error(error_msg, exc_info=True)
     
-    logger.info(
-        f"Announcement '{announcement.title}' (ID: {announcement.id}) "
-        f"sending to {recipients.count()} recipients."
-    )
+    return result
 
-    short_msg = (
-        (announcement.content[:150] + "...") 
-        if len(announcement.content) > 150 
-        else announcement.content
-    )
+def send_sms_sync(to_phones: List[str], message: str) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for SMS sending
+    """
+    try:
+        return asyncio.run(send_sms_async(to_phones, message))
+    except Exception as e:
+        logger.error(f"Error in synchronous SMS send: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
-    # Initialize Twilio client
-    twilio_client = None
-    if is_twilio_configured():
-        try:
-            twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        except Exception as e:
-            logger.warning(f"Twilio client initialization failed: {e}")
+# ===== NOTIFICATION MANAGEMENT =====
 
+def create_in_app_notification(
+    user, 
+    title: str, 
+    message: str, 
+    notification_type: str = "info",
+    related_object=None
+) -> bool:
+    """
+    Create an in-app notification for a user
+    """
+    try:
+        from account.models import Notification
+        notification = Notification(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            related_object=related_object,
+        )
+        notification.save()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to create in-app notification for {user}: {str(e)}")
+        return False
+
+def create_bulk_in_app_notifications(
+    users, 
+    title: str, 
+    message: str, 
+    notification_type: str = "info",
+    related_object=None
+) -> int:
+    """
+    Create in-app notifications for multiple users
+    Returns: number of notifications created
+    """
+    created_count = 0
+    try:
+        from account.models import Notification
+        notifications = []
+        for user in users:
+            notifications.append(Notification(
+                user=user,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                related_object=related_object,
+            ))
+        
+        # Bulk create for efficiency
+        Notification.objects.bulk_create(notifications)
+        created_count = len(notifications)
+        logger.info(f"Created {created_count} in-app notifications")
+        
+    except Exception as e:
+        logger.error(f"Failed to create bulk notifications: {str(e)}")
+    
+    return created_count
+
+# ===== MAIN NOTIFICATION FUNCTION =====
+
+async def send_notification_async(
+    emails: List[str] = None,
+    phones: List[str] = None,
+    users = None,
+    subject: str = "",
+    message: str = "",
+    html_message: Optional[str] = None,
+    create_in_app: bool = True,
+    notification_type: str = "info",
+    related_object=None
+) -> Dict[str, Any]:
+    """
+    Main notification function that handles email, SMS, and in-app notifications asynchronously
+    Returns comprehensive results dictionary
+    """
+    emails = emails or []
+    phones = phones or []
+    users = users or []
+    
+    results = {
+        'email_sent': False,
+        'sms_sent': False,
+        'in_app_created': 0,
+        'email_error': None,
+        'sms_error': None,
+        'in_app_error': None,
+        'notifications_created': 0,
+        'emails_queued': 0,
+        'sms_sent_count': 0
+    }
+    
+    try:
+        # Send emails asynchronously
+        if emails and subject and message:
+            email_result = await send_email_async(emails, subject, message, html_message)
+            results['email_sent'] = email_result['success']
+            results['emails_queued'] = len(emails) if email_result['success'] else 0
+            results['email_error'] = email_result.get('error')
+        
+        # Send SMS asynchronously
+        if phones and message:
+            sms_result = await send_sms_async(phones, message)
+            results['sms_sent'] = sms_result['success']
+            results['sms_sent_count'] = len(phones) if sms_result['success'] else 0
+            results['sms_error'] = sms_result.get('error')
+        
+        # Create in-app notifications
+        if create_in_app and users:
+            if hasattr(users, '__iter__') and not isinstance(users, str):
+                # Multiple users
+                results['in_app_created'] = await sync_to_async(create_bulk_in_app_notifications)(
+                    users, subject or "Notification", message, notification_type, related_object
+                )
+            else:
+                # Single user
+                success = await sync_to_async(create_in_app_notification)(
+                    users, subject or "Notification", message, notification_type, related_object
+                )
+                results['in_app_created'] = 1 if success else 0
+        
+        results['notifications_created'] = results['in_app_created']
+        
+        # Log results
+        logger.info(
+            f"Notification results - Emails: {results['emails_queued']}, "
+            f"SMS: {results['sms_sent_count']}, In-app: {results['in_app_created']}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in send_notification: {str(e)}", exc_info=True)
+        results['general_error'] = str(e)
+    
+    return results
+
+def send_notification(
+    emails: List[str] = None,
+    phones: List[str] = None,
+    users = None,
+    subject: str = "",
+    message: str = "",
+    html_message: Optional[str] = None,
+    create_in_app: bool = True,
+    notification_type: str = "info",
+    related_object=None
+) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for the main notification function
+    """
+    try:
+        return asyncio.run(send_notification_async(
+            emails=emails,
+            phones=phones,
+            users=users,
+            subject=subject,
+            message=message,
+            html_message=html_message,
+            create_in_app=create_in_app,
+            notification_type=notification_type,
+            related_object=related_object
+        ))
+    except Exception as e:
+        logger.error(f"Error in synchronous notification send: {str(e)}")
+        return {'general_error': str(e)}
+
+# ===== ANNOUNCEMENT SPECIFIC FUNCTIONS =====
+
+async def send_announcement_via_email_and_sms_async(announcement) -> Dict[str, Any]:
+    """
+    Send announcement to all school members via email and SMS
+    """
+    school = announcement.school
     results = {
         'notifications_created': 0,
         'emails_queued': 0,
         'sms_sent': 0,
         'errors': []
     }
-
-    # Collect all emails for batch sending
-    email_recipients = []
-
-    for user in recipients:
-        logger.info(
-            f"Processing recipient: {user.username} "
-            f"(Email: {user.email}, Phone: {_get_user_phone(user)})"
-        )
-
-        # 1. In-app notification
-        try:
-            Notification.objects.create(
-                user=user,
-                notification_type="announcement",
-                title=announcement.title,
-                message=short_msg,
-                link=f"/announcements/{announcement.id}/",
-            )
-            results['notifications_created'] += 1
-        except Exception as e:
-            error_msg = f"Failed to create notification for user {user.id}: {e}"
-            logger.error(error_msg)
-            results['errors'].append(error_msg)
-
-        # 2. Collect email addresses
-        if user.email:
-            email_recipients.append(user.email)
-
-        # 3. SMS
-        phone = _get_user_phone(user)
-        if phone and twilio_client:
-            clean_phone = _normalize_phone(phone)
-            if clean_phone:
-                try:
-                    twilio_client.messages.create(
-                        body=f"📢 {announcement.title}\n{short_msg}",
-                        from_=settings.TWILIO_PHONE_NUMBER,
-                        to=clean_phone,
-                    )
-                    logger.info(f"SMS sent to {clean_phone}")
-                    results['sms_sent'] += 1
-                except TwilioRestException as e:
-                    error_msg = (
-                        f"SMS failed to {phone} (normalized: {clean_phone}) "
-                        f"for user {user.id}: {e.msg}"
-                    )
-                    logger.error(error_msg)
-                    results['errors'].append(error_msg)
-                except Exception as e:
-                    error_msg = (
-                        f"SMS failed to {phone} (normalized: {clean_phone}) "
-                        f"for user {user.id}: {e}"
-                    )
-                    logger.error(error_msg)
-                    results['errors'].append(error_msg)
-
-    # Send all emails asynchronously in one batch
-    if email_recipients:
-        try:
-            send_email_async_with_retry(
-                subject=f"📢 Announcement: {announcement.title}",
-                message=announcement.content,
-                recipient_list=email_recipients,
-                max_retries=3
-            )
-            results['emails_queued'] = len(email_recipients)
-            logger.info(f"✉️ Queued emails for {len(email_recipients)} recipients with retry logic")
-        except Exception as e:
-            error_msg = f"Failed to queue emails: {e}"
-            logger.error(error_msg)
-            results['errors'].append(error_msg)
-
-    logger.info(f"Announcement sending completed: {results}")
-    return results
-
-# ========================
-# RECIPIENT HELPERS
-# ========================
-
-def get_announcement_recipients(school, audience):
-    """Get recipients based on audience type"""
-    if audience == "all":
-        teachers = CustomUser.objects.filter(teacher_profile__school=school, is_active=True)
-        students = CustomUser.objects.filter(student_profile__school=school, is_active=True)
-        parents = CustomUser.objects.filter(
-            parent_profile__students__school=school,
-            is_active=True
-        ).distinct()
-        return (teachers | students | parents).distinct()
-
-    elif audience == "teachers":
-        return CustomUser.objects.filter(teacher_profile__school=school, is_active=True)
-
-    elif audience == "students":
-        return CustomUser.objects.filter(student_profile__school=school, is_active=True)
-
-    elif audience == "parents":
-        return CustomUser.objects.filter(
-            parent_profile__students__school=school,
-            is_active=True
-        ).distinct()
-
-    elif audience == "staff":
-        admins = CustomUser.objects.filter(managed_school=school, is_active=True)
-        teachers = CustomUser.objects.filter(teacher_profile__school=school, is_active=True)
-        return (admins | teachers).distinct()
-
-    else:
-        return CustomUser.objects.none()
-
-
-# ========================
-# PHONE HELPERS
-# ========================
-
-def _get_user_phone(user):
-    """Extract the best available phone number for a user."""
-    # Primary phone from CustomUser
-    if user.phone_number:
-        return user.phone_number
-
-    # Parent: try father, mother, or emergency contact
-    if hasattr(user, 'parent_profile'):
-        p = user.parent_profile
-        return p.father_phone or p.mother_phone or p.emergency_contact_phone
-
-    # Student: get parent's phone
-    if hasattr(user, 'student_profile'):
-        student = user.student_profile
-        if student.parent:
-            p = student.parent
-            return p.father_phone or p.mother_phone or p.emergency_contact_phone
-
-    # Teacher: only user.phone_number (already checked)
-    return None
-
-
-def _normalize_phone(phone):
-    """
-    Normalize phone number to E.164 format.
-    Assumes Ghana numbers (country code +233).
-    """
-    if not phone:
-        return None
-
-    # Remove all non-digits
-    digits = ''.join(filter(str.isdigit, phone))
-    if not digits:
-        return None
-
-    # Ghana-specific normalization
-    if len(digits) == 10 and digits.startswith('0'):
-        return '+233' + digits[1:]
-    elif len(digits) == 9:
-        return '+233' + digits
-    elif digits.startswith('233') and len(digits) in (11, 12):
-        return '+' + digits[-12:] if len(digits) == 12 else '+233' + digits[3:]
-    elif phone.startswith('+'):
-        return phone  # Already normalized
-    elif len(digits) >= 10:
-        return '+' + digits[-12:]  # Keep last 12 digits max
-
-    return None
-
-
-# ========================
-# SMS FUNCTIONS
-# ========================
-
-def send_sms(message, recipient_phone):
-    """Send SMS using Twilio"""
-    if not recipient_phone:
-        logger.warning("No recipient phone number provided")
-        return False
-    
-    if not is_twilio_configured():
-        logger.error("Twilio credentials not configured in settings")
-        return False
-    
-    clean_phone = _normalize_phone(recipient_phone)
-    if not clean_phone:
-        logger.error(f"Invalid phone number format: {recipient_phone}")
-        return False
     
     try:
-        twilio_client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        # Get all contacts for the school
+        teacher_emails, teacher_phones = await sync_to_async(get_all_teachers_contacts)(school)
+        student_emails, student_phones = await sync_to_async(get_all_students_parents_contacts)(school)
         
-        sms_message = twilio_client.messages.create(
-            body=message,
-            from_=settings.TWILIO_PHONE_NUMBER,
-            to=clean_phone,    
+        all_emails = teacher_emails + student_emails
+        all_phones = teacher_phones + student_phones
+        
+        # Remove duplicates
+        all_emails = list(set(all_emails))
+        all_phones = list(set(all_phones))
+        
+        # Prepare message
+        subject = f"Announcement: {announcement.title}"
+        message_content = f"{announcement.content}\n\n- {school.name} Administration"
+        
+        # Create HTML version for email
+        html_message = render_to_string('emails/announcement.html', {
+            'announcement': announcement,
+            'school': school
+        })
+        
+        # Send notifications
+        notification_results = await send_notification_async(
+            emails=all_emails,
+            phones=all_phones,
+            subject=subject,
+            message=message_content,
+            html_message=html_message,
+            create_in_app=True,
+            notification_type="announcement",
+            related_object=announcement
         )
         
-        logger.info(f"SMS sent to {clean_phone}. SID: {sms_message.sid}")
-        return True
+        # Update results
+        results.update(notification_results)
         
-    except TwilioRestException as e:
-        logger.error(f"Twilio error sending SMS to {clean_phone}: {e.msg}")
-        return False
+        # Collect errors
+        if notification_results.get('email_error'):
+            results['errors'].append(f"Email: {notification_results['email_error']}")
+        if notification_results.get('sms_error'):
+            results['errors'].append(f"SMS: {notification_results['sms_error']}")
+            
     except Exception as e:
-        logger.error(f"Failed to send SMS to {clean_phone}: {str(e)}")
-        return False
-
-
-def is_twilio_configured():
-    """Check if Twilio is properly configured"""
-    required_attrs = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
-    
-    if not all(hasattr(settings, attr) for attr in required_attrs):
-        return False
-    
-    # Check if credentials are actually set
-    if not all([
-        settings.TWILIO_ACCOUNT_SID, 
-        settings.TWILIO_AUTH_TOKEN, 
-        settings.TWILIO_PHONE_NUMBER
-    ]):
-        return False
-    
-    return True
-
-
-# ========================
-# CONTACT INFO HELPERS
-# ========================
-
-def get_user_contact_info(user):
-    """Get email and phone number from any user type"""
-    email = getattr(user, 'email', None)
-    phone = getattr(user, 'phone_number', None)
-    return email, phone
-
-
-def get_student_parent_contacts(student):
-    """Get all contact information for a student and their parents"""
-    emails = []
-    phones = []
-    
-    # Student contact info
-    student_email, student_phone = get_user_contact_info(student.user)
-    if student_email:
-        emails.append(student_email)
-    if student_phone:
-        phones.append(student_phone)
-    
-    # Parent contact info
-    if hasattr(student, 'parent') and student.parent:
-        parent = student.parent
-        # Father's contact
-        if parent.father_email:
-            emails.append(parent.father_email)
-        if parent.father_phone:
-            phones.append(parent.father_phone)
-        # Mother's contact
-        if parent.mother_email:
-            emails.append(parent.mother_email)
-        if parent.mother_phone:
-            phones.append(parent.mother_phone)
-    
-    return list(set(emails)), list(set(phones))
-
-
-def get_teacher_contacts(teacher):
-    """Get contact information for a teacher"""
-    emails = []
-    phones = []
-    
-    teacher_email, teacher_phone = get_user_contact_info(teacher.user)
-    if teacher_email:
-        emails.append(teacher_email)
-    if teacher_phone:
-        phones.append(teacher_phone)
-    
-    return emails, phones
-
-
-# ========================
-# MAIN NOTIFICATION FUNCTION
-# ========================
-
-def send_notification(emails, phones, subject, message):
-    """
-    Send both email and SMS notifications asynchronously.
-    """
-    results = {
-        'email_sent': False,
-        'sms_sent': False,
-        'email_error': None,
-        'sms_error': None,
-        'emails_queued': 0,
-        'sms_sent_count': 0
-    }
-    
-    # Send Email (ASYNC)
-    if emails:
-        try:
-            send_email_async_with_retry(
-                subject=subject,
-                message=message,
-                recipient_list=emails,
-                max_retries=3
-            )
-            results['email_sent'] = True
-            results['emails_queued'] = len(emails)
-            logger.info(f"✉️ Queued emails for {len(emails)} recipients with retry logic")
-        except Exception as e:
-            results['email_error'] = str(e)
-            logger.error(f"❌ Failed to queue email to {emails}: {e}")
-    
-    # Send SMS
-    if phones:
-        sms_results = []
-        for phone in phones:
-            try:
-                success = send_sms(message, phone)
-                sms_results.append(success)
-                if success:
-                    results['sms_sent_count'] += 1
-            except Exception as e:
-                sms_results.append(False)
-                logger.error(f"Failed to send SMS to {phone}: {e}")
-        
-        results['sms_sent'] = any(sms_results)
-        if sms_results and not all(sms_results):
-            failed_count = sms_results.count(False)
-            results['sms_error'] = (
-                f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
-            )
+        error_msg = f"Failed to send announcement: {str(e)}"
+        results['errors'].append(error_msg)
+        logger.error(error_msg, exc_info=True)
     
     return results
 
+def send_announcement_via_email_and_sms(announcement) -> Dict[str, Any]:
+    """
+    Synchronous wrapper for announcement sending
+    """
+    try:
+        return asyncio.run(send_announcement_via_email_and_sms_async(announcement))
+    except Exception as e:
+        logger.error(f"Error in synchronous announcement send: {str(e)}")
+        return {'errors': [str(e)]}
 
-def send_notification_sync(emails, phones, subject, message):
+# ===== SIMPLIFIED SMS FUNCTION (for direct use) =====
+
+def send_sms(to_phones: List[str], message: str) -> bool:
     """
-    Alternative function that sends emails synchronously with fail_silently=True
+    Simplified SMS function for direct use in views
+    Returns: True if at least one SMS was sent successfully
     """
-    results = {
-        'email_sent': False,
-        'sms_sent': False,
-        'email_error': None,
-        'sms_error': None,
-        'emails_sent_count': 0,
-        'sms_sent_count': 0
-    }
-    
-    # Send Email (synchronous with fail_silently)
-    if emails:
-        try:
-            count = send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=emails,
-                fail_silently=True,  # Don't crash if email fails
-            )
-            results['email_sent'] = count > 0
-            results['emails_sent_count'] = count
-            if count > 0:
-                logger.info(f"Email sent to {count} recipients")
-            else:
-                logger.warning("Email sending returned 0 - may have failed silently")
-        except Exception as e:
-            results['email_error'] = str(e)
-            logger.error(f"Failed to send email to {emails}: {e}")
-    
-    # Send SMS
-    if phones:
-        sms_results = []
-        for phone in phones:
-            try:
-                success = send_sms(message, phone)
-                sms_results.append(success)
-                if success:
-                    results['sms_sent_count'] += 1
-            except Exception as e:
-                sms_results.append(False)
-                logger.error(f"Failed to send SMS to {phone}: {e}")
-        
-        results['sms_sent'] = any(sms_results)
-        if sms_results and not all(sms_results):
-            failed_count = sms_results.count(False)
-            results['sms_error'] = (
-                f"{failed_count} out of {len(sms_results)} SMS messages failed to send"
-            )
-    
-    return results
+    try:
+        result = send_sms_sync(to_phones, message)
+        return result.get('success', False)
+    except Exception as e:
+        logger.error(f"Error in simplified SMS send: {str(e)}")
+        return False

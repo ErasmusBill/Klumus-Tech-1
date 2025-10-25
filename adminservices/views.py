@@ -16,13 +16,9 @@ from .forms import (
     AddTeacherForm, AddDepartmentForm, AddStudentForm, 
     AddFeesForm, AddSubjectForm, AnnouncementForm
 )
-from .utils import (
-    send_announcement_via_email_and_sms, send_notification,
-    get_teacher_contacts, get_student_parent_contacts,
-    get_user_contact_info, send_sms
-)
+from .utils import *
 from django.template.loader import render_to_string
-from django.http import HttpResponse
+from django.http import HttpResponse    
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -172,15 +168,15 @@ def add_teacher(request):
                         )
                         
                         # Provide feedback based on results
-                        if notification_results.get('email_sent') and notification_results.get('sms_sent'):
+                        if notification_results.get('email_sent') and notification_results.get('sms_sent'): # type: ignore
                             messages.success(request, 
                                 f"Teacher added successfully! Welcome notifications queued for {user.email}"
                             )
-                        elif notification_results.get('email_sent'):
+                        elif notification_results.get('email_sent'): # type: ignore
                             messages.success(request, 
                                 f"Teacher added successfully! Welcome email queued for {user.email}"
                             )
-                        elif notification_results.get('sms_sent'):
+                        elif notification_results.get('sms_sent'): # type: ignore
                             messages.success(request, 
                                 f"Teacher added successfully! Welcome SMS sent"
                             )
@@ -189,7 +185,7 @@ def add_teacher(request):
                                 f"Teacher '{user.get_full_name()}' added successfully!"
                             )
                             if notification_results.get('email_error'):
-                                logger.warning(f"Email notification failed: {notification_results['email_error']}")
+                                logger.warning(f"Email notification failed: {notification_results['email_error']}") # type: ignore
                         
                         logger.info(f"Teacher {user.username} created. Notifications: {notification_results}")
                         
@@ -300,7 +296,7 @@ def update_teacher(request, teacher_id):
                         message=email_message
                     )
 
-                    if notification_results.get('email_sent') or notification_results.get('sms_sent'):
+                    if notification_results.get('email_sent') or notification_results.get('sms_sent'): # type: ignore
                         messages.success(request, "Teacher updated successfully! Notification sent.")
                     else:
                         messages.success(request, "Teacher updated successfully!")
@@ -465,7 +461,7 @@ def department_detail(request, department_id):
 
 @login_required
 def add_student(request):
-    """Add a new student with async parent notifications"""
+    """Add a new student with parent notifications"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login") 
@@ -483,68 +479,87 @@ def add_student(request):
                     student = form.save()
                     password = form.cleaned_data.get('password')
                     
-                    # Send enrollment notifications (ASYNC - Won't timeout)
+                    # Send enrollment notifications
                     try:
                         parent_emails, parent_phones = get_student_parent_contacts(student)
                         
-                        email_message = (
-                            f"Dear Parent/Guardian,\n\n"
-                            f"Your child, {student.user.first_name} {student.user.last_name}, "
-                            f"has been enrolled at {school.name}.\n\n"
-                            f"Please use the following credentials to access their student portal:\n\n"
-                            f"Username: {student.user.username}\n"
-                            f"Password: {password}\n\n"
-                            f"We recommend changing the password after the first login for security.\n\n"
-                            f"Best regards,\n"
-                            f"{school.name} Administration"
-                        )
+                        # Log contact information for debugging
+                        logger.info(f"Student {student.user.get_full_name()} - Emails: {parent_emails}, Phones: {parent_phones}")
                         
-                        sms_message = (
-                            f"Your child {student.user.first_name} has been enrolled at {school.name}. "
-                            f"Username: {student.user.username}. Check email for login details."
-                        )
+                        # Check email configuration
+                        email_config_ok, email_config_msg = check_email_config()
+                        logger.info(f"Email configuration: {email_config_msg}")
                         
-                        notification_results = send_notification(
-                            emails=parent_emails,
-                            phones=parent_phones,
-                            subject=f"Login Details for {student.user.get_full_name()} - {school.name}",
-                            message=email_message
-                        )
-                        
-                        # Provide feedback (emails are queued, not sent yet)
-                        if notification_results.get('email_sent') and notification_results.get('sms_sent'):
-                            messages.success(
-                                request, 
-                                f"Student '{student.user.get_full_name()}' added successfully! "
-                                f"Notifications queued for parents."
+                        # Only send notifications if we have at least one contact method
+                        if parent_emails or parent_phones:
+                            email_message = (
+                                f"Dear Parent/Guardian,\n\n"
+                                f"Your child, {student.user.first_name} {student.user.last_name}, "
+                                f"has been enrolled at {school.name}.\n\n"
+                                f"Please use the following credentials to access their student portal:\n\n"
+                                f"Username: {student.user.username}\n"
+                                f"Password: {password}\n\n"
+                                f"We recommend changing the password after the first login for security.\n\n"
+                                f"Best regards,\n"
+                                f"{school.name} Administration"
                             )
-                        elif notification_results.get('email_sent'):
-                            messages.success(
-                                request, 
-                                f"Student '{student.user.get_full_name()}' added successfully! "
-                                f"Email queued for parents (check logs for delivery status)."
+                            
+                            # Use the synchronous notification function
+                            notification_results = send_notification(
+                                emails=parent_emails,
+                                phones=parent_phones,
+                                subject=f"Login Details for {student.user.get_full_name()} - {school.name}",
+                                message=email_message
                             )
-                        elif notification_results.get('sms_sent'):
-                            messages.success(
-                                request, 
-                                f"Student '{student.user.get_full_name()}' added successfully! "
-                                f"SMS sent to parents."
-                            )
+                            
+                            # Debug log the notification results
+                            logger.info(f"Notification results: {notification_results}")
+                            
+                            # Provide feedback based on results
+                            if notification_results.get('email_sent') and notification_results.get('sms_sent'):
+                                messages.success(
+                                    request, 
+                                    f"Student '{student.user.get_full_name()}' added successfully! "
+                                    f"Parents notified via email and SMS."
+                                )
+                            elif notification_results.get('email_sent'):
+                                messages.success(
+                                    request, 
+                                    f"Student '{student.user.get_full_name()}' added successfully! "
+                                    f"Welcome email sent to parents."
+                                )
+                            elif notification_results.get('sms_sent'):
+                                messages.success(
+                                    request, 
+                                    f"Student '{student.user.get_full_name()}' added successfully! "
+                                    f"Welcome SMS sent to parents."
+                                )
+                            else:
+                                messages.success(
+                                    request,
+                                    f"Student '{student.user.get_full_name()}' created successfully!"
+                                )
+                                # Log notification errors for debugging
+                                if notification_results.get('email_error'):
+                                    logger.warning(f"Email notification failed: {notification_results['email_error']}")
+                                if notification_results.get('sms_error'):
+                                    logger.warning(f"SMS notification failed: {notification_results['sms_error']}")
                         else:
+                            # No contact information available
                             messages.success(
                                 request,
-                                f"Student '{student.user.get_full_name()}' created successfully!"
+                                f"Student '{student.user.get_full_name()}' created successfully! "
+                                f"(No parent contact information provided for notifications)"
                             )
-                        
-                        logger.info(f"Student {student.user.username} created. Notifications: {notification_results}")
+                            logger.info(f"No contact information available for student {student.user.get_full_name()}")
                         
                     except Exception as e:
                         # Don't fail student creation if notifications fail
-                        logger.error(f"Notification error for student {student.user.username}: {str(e)}")
+                        logger.error(f"Notification error for student {student.user.username}: {str(e)}", exc_info=True)
                         messages.success(
                             request,
                             f"Student '{student.user.get_full_name()}' created successfully! "
-                            f"(Notifications may be delayed)"
+                            f"(Notification system encountered an error)"
                         )
                     
                     return redirect("adminservices:list-students")
@@ -563,10 +578,7 @@ def add_student(request):
         "form": form,
         "title": "Add New Student"
     })
-
-# (Continue with remaining views - keeping them mostly unchanged)
-# I'll just show the key ones that need notification updates
-
+    
 @login_required
 def list_students(request):
     """List all students with pagination"""
@@ -713,7 +725,7 @@ def add_fees(request):
                     except Exception as e:
                         logger.error(f"Notification error: {str(e)}")
                         messages.success(request, 
-                            f"Fee for '{student.user.get_full_name()}' added successfully!"
+                            f"Fee for '{student.user.get_full_name()}' added successfully!" # type: ignore
                         )
                     
                     return redirect("adminservices:list-fees")
@@ -922,16 +934,16 @@ def manage_announcement(request, pk=None):
                 try:
                     results = send_announcement_via_email_and_sms(announcement)
                     
-                    if results and results.get('errors'):
-                        error_count = len(results['errors'])
+                    if results and results.get('errors'): # type: ignore
+                        error_count = len(results['errors']) # type: ignore
                         messages.warning(request, 
                             f"Announcement saved! {error_count} notification(s) had issues. "
                             f"Check logs for details."
                         )
                     elif results:
-                        notifications = results.get('notifications_created', 0)
-                        emails_queued = results.get('emails_queued', 0)
-                        sms_sent = results.get('sms_sent', 0)
+                        notifications = results.get('notifications_created', 0) # type: ignore
+                        emails_queued = results.get('emails_queued', 0) # type: ignore
+                        sms_sent = results.get('sms_sent', 0) # type: ignore
                         
                         messages.success(request, 
                             f"Announcement published successfully! "
@@ -1075,7 +1087,7 @@ def download_fee_receipt_pdf(request, fee_id):
     receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
     issue_date = timezone.now().strftime('%B %d, %Y')
     academic_year = "2024/2025"
-    payment_method = fee.get_payment_method_display() or "Cash"
+    payment_method = fee.get_payment_method_display() or "Cash" # type: ignore
 
     context = {
         'school': school,

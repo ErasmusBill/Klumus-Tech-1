@@ -17,6 +17,7 @@ from .forms import (
     AddFeesForm, AddSubjectForm, AnnouncementForm
 )
 from .utils import *
+from .utils import send_announcement_via_email_and_sms_async
 from django.template.loader import render_to_string
 from django.http import HttpResponse    
 from datetime import datetime
@@ -905,7 +906,7 @@ def delete_subject(request, subject_id):
 
 @login_required
 def manage_announcement(request, pk=None):
-    """Create or edit announcements with async notification handling"""
+    """Create or edit announcements with targeted notification handling"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to manage announcements.")
         return redirect("account:home")
@@ -927,37 +928,73 @@ def manage_announcement(request, pk=None):
             announcement = form.save(commit=False)
             announcement.school = school
             announcement.author = request.user
+            
+            # Check if announcement is being published (status changed from draft to published)
+            is_newly_published = not announcement.published and form.cleaned_data.get('published', False)
+            announcement.published = form.cleaned_data.get('published', False)
+            
+            # Set publish date if being published for the first time
+            if is_newly_published and not announcement.publish_date:
+                announcement.publish_date = timezone.now()
+            
             announcement.save()
 
-            # Send notifications if published (ASYNC - Won't timeout)
+            # Send notifications if published
             if announcement.published:
                 try:
-                    results = send_announcement_via_email_and_sms(announcement)
+                    # Get target audience from the form
+                    target_audience = form.cleaned_data.get('target_audience', 'all')
                     
-                    if results and results.get('errors'): # type: ignore
-                        error_count = len(results['errors']) # type: ignore
-                        messages.warning(request, 
-                            f"Announcement saved! {error_count} notification(s) had issues. "
-                            f"Check logs for details."
-                        )
+                    # Send targeted notifications based on audience
+                    if target_audience == 'all':
+                        results = send_announcement_via_email_and_sms(announcement)
+                    else:
+                        results = send_targeted_announcement(announcement, target_audience)
+                    
+                    # Handle notification results
+                    if results and results.get('errors'):
+                        error_count = len(results['errors'])
+                        if error_count > 0:
+                            messages.warning(
+                                request,
+                                f"Announcement published! But {error_count} notification(s) failed. "
+                                f"Check logs for details."
+                            )
+                        else:
+                            messages.success(request, "Announcement published successfully!")
+                    
                     elif results:
-                        notifications = results.get('notifications_created', 0) # type: ignore
-                        emails_queued = results.get('emails_queued', 0) # type: ignore
-                        sms_sent = results.get('sms_sent', 0) # type: ignore
+                        notifications_created = results.get('notifications_created', 0)
+                        emails_sent = results.get('emails_queued', 0)
+                        sms_sent = results.get('sms_sent', 0)
                         
-                        messages.success(request, 
-                            f"Announcement published successfully! "
-                            f"In-app: {notifications}, Emails queued: {emails_queued}, SMS: {sms_sent}"
-                        )
+                        # Create detailed success message
+                        success_parts = []
+                        if notifications_created > 0:
+                            success_parts.append(f"{notifications_created} in-app notifications")
+                        if emails_sent > 0:
+                            success_parts.append(f"{emails_sent} emails")
+                        if sms_sent > 0:
+                            success_parts.append(f"{sms_sent} SMS")
+                        
+                        if success_parts:
+                            success_message = f"Announcement published! Sent: {', '.join(success_parts)}"
+                        else:
+                            success_message = "Announcement published! (No recipients found for selected audience)"
+                            
+                        messages.success(request, success_message)
+                        
                     else:
                         messages.success(request, "Announcement published!")
-                        
-                    logger.info(f"Announcement {announcement.id} sent. Results: {results}")
+                    
+                    logger.info(f"Announcement {announcement.id} sent to {target_audience}. Results: {results}")
                     
                 except Exception as e:
-                    logger.error(f"Failed to send announcement: {str(e)}", exc_info=True)
-                    messages.warning(request, 
-                        f"Announcement saved but notifications may be delayed. Error: {str(e)}"
+                    logger.error(f"Failed to send announcement notifications: {str(e)}", exc_info=True)
+                    messages.warning(
+                        request,
+                        f"Announcement published but notification system encountered an error. "
+                        f"Some recipients may not have been notified."
                     )
             else:
                 messages.success(request, "Announcement saved as draft.")
@@ -973,7 +1010,8 @@ def manage_announcement(request, pk=None):
         "announcement": announcement,
         "is_edit": pk is not None,
     })
-
+    
+    
 @login_required
 def list_announcements(request):
     """Display all announcements for the current admin's school"""

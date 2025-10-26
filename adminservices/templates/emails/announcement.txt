@@ -1,0 +1,24 @@
+ANNOUNCEMENT: {{ announcement.title }}
+From: {{ school.name }}
+Date: {{ announcement.publish_date|date:"F j, Y \a\t g:i A" }}
+Priority: {{ announcement.get_priority_display|upper }}
+Target Audience: {{ announcement.get_target_audience_display|upper }}
+{% if announcement.expiry_date %}Expires: {{ announcement.expiry_date|date:"F j, Y \a\t g:i A" }}{% endif %}
+
+{% if announcement.priority == "urgent" %}
+‼️ URGENT ANNOUNCEMENT ‼️
+{% endif %}
+
+CONTENT:
+{{ announcement.content }}
+
+{% if announcement.attachment %}
+ATTACHMENT:
+A file is attached to this announcement. Please check your school portal to download: {{ announcement.attachment.name }}
+{% endif %}
+
+---
+This announcement was sent to you as a {{ target_audience|default:"member" }} of {{ school.name }}.
+Please do not reply to this automated message.
+
+© {{ current_year }} {{ school.name }}

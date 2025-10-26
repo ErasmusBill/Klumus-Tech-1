@@ -374,10 +374,20 @@ async def send_sms_async(
         
         for phone in to_phones:
             try:
-                # Format phone number (ensure E.164 format)
+                # Format phone number for GHANA (+233 country code)
                 formatted_phone = phone
                 if not phone.startswith('+'):
-                    formatted_phone = f"+1{phone}"  # Default to US
+                    # Remove leading 0 and add +233 for Ghana
+                    if phone.startswith('0'):
+                        formatted_phone = f"+233{phone[1:]}"
+                    else:
+                        formatted_phone = f"+233{phone}"
+                elif phone.startswith('+1'):
+                    # Convert from wrong US format to Ghana format
+                    # +10540501163 → +233540501163
+                    formatted_phone = f"+233{phone[3:]}"
+                
+                logger.info(f"📱 Sending SMS to {formatted_phone} (original: {phone})")
                 
                 # Send SMS
                 twilio_message = await sync_to_async(client.messages.create)(
@@ -394,7 +404,15 @@ async def send_sms_async(
                     errors.append(f"Twilio returned no SID for {formatted_phone}")
                     
             except TwilioRestException as e:
-                error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"
+                if e.code == 21211:  # Invalid phone number
+                    error_msg = f"Invalid phone number format: {formatted_phone}. Ghana numbers should start with +233"
+                elif e.code == 21608:  # Phone number not verified (for trial accounts)
+                    error_msg = f"Phone number {formatted_phone} not verified in Twilio trial account"
+                elif e.code == 20003:  # Authentication error
+                    error_msg = f"Twilio authentication failed: Invalid Account SID or Auth Token"
+                else:
+                    error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"
+                
                 errors.append(error_msg)
                 logger.error(error_msg)
             except Exception as e:
@@ -417,15 +435,11 @@ def send_sms_sync(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     Synchronous wrapper for SMS sending
     """
-    # Use mock SMS for development - comment out when ready for production
-    return send_sms_mock(to_phones, message)
-    
-    # Uncomment this when you fix Twilio credentials:
-    # try:
-    #     return asyncio.run(send_sms_async(to_phones, message))
-    # except Exception as e:
-    #     logger.error(f"Error in synchronous SMS send: {str(e)}")
-    #     return {'success': False, 'error': str(e)}
+    try:
+        return asyncio.run(send_sms_async(to_phones, message))
+    except Exception as e:
+        logger.error(f"Error in synchronous SMS send: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
 # ===== NOTIFICATION MANAGEMENT =====
 
@@ -624,10 +638,13 @@ async def send_announcement_via_email_and_sms_async(announcement) -> Dict[str, A
         subject = f"Announcement: {announcement.title}"
         message_content = f"{announcement.content}\n\n- {school.name} Administration"
         
-        # Create HTML version for email
+        # Create HTML version for email with current year
+        from django.utils import timezone
         html_message = render_to_string('emails/announcement.html', {
             'announcement': announcement,
-            'school': school
+            'school': school,
+            'target_audience': 'all',
+            'current_year': timezone.now().year
         })
         
         # Send notifications
@@ -658,16 +675,6 @@ async def send_announcement_via_email_and_sms_async(announcement) -> Dict[str, A
     
     return results
 
-def send_announcement_via_email_and_sms(announcement) -> Dict[str, Any]:
-    """
-    Synchronous wrapper for announcement sending
-    """
-    try:
-        return asyncio.run(send_announcement_via_email_and_sms_async(announcement))
-    except Exception as e:
-        logger.error(f"Error in synchronous announcement send: {str(e)}")
-        return {'errors': [str(e)]}
-
 # ===== SIMPLIFIED SMS FUNCTION (for direct use) =====
 
 def send_sms(to_phones: List[str], message: str) -> bool:
@@ -681,3 +688,161 @@ def send_sms(to_phones: List[str], message: str) -> bool:
     except Exception as e:
         logger.error(f"Error in simplified SMS send: {str(e)}")
         return False
+    
+    
+def send_targeted_announcement(announcement, target_audience: str) -> Dict[str, Any]:
+    """
+    Send announcement to specific target audience (students, teachers, parents)
+    Returns: {'notifications_created': int, 'emails_queued': int, 'sms_sent': int, 'errors': List[str]}
+    """
+    school = announcement.school
+    results = {
+        'notifications_created': 0,
+        'emails_queued': 0,
+        'sms_sent': 0,
+        'errors': []
+    }
+    
+    try:
+        # Get contacts based on target audience
+        if target_audience == 'teachers':
+            emails, phones = get_all_teachers_contacts(school)
+            users = CustomUser.objects.filter(
+                teacher_profile__school=school, 
+                teacher_profile__is_active=True
+            )
+            
+        elif target_audience == 'students':
+            emails, phones = get_all_students_contacts(school)
+            users = CustomUser.objects.filter(
+                student_profile__school=school, 
+                student_profile__is_active=True
+            )
+            
+        elif target_audience == 'parents':
+            emails, phones = get_all_parents_contacts(school)
+            users = CustomUser.objects.filter(
+                parent_profile__students__school=school
+            ).distinct()
+            
+        else:  # all or unknown
+            emails, phones = get_all_contacts(school)
+            users = CustomUser.objects.filter(
+                Q(teacher_profile__school=school, teacher_profile__is_active=True) |
+                Q(student_profile__school=school, student_profile__is_active=True) |
+                Q(parent_profile__students__school=school)
+            ).distinct()
+        
+        # Remove duplicates
+        emails = list(set(emails))
+        phones = list(set(phones))
+        
+        # Prepare message
+        subject = f"Announcement: {announcement.title}"
+        message_content = f"{announcement.content}\n\n- {school.name} Administration"
+        
+        # Create HTML version for email
+        html_message = render_to_string('emails/announcement.html', {
+            'announcement': announcement,
+            'school': school,
+            'target_audience': target_audience
+        })
+        
+        # Send notifications
+        notification_results = send_notification(
+            emails=emails,
+            phones=phones,
+            users=users,
+            subject=subject,
+            message=message_content,
+            html_message=html_message,
+            create_in_app=True,
+            notification_type="announcement",
+            related_object=announcement
+        )
+        
+        # Update results
+        results.update(notification_results)
+        
+        # Log the targeting
+        logger.info(f"Targeted announcement sent to {target_audience}: "
+                   f"{len(emails)} emails, {len(phones)} phones, {users.count()} users")
+        
+        # Collect errors
+        if notification_results.get('email_error'):
+            results['errors'].append(f"Email: {notification_results['email_error']}")
+        if notification_results.get('sms_error'):
+            results['errors'].append(f"SMS: {notification_results['sms_error']}")
+            
+    except Exception as e:
+        error_msg = f"Failed to send targeted announcement to {target_audience}: {str(e)}"
+        results['errors'].append(error_msg)
+        logger.error(error_msg, exc_info=True)
+    
+    return results
+
+def get_all_students_contacts(school) -> Tuple[List[str], List[str]]:
+    """
+    Get all students' email and phone contacts
+    """
+    emails = []
+    phones = []
+    
+    try:
+        from account.models import Student
+        students = Student.objects.filter(school=school, is_active=True).select_related('user')
+        
+        for student in students:
+            if student.user.email:
+                emails.append(student.user.email)
+            if student.user.phone_number:
+                phones.append(student.user.phone_number)
+                
+    except Exception as e:
+        logger.error(f"Error getting students contacts for school {school}: {str(e)}")
+    
+    return emails, phones
+
+def get_all_parents_contacts(school) -> Tuple[List[str], List[str]]:
+    """
+    Get all parents' email and phone contacts
+    """
+    emails = []
+    phones = []
+    
+    try:
+        from account.models import Student
+        students = Student.objects.filter(school=school, is_active=True).select_related('parent')
+        
+        for student in students:
+            if student.parent:
+                parent = student.parent
+                # Father's contacts
+                if parent.father_email:
+                    emails.append(parent.father_email)
+                if parent.father_phone:
+                    phones.append(parent.father_phone)
+                # Mother's contacts
+                if parent.mother_email:
+                    emails.append(parent.mother_email)
+                if parent.mother_phone:
+                    phones.append(parent.mother_phone)
+                
+    except Exception as e:
+        logger.error(f"Error getting parents contacts for school {school}: {str(e)}")
+    
+    return emails, phones
+
+def get_all_contacts(school) -> Tuple[List[str], List[str]]:
+    """
+    Get all contacts (teachers, students, parents) for the school
+    """
+    teacher_emails, teacher_phones = get_all_teachers_contacts(school)
+    student_emails, student_phones = get_all_students_contacts(school)
+    parent_emails, parent_phones = get_all_parents_contacts(school)
+    
+    all_emails = teacher_emails + student_emails + parent_emails
+    all_phones = teacher_phones + student_phones + parent_phones
+    
+    # Remove duplicates
+    return list(set(all_emails)), list(set(all_phones))

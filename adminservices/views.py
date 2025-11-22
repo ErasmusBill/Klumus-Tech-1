@@ -947,7 +947,7 @@ def manage_announcement(request, pk=None):
                     
                     # Send targeted notifications based on audience
                     if target_audience == 'all':
-                        results = send_announcement_via_email_and_sms(announcement)
+                        results = send_announcement_via_email_and_sms_async(announcement)
                     else:
                         results = send_targeted_announcement(announcement, target_audience)
                     

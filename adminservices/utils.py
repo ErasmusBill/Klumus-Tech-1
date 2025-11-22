@@ -7,6 +7,8 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from asgiref.sync import sync_to_async
+from account.models import CustomUser
+from django.db.models import Q
 
 # Third-party imports
 try:
@@ -208,12 +210,7 @@ def get_all_students_parents_contacts(school) -> Tuple[List[str], List[str]]:
 
 # ===== EMAIL FUNCTIONS =====
 
-async def send_email_async(
-    to_emails: List[str], 
-    subject: str, 
-    message: str, 
-    html_message: Optional[str] = None
-) -> Dict[str, Any]:
+async def send_email_async(to_emails: List[str], subject: str, message: str, html_message: Optional[str] = None) -> Dict[str, Any]:
     """
     Send email asynchronously using SendGrid API
     Returns: {'success': bool, 'message_id': str, 'error': str}
@@ -234,16 +231,20 @@ async def send_email_async(
                 result['error'] = "SENDGRID_API_KEY not configured"
                 return result
             
-            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY) # type: ignore
             
-            from_email = Email(settings.DEFAULT_FROM_EMAIL)
-            to_emails_list = [To(email) for email in to_emails]
+            from_email = Email(settings.DEFAULT_FROM_EMAIL) # type: ignore
+            
+            to_emails_list = [To(email) for email in to_emails] # type: ignore
+            
             
             # Create content
             if html_message:
-                content = Content("text/html", html_message)
+                content = Content("text/html", html_message) # type: ignore
+            
             else:
-                content = Content("text/plain", message)
+                content = Content("text/plain", message) # type: ignore
+            
             
             # Send to multiple recipients
             successful_sends = 0
@@ -251,11 +252,11 @@ async def send_email_async(
             
             for to_email in to_emails_list:
                 try:
-                    mail = Mail(from_email, to_email, subject, content)
+                    mail = Mail(from_email, to_email, subject, content)  # type: ignore
                     
                     # Add plain text alternative if sending HTML
                     if html_message:
-                        mail.add_content(Content("text/plain", message))
+                        mail.add_content(Content("text/plain", message))  # type: ignore
                     
                     response = await sync_to_async(sg.send)(mail)
                     
@@ -299,12 +300,7 @@ async def send_email_async(
     
     return result
 
-def send_email_sync(
-    to_emails: List[str], 
-    subject: str, 
-    message: str, 
-    html_message: Optional[str] = None
-) -> Dict[str, Any]:
+def send_email_sync(to_emails: List[str], subject: str, message: str, html_message: Optional[str] = None) -> Dict[str, Any]:
     """
     Synchronous wrapper for email sending
     """
@@ -322,8 +318,8 @@ def send_sms_mock(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     result = {'success': True, 'message_id': 'mock-sms-id', 'error': None}
     
-    logger.info(f"📱 MOCK SMS - Would send to: {to_phones}")
-    logger.info(f"📱 MOCK SMS Message: {message}")
+    logger.info(f"MOCK SMS - Would send to: {to_phones}")
+    logger.info(f"MOCK SMS Message: {message}")
     
     for phone in to_phones:
         logger.info(f"📱 MOCK: SMS sent to {phone}: {message[:50]}...")
@@ -334,10 +330,7 @@ def send_sms_mock(to_phones: List[str], message: str) -> Dict[str, Any]:
     
     return result
 
-async def send_sms_async(
-    to_phones: List[str], 
-    message: str
-) -> Dict[str, Any]:
+async def send_sms_async(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     Send SMS asynchronously using Twilio
     Returns: {'success': bool, 'message_sid': str, 'error': str}
@@ -367,7 +360,7 @@ async def send_sms_async(
         return result
     
     try:
-        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)  # type: ignore
         
         successful_sends = 0
         errors = []
@@ -403,20 +396,20 @@ async def send_sms_async(
                 else:
                     errors.append(f"Twilio returned no SID for {formatted_phone}")
                     
-            except TwilioRestException as e:
+            except TwilioRestException as e:  # type: ignore
                 if e.code == 21211:  # Invalid phone number
-                    error_msg = f"Invalid phone number format: {formatted_phone}. Ghana numbers should start with +233"
+                    error_msg = f"Invalid phone number format: {formatted_phone}. Ghana numbers should start with +233"  # type: ignore
                 elif e.code == 21608:  # Phone number not verified (for trial accounts)
-                    error_msg = f"Phone number {formatted_phone} not verified in Twilio trial account"
+                    error_msg = f"Phone number {formatted_phone} not verified in Twilio trial account"  # type: ignore
                 elif e.code == 20003:  # Authentication error
-                    error_msg = f"Twilio authentication failed: Invalid Account SID or Auth Token"
+                    error_msg = f"Twilio authentication failed: Invalid Account SID or Auth Token"  # type: ignore
                 else:
-                    error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"
+                    error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"  # type: ignore
                 
                 errors.append(error_msg)
                 logger.error(error_msg)
             except Exception as e:
-                error_msg = f"Unexpected error sending to {formatted_phone}: {str(e)}"
+                error_msg = f"Unexpected error sending to {formatted_phone}: {str(e)}"  # type: ignore
                 errors.append(error_msg)
                 logger.error(error_msg)
         
@@ -505,8 +498,8 @@ def create_bulk_in_app_notifications(
 # ===== MAIN NOTIFICATION FUNCTION =====
 
 async def send_notification_async(
-    emails: List[str] = None,
-    phones: List[str] = None,
+    emails: List[str] = None,  # type: ignore
+    phones: List[str] = None,  # type: ignore
     users = None,
     subject: str = "",
     message: str = "",
@@ -579,8 +572,8 @@ async def send_notification_async(
     return results
 
 def send_notification(
-    emails: List[str] = None,
-    phones: List[str] = None,
+    emails: List[str] = None,  # type: ignore
+    phones: List[str] = None,  # type: ignore
     users = None,
     subject: str = "",
     message: str = "",
@@ -707,28 +700,28 @@ def send_targeted_announcement(announcement, target_audience: str) -> Dict[str, 
         # Get contacts based on target audience
         if target_audience == 'teachers':
             emails, phones = get_all_teachers_contacts(school)
-            users = CustomUser.objects.filter(
+            users = CustomUser.objects.filter(  # type: ignore
                 teacher_profile__school=school, 
                 teacher_profile__is_active=True
             )
             
         elif target_audience == 'students':
             emails, phones = get_all_students_contacts(school)
-            users = CustomUser.objects.filter(
+            users = CustomUser.objects.filter(  # type: ignore
                 student_profile__school=school, 
                 student_profile__is_active=True
             )
             
         elif target_audience == 'parents':
             emails, phones = get_all_parents_contacts(school)
-            users = CustomUser.objects.filter(
+            users = CustomUser.objects.filter(  # type: ignore
                 parent_profile__students__school=school
             ).distinct()
             
         else:  # all or unknown
             emails, phones = get_all_contacts(school)
-            users = CustomUser.objects.filter(
-                Q(teacher_profile__school=school, teacher_profile__is_active=True) |
+            users = CustomUser.objects.filter(  # type: ignore
+                Q(teacher_profile__school=school, teacher_profile__is_active=True) | 
                 Q(student_profile__school=school, student_profile__is_active=True) |
                 Q(parent_profile__students__school=school)
             ).distinct()

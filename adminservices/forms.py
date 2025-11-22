@@ -71,7 +71,7 @@ class AddTeacherForm(forms.ModelForm):
             "employment_type",
             "salary",
             "bio",
-            "image"  # Teacher's specific image
+            "image" 
         ]
         widgets = {
             "qualification": forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., BSc, MSc, PhD'}),

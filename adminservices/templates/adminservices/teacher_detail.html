@@ -1,0 +1,50 @@
+{% extends 'adminservices/base.html' %}
+{% load static %}
+
+{% block title %}Teacher Details{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <h2 class="mb-4 text-primary">Teacher Profile</h2>
+    
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                
+                <div class="details-section">
+                    <h3 class="card-title mb-3">{{ teacher.user.get_full_name|default:teacher.user.first_name }}</h3>
+                    <p class="mb-2"><strong>Email:</strong> <span class="text-muted">{{ teacher.user.email }}</span></p>
+                    <p class="mb-2"><strong>Phone:</strong> <span class="text-muted">{{ teacher.user.phone_number }}</span></p>
+                    <p class="mb-2"><strong>Qualification:</strong> <span class="text-muted">{{ teacher.qualification }}</span></p>
+                    <p class="mb-2"><strong>Specialization:</strong> <span class="text-muted">{{ teacher.specialization }}</span></p>
+                    <p class="mb-2"><strong>Experience:</strong> <span class="badge bg-info text-dark">{{ teacher.experience_years }} Years</span></p>
+                    <p class="mb-0"><strong>Hired On:</strong> <span class="text-muted">{{ teacher.hire_date|date:"M d, Y" }}</span></p>
+                </div>
+
+                <div class="image-section mt-4 mt-md-0">
+                    <img src="{% static 'adminservices/img/teacher.png' %}" 
+                         alt="{{ teacher.user.first_name }}" 
+                         class="rounded-circle border border-3 border-light shadow" 
+                         style="width: 180px; height: 180px; object-fit: cover;">
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">← Back to List</a>
+    </div>
+</div>
+
+<style>
+
+    .card {
+        transition: transform 0.2s ease-in-out;
+        background-color: #fcfcfc;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}

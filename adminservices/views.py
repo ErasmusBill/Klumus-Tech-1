@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.conf import settings
+from django.views.decorators.cache import never_cache
 
 from account.models import (
      Teacher, CustomUser, Department, School, 
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 # ===== DASHBOARD VIEWS =====
 
-@login_required
+@login_required(login_url='account:login')
 def admin_dashboard(request):
     """Admin dashboard with school overview and student search"""
     if request.user.role != "admin":
@@ -45,7 +46,7 @@ def admin_dashboard(request):
     
     try:
         school = request.user.managed_school
-    except School.DoesNotExist:
+    except School.DoesNotExist: 
         messages.error(request, "You haven't registered for a school")
         return redirect("account:login")
 
@@ -82,9 +83,8 @@ def admin_dashboard(request):
     
     return render(request, 'adminservices/admin_dashboard.html', context)
 
-# ===== TEACHER MANAGEMENT VIEWS =====
-
-@login_required
+@never_cache
+@login_required(login_url='account:login')
 def add_teacher(request):
     """Add a new teacher with async notification handling"""
     if request.user.role != "admin":
@@ -217,7 +217,7 @@ def add_teacher(request):
     
     return render(request, "adminservices/add_teacher.html", {"form": form})
 
-@login_required
+@login_required(login_url='account:login')
 def list_teachers(request):
     """List all teachers with pagination"""
     if request.user.role != "admin":
@@ -233,7 +233,7 @@ def list_teachers(request):
     
     return render(request, "adminservices/list-teachers.html", {"page_obj": page_obj})
 
-@login_required
+@login_required(login_url='account:login')
 def update_teacher(request, teacher_id):
     """Update teacher information with notification"""
     if request.user.role not in ["admin", "teacher"]:
@@ -325,7 +325,7 @@ def update_teacher(request, teacher_id):
         "teacher": teacher
     })
 
-@login_required
+@login_required(login_url='account:login')
 def delete_teacher(request, teacher_id):
     """Delete a teacher"""
     if request.user.role != "admin":
@@ -344,19 +344,31 @@ def delete_teacher(request, teacher_id):
 @login_required
 def teacher_detail(request, teacher_id):
     """View teacher details"""
+    
     if request.user.role not in ["admin", "teacher"]:
         messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-teachers")
-    
-    school = request.user.managed_school
+  
+    if request.user.role == "admin":
+        try:
+            school = request.user.managed_school
+        except School.DoesNotExist:
+            messages.error(request, "You are an admin but have no school assigned.")
+            return redirect("dashboard") 
+
+
+    elif request.user.role == "teacher":
+        try:
+            school = request.user.teacher_profile.school
+        except Teacher.DoesNotExist:
+            messages.error(request, "Teacher profile not found.")
+            return redirect("dashboard")
+
     teacher = get_object_or_404(Teacher, id=teacher_id, school=school)
     
-    return render(request, "adminservices/teacher_detail.html", {"teacher": teacher})
+    return render(request, "adminservices/teacher_detail_edit.html", {"teacher": teacher})
 
-# ===== DEPARTMENT MANAGEMENT VIEWS =====
-# (Keeping existing department views unchanged)
-
-@login_required
+@login_required(login_url='account:login')
 def add_department(request):
     """Add a new department"""
     if request.user.role != "admin":
@@ -385,7 +397,7 @@ def add_department(request):
 
     return render(request, "adminservices/add_department.html", {"form": form})
 
-@login_required
+@login_required(login_url='account:login')
 def list_departments(request):
     """List all departments with pagination"""
     if request.user.role != "admin":
@@ -404,7 +416,7 @@ def list_departments(request):
     
     return render(request, "adminservices/list_department.html", {"page_obj": page_obj})
 
-@login_required
+@login_required(login_url='account:login')
 def edit_department(request, department_id):
     """Edit department information"""
     if request.user.role != "admin":
@@ -430,7 +442,7 @@ def edit_department(request, department_id):
 
     return render(request, "adminservices/edit_department.html", {"form": form})
 
-@login_required
+@login_required(login_url='account:login')
 def delete_department(request, department_id):
     """Delete a department"""
     if request.user.role != "admin":
@@ -446,7 +458,7 @@ def delete_department(request, department_id):
     messages.success(request, f"Department '{department_name}' deleted successfully")
     return redirect("adminservices:list-departments")
 
-@login_required
+@login_required(login_url='account:login')
 def department_detail(request, department_id):
     """View department details"""
     if request.user.role != "admin":
@@ -459,8 +471,7 @@ def department_detail(request, department_id):
     return render(request, "adminservices/department-detail.html", {"department": department})
 
 # ===== STUDENT MANAGEMENT VIEWS =====
-
-@login_required
+@login_required(login_url='account:login')
 def add_student(request):
     """Add a new student with parent notifications"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -580,7 +591,7 @@ def add_student(request):
         "title": "Add New Student"
     })
     
-@login_required
+@login_required(login_url='account:login')
 def list_students(request):
     """List all students with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -602,13 +613,13 @@ def list_students(request):
         "year": 2025  
     })
 
-@login_required  
+@login_required(login_url='account:login') 
 def student_detail(request, student_id):
     """View student details"""
     student = get_object_or_404(Student, id=student_id, school=request.user.managed_school)
     return render(request, "adminservices/student_detail.html", {"student": student})
 
-@login_required
+@login_required(login_url='account:login')
 def edit_student(request, student_id):
     """Edit student information"""
     if request.user.role != "admin":
@@ -638,7 +649,7 @@ def edit_student(request, student_id):
         "student": student
     })
 
-@login_required
+@login_required(login_url='account:login')
 def delete_student(request, student_id):
     """Delete a student"""
     if request.user.role != "admin":
@@ -656,7 +667,7 @@ def delete_student(request, student_id):
 
 # ===== FEES MANAGEMENT VIEWS =====
 
-@login_required
+@login_required(login_url='account:login')
 def add_fees(request):
     """Add new fees with async parent notifications"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -742,10 +753,8 @@ def add_fees(request):
     students = Student.objects.filter(school=school, is_active=True).select_related('user')
     return render(request, "adminservices/add_fees.html", {"form": form, "students": students})
 
-# (Remaining fee, subject, and announcement views stay mostly the same)
-# Continuing with remaining views...
 
-@login_required
+@login_required(login_url='account:login')
 def edit_fees(request, fee_id):
     """Edit fee information"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -768,7 +777,7 @@ def edit_fees(request, fee_id):
 
     return render(request, "adminservices/edit_fees.html", {"form": form, "fee": fee})
 
-@login_required
+@login_required(login_url='account:login')
 def list_fees(request):
     """List all fees with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -784,7 +793,7 @@ def list_fees(request):
 
     return render(request, "adminservices/list_fees.html", {"page_obj": page_obj})
 
-@login_required
+@login_required(login_url='account:login')
 def delete_fees(request, fee_id):
     """Delete a fee record"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -804,7 +813,7 @@ def delete_fees(request, fee_id):
 
 # ===== SUBJECT MANAGEMENT VIEWS =====
 
-@login_required
+@login_required(login_url='account:login')
 def add_subject(request):
     """Add a new subject"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -833,7 +842,7 @@ def add_subject(request):
 
     return render(request, "adminservices/add_subject.html", {"form": form})
 
-@login_required
+@login_required(login_url='account:login')
 def list_subjects(request):
     """List all subjects with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -852,7 +861,7 @@ def list_subjects(request):
 
     return render(request, "adminservices/list_subjects.html", {"page_obj": page_obj})
 
-@login_required
+@login_required(login_url='account:login')
 def subject_detail(request, subject_id):
     """View subject details"""
     school = getattr(request.user, 'managed_school', None)
@@ -860,7 +869,7 @@ def subject_detail(request, subject_id):
     
     return render(request, "adminservices/subject_detail.html", {"subject": subject})
 
-@login_required
+@login_required(login_url='account:login')
 def edit_subject(request, subject_id):
     """Edit subject information"""
     if not request.user.is_authenticated or request.user.role != "admin":
@@ -904,7 +913,7 @@ def delete_subject(request, subject_id):
 
 # ===== ANNOUNCEMENT MANAGEMENT VIEWS =====
 
-@login_required
+@login_required(login_url='account:login')
 def manage_announcement(request, pk=None):
     """Create or edit announcements with targeted notification handling"""
     if request.user.role != "admin":
@@ -1012,7 +1021,7 @@ def manage_announcement(request, pk=None):
     })
     
     
-@login_required
+@login_required(login_url='account:login')
 def list_announcements(request):
     """Display all announcements for the current admin's school"""
     if request.user.role != "admin":
@@ -1030,7 +1039,7 @@ def list_announcements(request):
         "announcements": announcements
     })
 
-@login_required
+@login_required(login_url='account:login')
 def announcement_delete(request, announcement_id):
     """Delete an announcement"""
     if request.user.role != "admin":
@@ -1058,7 +1067,7 @@ def _get_academic_year(school):
 
 # ===== PRINTING & PDF GENERATION VIEWS =====
 
-@login_required
+@login_required(login_url='account:login')
 def print_fee_receipt(request, fee_id):
     """Render HTML version of the fee receipt for printing."""
     if request.user.role != "admin":
@@ -1086,7 +1095,7 @@ def print_fee_receipt(request, fee_id):
     return render(request, 'adminservices/fee_receipt.html', context)
 
 
-@login_required
+@login_required(login_url='account:login')
 def print_admission_form(request, student_id):
     """Render HTML version of the admission form for printing."""
     if request.user.role != "admin":
@@ -1112,7 +1121,7 @@ def print_admission_form(request, student_id):
     return render(request, 'adminservices/admission_form.html', context)
 
 
-@login_required
+@login_required(login_url='account:login')
 def download_fee_receipt_pdf(request, fee_id):
     """Generate and download a PDF version of the fee receipt."""
     if request.user.role != "admin":
@@ -1153,7 +1162,7 @@ def download_fee_receipt_pdf(request, fee_id):
         return redirect('adminservices:print-fee-receipt', fee_id=fee_id)
 
 
-@login_required
+@login_required(login_url='account:login')
 def download_admission_form_pdf(request, student_id):
     """Generate and download a PDF version of the admission form."""
     if request.user.role != "admin":

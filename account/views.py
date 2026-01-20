@@ -11,6 +11,8 @@ from .models import CustomUser, RequestPasswordReset, School, Subscription, Pack
 from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordForm,PasswordResetForm
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+import json
+from django.http import JsonResponse
 
 
 def home(request):
@@ -33,7 +35,7 @@ def register_school(request):
                 password=make_password(form.cleaned_data["password"]),
             )
 
-          
+        
             school = School.objects.create(
                 name=form.cleaned_data["school_name"],
                 logo=form.cleaned_data.get("school_logo"),
@@ -232,7 +234,7 @@ def select_package(request):
 
         return redirect("initiate-payment", package_id=package.id)
 
-    return render(request, "account/select_package.html", {"packages": packages})
+    return render(request, "account/login.html", {"packages": packages})
 
 
 def initiate_payment(request, package_id):
@@ -254,36 +256,31 @@ def initiate_payment(request, package_id):
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
 
-
 def verify_payment_view(request):
-    reference = request.GET.get("reference")
-    response = verify_payment(reference)
+    if request.method == "POST":
+        data = json.loads(request.body)
+        reference = data.get("reference")
 
-    if response.get("status") and response["data"]["status"] == "success":
-        metadata = response["data"]["metadata"]
-        school = School.objects.get(id=metadata["school_id"])
-        package = Package.objects.get(id=metadata["package_id"])
+        response = verify_payment(reference)
 
-        subscription = Subscription.objects.filter(school=school).first()
-        subscription.package = package # type: ignore
-        subscription.is_active = True # type: ignore
-        subscription.is_trial = False # type: ignore
-        subscription.start_date = timezone.now() # type: ignore
-        subscription.end_date = timezone.now() + timedelta(days=package.duration_days) # type: ignore
-        subscription.save() # type: ignore
+        if response.get("status") and response["data"]["status"] == "success":
+            metadata = response["data"]["metadata"]
+            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}
 
-        send_subscription_email(
-            school.admin.email,
-            "Subscription Activated",
-            f"Your subscription for '{package.name}' has been activated and will expire on {subscription.end_date}." # type: ignore
-        )
+            school = School.objects.get(id="school_id")
+            package = Package.objects.get(id=fields["package_id"])
 
-        messages.success(request, f"Payment successful! Subscribed to {package.name}.")
-        return redirect("administration:admin-dashboard")
-    else:
-        messages.error(request, "Payment verification failed.")
-        return redirect("account:select-package")
+            subscription = Subscription.objects.filter(school=school).first()
+            subscription.package = package
+            subscription.is_active = True
+            subscription.is_trial = False
+            subscription.start_date = timezone.now()
+            subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
+            subscription.save()
 
+            return JsonResponse({"status": "success"})
+
+        return JsonResponse({"status": "failed"})
 
 def upgrade_package(request, new_package_id):
     school = request.user.school

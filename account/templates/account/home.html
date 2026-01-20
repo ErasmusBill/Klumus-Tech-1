@@ -6,275 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KiddoCore - Preschool Management Simplified</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'poppins': ['Poppins', 'sans-serif'],
+          },
+          colors: {
+            'brand-purple': '#667eea',
+            'brand-dark-purple': '#764ba2',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    * { 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box; 
-    }
-
-    html { 
-      scroll-behavior: smooth; 
-    }
-
     body {
       font-family: 'Poppins', sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background-color: #fff;
-      overflow-x: hidden;
     }
-
-    /* ==================== NAVBAR ==================== */
-    nav {
+    
+    .gradient-bg {
       background: linear-gradient(135deg, #667eea, #764ba2);
-      padding: 1rem 5%;
-      position: fixed;
-      top: 0;
-      width: 100%;
-      z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: padding 0.3s ease, box-shadow 0.3s ease;
     }
-
-    nav.scrolled {
-      padding: 0.7rem 5%;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    
+    .gradient-bg-2 {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
     }
-
-    .nav-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 1200px;
-      margin: auto;
-      position: relative;
-    }
-
-    .logo {
-      color: white;
-      font-weight: 700;
-      font-size: 1.7rem;
-      cursor: pointer;
-      transition: transform 0.3s;
-      z-index: 1002;
-    }
-
-    .logo:hover {
-      transform: scale(1.05);
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-      align-items: center;
-    }
-
-    .nav-links a {
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      position: relative;
-    }
-
-    .nav-links a::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 2px;
-      background: white;
-      transition: width 0.3s;
-    }
-
-    .nav-links a:hover::after {
-      width: 80%;
-    }
-
-    .nav-links a:hover { 
-      background: rgba(255,255,255,0.1);
-    }
-
-    .nav-links a.active {
-      background: rgba(255,255,255,0.2);
-    }
-
-    /* Mobile Menu Toggle */
-    .mobile-toggle {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      cursor: pointer;
-      padding: 8px;
-      z-index: 1002;
-      background: transparent;
-      border: none;
-      transition: transform 0.3s;
-    }
-
-    .mobile-toggle:hover {
-      transform: scale(1.1);
-    }
-
-    .mobile-toggle span {
-      width: 28px;
-      height: 3px;
-      background: white;
-      border-radius: 3px;
-      transition: all 0.3s ease;
-      display: block;
-    }
-
-    .mobile-toggle.active span:nth-child(1) {
-      transform: rotate(45deg) translate(8px, 8px);
-    }
-
-    .mobile-toggle.active span:nth-child(2) {
-      opacity: 0;
-      transform: translateX(20px);
-    }
-
-    .mobile-toggle.active span:nth-child(3) {
-      transform: rotate(-45deg) translate(7px, -7px);
-    }
-
-    .nav-auth {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .login-btn {
-      color: white;
-      text-decoration: none;
-      padding: 0.5rem 1.2rem;
-      border-radius: 20px;
-      transition: all 0.3s;
-      border: 2px solid transparent;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-
-    .login-btn:hover { 
-      background: rgba(255,255,255,0.2);
-      border-color: rgba(255,255,255,0.5);
-    }
-
-    .cta-btn {
-      background: white;
-      color: #667eea;
-      font-weight: 600;
-      padding: 0.6rem 1.4rem;
-      border-radius: 25px;
-      text-decoration: none;
-      transition: all 0.3s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      white-space: nowrap;
-    }
-
-    .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-      background: #f8f9fa;
-    }
-
-    /* ==================== HERO SLIDESHOW ==================== */
-    .hero {
-      margin-top: 80px;
-      height: 550px;
-      position: relative;
-      overflow: hidden;
+    
+    .gradient-bg-3 {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
     }
 
     .slide {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
       transition: opacity 1s ease-in-out;
-      background-size: cover;
-      background-position: center;
-    }
-
-    .slide.active {
-      opacity: 1;
-    }
-
-    .slide-controls {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 10;
-    }
-
-    .slide-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.5);
-      cursor: pointer;
-      transition: all 0.3s;
-      border: 2px solid transparent;
-    }
-
-    .slide-dot:hover {
-      background: rgba(255,255,255,0.8);
-      transform: scale(1.2);
-    }
-
-    .slide-dot.active {
-      background: white;
-      width: 32px;
-      border-radius: 6px;
-    }
-
-    .slide-nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.3);
-      color: white;
-      border: none;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 1.5rem;
-      transition: all 0.3s;
-      backdrop-filter: blur(5px);
-    }
-
-    .slide-nav:hover {
-      background: rgba(255,255,255,0.5);
-      transform: translateY(-50%) scale(1.1);
-    }
-
-    .slide-nav.prev { left: 20px; }
-    .slide-nav.next { right: 20px; }
-
-    .hero-content {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      text-align: center;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2.5rem;
-      border-radius: 15px;
-      max-width: 650px;
-      backdrop-filter: blur(10px);
-      animation: fadeInUp 0.8s ease;
     }
 
     @keyframes fadeInUp {
@@ -288,1045 +55,420 @@
       }
     }
 
-    .hero-content h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    .hero-content {
+      animation: fadeInUp 0.8s ease;
     }
 
-    .hero-content p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-      line-height: 1.8;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .hero-buttons a {
-      padding: 0.8rem 2rem;
-      border-radius: 25px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-buttons a::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-    }
-
-    .hero-buttons a:hover::before {
-      width: 300px;
-      height: 300px;
-    }
-
-    .hero-buttons a span {
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero-buttons .primary-btn {
-      background: white;
-      color: #667eea;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .hero-buttons .primary-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255,255,255,0.4);
-    }
-
-    .hero-buttons .secondary-btn {
-      color: white;
-      border: 2px solid white;
-    }
-
-    .hero-buttons .secondary-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-
-    /* ==================== FEATURES ==================== */
-    .features {
-      padding: 5rem 5%;
-      background: #f8f9fa;
-    }
-
-    .section-title {
-      text-align: center;
-      font-size: 2.4rem;
-      margin-bottom: 3rem;
-      font-weight: 700;
-      color: #333;
-      position: relative;
-      padding-bottom: 1rem;
-    }
-
-    .section-title::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 4px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      border-radius: 2px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .feature-card {
-      background: white;
-      padding: 2rem;
-      border-radius: 15px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      text-align: center;
-      transition: all 0.3s;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(102,126,234,0.1), transparent);
-      transition: left 0.5s;
-    }
-
-    .feature-card:hover::before {
-      left: 100%;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 30px rgba(102,126,234,0.2);
-    }
-
-    .feature-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      display: inline-block;
-      transition: transform 0.3s;
-    }
-
-    .feature-card:hover .feature-icon {
-      transform: scale(1.2) rotate(5deg);
-    }
-
-    .feature-card h3 {
-      margin-bottom: 0.8rem;
-      color: #333;
-      font-weight: 600;
-      font-size: 1.3rem;
-    }
-
-    .feature-card p {
-      color: #666;
-      font-size: 1rem;
-      line-height: 1.6;
-    }
-
-    /* ==================== PRICING ==================== */
-    .pricing {
-      padding: 5rem 5%;
-      background: #fff;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .pricing-card {
-      border: 2px solid #eaeaea;
-      border-radius: 20px;
-      text-align: center;
-      padding: 2.5rem;
-      transition: all 0.3s;
-      background: white;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .pricing-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(135deg, transparent, rgba(102,126,234,0.05), transparent);
-      transform: rotate(45deg);
-      transition: all 0.5s;
-    }
-
-    .pricing-card:hover::before {
-      left: 100%;
-      top: 100%;
-    }
-
-    .pricing-card:hover {
-      transform: translateY(-8px);
-      border-color: #667eea;
-      box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
-    }
-
-    .pricing-card h3 {
-      color: #333;
-      font-size: 1.8rem;
-      margin-bottom: 1rem;
-      font-weight: 700;
-      position: relative;
-    }
-
-    .plan-price {
-      font-size: 3rem;
-      color: #667eea;
-      font-weight: bold;
-      position: relative;
-    }
-
-    .plan-period {
-      color: #666;
-      margin-bottom: 2rem;
-    }
-
-    .plan-features {
-      list-style: none;
-      margin-bottom: 2rem;
-      text-align: left;
-      position: relative;
-    }
-
-    .plan-features li {
-      padding: 0.6rem 0;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.95rem;
-      transition: all 0.3s;
-    }
-
-    .plan-features li:hover {
-      padding-left: 0.5rem;
-      color: #667eea;
-    }
-
-    .plan-features li .icon {
-      font-size: 1.1rem;
-      min-width: 20px;
-    }
-
-    .plan-btn {
-      display: inline-block;
-      padding: 0.8rem 2rem;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      text-decoration: none;
-      border-radius: 25px;
-      font-weight: 600;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .plan-btn::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transform: translate(-50%, -50%);
-      transition: width 0.5s, height 0.5s;
-    }
-
-    .plan-btn:hover::before {
-      width: 300px;
-      height: 300px;
-    }
-
-    .plan-btn span {
-      position: relative;
-      z-index: 1;
-    }
-
-    .plan-btn:hover { 
-      transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    }
-
-    /* ==================== TESTIMONIALS ==================== */
-    .testimonials {
-      padding: 5rem 5%;
-      background: #f8f9fa;
-    }
-
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .testimonial-card {
-      background: white;
-      padding: 2rem;
-      border-radius: 15px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      transition: all 0.3s;
-    }
-
-    .testimonial-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 25px rgba(0,0,0,0.15);
-    }
-
-    .testimonial-content {
-      font-style: italic;
-      margin-bottom: 1.5rem;
-      color: #555;
-      line-height: 1.6;
-    }
-
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .author-avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-    }
-
-    .author-info h4 {
-      color: #333;
-      margin-bottom: 0.2rem;
-    }
-
-    .author-info p {
-      color: #666;
-      font-size: 0.9rem;
-    }
-
-    /* ==================== SCROLL TO TOP ==================== */
-    .scroll-top {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 50px;
-      height: 50px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      cursor: pointer;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s;
-      z-index: 999;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .scroll-top.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .scroll-top:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px rgba(102,126,234,0.4);
-    }
-
-    /* ==================== FOOTER ==================== */
-    footer {
-      background: #2c3e50;
-      color: white;
-      text-align: center;
-      padding: 3rem 5%;
-    }
-
-    footer h3 {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    footer p {
-      margin-top: 1rem;
-      color: #ddd;
-      font-size: 0.95rem;
-    }
-
-    footer a {
-      color: #667eea;
-      text-decoration: none;
-      transition: color 0.3s;
-    }
-
-    footer a:hover {
-      color: #764ba2;
-      text-decoration: underline;
-    }
-
-    /* ==================== LOADING ANIMATION ==================== */
-    .loading {
-      opacity: 0;
-      animation: fadeIn 0.6s ease forwards;
-    }
-
-    @keyframes fadeIn {
-      to { opacity: 1; }
-    }
-
-    /* ==================== MOBILE MENU OVERLAY ==================== */
-    .mobile-menu-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 999;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .mobile-menu-overlay.active {
-      display: block;
-      opacity: 1;
-    }
-
-    /* ==================== RESPONSIVE DESIGN ==================== */
-    @media (max-width: 968px) {
-      .nav-container {
-        position: relative;
-      }
-
-      .mobile-toggle {
-        display: flex;
-      }
-
-      .nav-links {
-        position: fixed;
-        top: 80px;
-        left: -100%;
-        width: 280px;
-        height: calc(100vh - 80px);
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        flex-direction: column;
-        padding: 2rem 0;
-        gap: 0;
-        overflow-y: auto;
-        transition: left 0.4s ease;
-        box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-        z-index: 1001;
-      }
-
-      .nav-links.active {
-        left: 0;
-      }
-
-      .nav-links li {
-        width: 100%;
-        opacity: 0;
-        transform: translateX(-20px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      }
-
-      .nav-links.active li {
-        opacity: 1;
-        transform: translateX(0);
-      }
-
-      .nav-links.active li:nth-child(1) { transition-delay: 0.1s; }
-      .nav-links.active li:nth-child(2) { transition-delay: 0.15s; }
-      .nav-links.active li:nth-child(3) { transition-delay: 0.2s; }
-      .nav-links.active li:nth-child(4) { transition-delay: 0.25s; }
-
-      .nav-links a {
-        display: block;
-        padding: 1rem 2rem;
-        border-radius: 0;
-        width: 100%;
-      }
-
-      .nav-links a::after {
-        display: none;
-      }
-
-      .nav-auth {
-        position: fixed;
-        bottom: 0;
-        left: -100%;
-        width: 280px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        flex-direction: column;
-        padding: 1.5rem 2rem;
-        gap: 1rem;
-        transition: left 0.4s ease;
-        box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-        z-index: 1001;
-        border-top: 1px solid rgba(255,255,255,0.2);
-      }
-
-      .nav-links.active ~ .nav-auth {
-        left: 0;
-      }
-
-      .login-btn,
-      .cta-btn {
-        width: 100%;
-        text-align: center;
-        display: block;
-        padding: 0.8rem 1.5rem;
-      }
-
-      .cta-btn {
-        margin-top: 0;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .hero {
-        height: 450px;
-        margin-top: 70px;
-      }
-
-      .slide-nav {
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
-      }
-
-      .hero-content {
-        padding: 1.5rem;
-        max-width: 90%;
-      }
-
-      .hero-content h1 {
-        font-size: 2rem;
-      }
-
-      .hero-content p {
-        font-size: 1rem;
-      }
-
-      .section-title {
-        font-size: 2rem;
-      }
-
-      .features-grid,
-      .pricing-grid,
-      .testimonials-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .scroll-top {
-        bottom: 20px;
-        right: 20px;
-        width: 45px;
-        height: 45px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      nav {
-        padding: 0.8rem 4%;
-      }
-
-      .logo {
-        font-size: 1.4rem;
-      }
-
-      .hero {
-        height: 400px;
-      }
-
-      .hero-content {
-        padding: 1.2rem;
-      }
-
-      .hero-content h1 {
-        font-size: 1.6rem;
-      }
-
-      .hero-content p {
-        font-size: 0.9rem;
-        margin-bottom: 1.5rem;
-      }
-
-      .hero-buttons {
-        flex-direction: column;
-        width: 100%;
-        gap: 0.8rem;
-      }
-
-      .hero-buttons a {
-        width: 100%;
-        text-align: center;
-      }
-
-      .section-title {
-        font-size: 1.6rem;
-      }
-
-      .feature-card,
-      .pricing-card,
-      .testimonial-card {
-        padding: 1.5rem;
-      }
-
-      .features,
-      .pricing,
-      .testimonials {
-        padding: 3rem 4%;
-      }
-
-      .slide-nav {
-        width: 35px;
-        height: 35px;
-        font-size: 1rem;
-      }
-
-      .slide-nav.prev { left: 10px; }
-      .slide-nav.next { right: 10px; }
+    .modal-backdrop {
+      backdrop-filter: blur(5px);
     }
   </style>
 </head>
 
-<body>
-  <!-- MOBILE MENU OVERLAY -->
-  <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+<body class="bg-white text-gray-800 overflow-x-hidden">
+  
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenuOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"></div>
 
   <!-- NAVBAR -->
-  <nav id="navbar">
-    <div class="nav-container">
-      <div class="logo" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">🎓 KiddoCore</div>
-      
-      <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+  <nav id="navbar" class="gradient-bg fixed top-0 w-full z-50 shadow-md transition-all duration-300 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center">
+        <!-- Logo -->
+        <div class="text-white font-bold text-2xl cursor-pointer transition-transform hover:scale-105" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+          🎓 KiddoCore
+        </div>
 
-      <ul class="nav-links" id="navLinks">
-        <li><a href="#features" data-section="features">Features</a></li>
-        <li><a href="#pricing" data-section="pricing">Pricing</a></li>
-        <li><a href="#testimonials" data-section="testimonials">Testimonials</a></li>
-        <li><a href="#contact" data-section="contact">Contact</a></li>
-      </ul>
+        <!-- Mobile Menu Toggle -->
+        <button id="mobileToggle" class="lg:hidden flex flex-col gap-1.5 p-2 z-50 transition-transform hover:scale-110" aria-label="Toggle menu">
+          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
+          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
+          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
+        </button>
 
-      <div class="nav-auth">
-        <a href="{% url 'account:login' %}" class="login-btn">Login</a>
-        <a href="{% url 'account:register-school' %}" class="cta-btn">Register School</a>
+        <!-- Desktop Navigation -->
+        <ul class="hidden lg:flex gap-8 items-center">
+          <li><a href="#features" data-section="features" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all relative">Features</a></li>
+          <li><a href="#pricing" data-section="pricing" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Pricing</a></li>
+          <li><a href="#testimonials" data-section="testimonials" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Testimonials</a></li>
+          <li><a href="#contact" data-section="contact" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Contact</a></li>
+        </ul>
+
+        <!-- Auth Buttons -->
+        <div class="hidden lg:flex gap-4 items-center">
+          <a href="{% url 'account:login' %}" class="text-white font-medium px-5 py-2 rounded-full border-2 border-transparent hover:bg-white hover:bg-opacity-20 hover:border-white hover:border-opacity-50 transition-all">Login</a>
+          <a href="{% url 'account:register-school' %}" class="bg-white text-brand-purple font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Register School</a>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Menu -->
+      <div id="navLinks" class="fixed top-20 -left-full w-72 h-screen gradient-bg lg:hidden transition-all duration-400 shadow-2xl z-40">
+        <ul class="flex flex-col pt-8">
+          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#features" data-section="features" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Features</a></li>
+          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#pricing" data-section="pricing" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Pricing</a></li>
+          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#testimonials" data-section="testimonials" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Testimonials</a></li>
+          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#contact" data-section="contact" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Contact</a></li>
+        </ul>
+        
+        <div class="absolute bottom-0 left-0 w-full border-t border-white border-opacity-20 p-6 flex flex-col gap-4">
+          <a href="{% url 'account:login' %}" class="text-center text-white font-medium px-6 py-3 rounded-full border-2 border-white border-opacity-30 hover:bg-white hover:bg-opacity-20">Login</a>
+          <a href="{% url 'account:register-school' %}" class="text-center bg-white text-brand-purple font-semibold px-6 py-3 rounded-full shadow-lg">Register School</a>
+        </div>
       </div>
     </div>
   </nav>
 
   <!-- HERO SLIDESHOW -->
-  <section class="hero">
+  <section class="relative mt-20 h-screen max-h-[550px] overflow-hidden">
     {% for slide in slides %}
-    <div class="slide {% if forloop.first %}active{% endif %}" 
+    <div class="slide absolute inset-0 {% if forloop.first %}opacity-100{% else %}opacity-0{% endif %} bg-cover bg-center" 
          style="background-image: url('{% static slide.image %}');">
     </div>
     {% empty %}
-    <div class="slide active" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
-    <div class="slide" style="background: linear-gradient(135deg, #f093fb, #f5576c);"></div>
-    <div class="slide" style="background: linear-gradient(135deg, #4facfe, #00f2fe);"></div>
+    <div class="slide absolute inset-0 opacity-100 gradient-bg"></div>
+    <div class="slide absolute inset-0 opacity-0 gradient-bg-2"></div>
+    <div class="slide absolute inset-0 opacity-0 gradient-bg-3"></div>
     {% endfor %}
 
-    <button class="slide-nav prev" onclick="changeSlide(-1)" aria-label="Previous slide">‹</button>
-    <button class="slide-nav next" onclick="changeSlide(1)" aria-label="Next slide">›</button>
+    <!-- Navigation Buttons -->
+    <button onclick="changeSlide(-1)" class="absolute left-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm text-white rounded-full text-2xl hover:bg-opacity-50 hover:scale-110 transition-all z-10" aria-label="Previous slide">‹</button>
+    <button onclick="changeSlide(1)" class="absolute right-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm text-white rounded-full text-2xl hover:bg-opacity-50 hover:scale-110 transition-all z-10" aria-label="Next slide">›</button>
 
-    <div class="slide-controls">
+    <!-- Slide Indicators -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-10">
       {% for slide in slides %}
-      <div class="slide-dot {% if forloop.first %}active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></div>
+      <div onclick="goToSlide({{ forloop.counter0 }})" class="slide-dot cursor-pointer {% if forloop.first %}w-8 bg-white{% else %}w-3 bg-white bg-opacity-50{% endif %} h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
       {% empty %}
-      <div class="slide-dot active" onclick="goToSlide(0)"></div>
-      <div class="slide-dot" onclick="goToSlide(1)"></div>
-      <div class="slide-dot" onclick="goToSlide(2)"></div>
+      <div onclick="goToSlide(0)" class="slide-dot cursor-pointer w-8 bg-white h-3 rounded-full hover:scale-110 transition-all"></div>
+      <div onclick="goToSlide(1)" class="slide-dot cursor-pointer w-3 bg-white bg-opacity-50 h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
+      <div onclick="goToSlide(2)" class="slide-dot cursor-pointer w-3 bg-white bg-opacity-50 h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
       {% endfor %}
     </div>
 
-    <div class="hero-content">
-      <h1>Manage Your Preschool Effortlessly</h1>
-      <p>All-in-one platform for teachers, parents, and administrators. Simplify your operations and focus on what matters most — the children.</p>
-      <div class="hero-buttons">
-        <a href="#pricing" class="primary-btn"><span>View Plans</span></a>
-        <a href="#features" class="secondary-btn"><span>Learn More</span></a>
+    <!-- Hero Content -->
+    <div class="hero-content absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-center bg-black bg-opacity-50 backdrop-blur-lg px-10 py-12 rounded-2xl max-w-2xl w-11/12 md:w-auto">
+      <h1 class="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">Manage Your Preschool Effortlessly</h1>
+      <p class="text-base md:text-xl mb-8 leading-relaxed">All-in-one platform for teachers, parents, and administrators. Simplify your operations and focus on what matters most — the children.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#pricing" class="relative bg-white text-brand-purple font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all overflow-hidden group">
+          <span class="relative z-10">View Plans</span>
+        </a>
+        <a href="#features" class="relative text-white font-semibold px-8 py-3 rounded-full border-2 border-white hover:bg-white hover:bg-opacity-20 transition-all overflow-hidden group">
+          <span class="relative z-10">Learn More</span>
+        </a>
       </div>
     </div>
   </section>
 
   <!-- FEATURES -->
-  <section id="features" class="features loading">
-    <h2 class="section-title">Powerful Tools for Modern Schools</h2>
-    <div class="features-grid">
-      {% for feature in features %}
-      <div class="feature-card">
-        <div class="feature-icon">{{ feature.icon }}</div>
-        <h3>{{ feature.title }}</h3>
-        <p>{{ feature.description }}</p>
+  <section id="features" class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
+        Powerful Tools for Modern Schools
+        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
+        {% for feature in features %}
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">{{ feature.icon }}</div>
+          <h3 class="text-xl font-semibold mb-3 text-gray-800">{{ feature.title }}</h3>
+          <p class="text-gray-600 leading-relaxed">{{ feature.description }}</p>
+        </div>
+        {% empty %}
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">👨‍🏫</div>
+          <h3 class="text-xl font-semibold mb-3 text-gray-800">Teacher Management</h3>
+          <p class="text-gray-600 leading-relaxed">Assign classes, track attendance, and manage teacher workloads easily.</p>
+        </div>
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">👶</div>
+          <h3 class="text-xl font-semibold mb-3 text-gray-800">Student Profiles</h3>
+          <p class="text-gray-600 leading-relaxed">Maintain full academic and health profiles with real-time updates.</p>
+        </div>
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">💳</div>
+          <h3 class="text-xl font-semibold mb-3 text-gray-800">Fee Automation</h3>
+          <p class="text-gray-600 leading-relaxed">Automate billing, reminders, and receipts with secure online payments.</p>
+        </div>
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
+          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">📊</div>
+          <h3 class="text-xl font-semibold mb-3 text-gray-800">Performance Reports</h3>
+          <p class="text-gray-600 leading-relaxed">Generate progress reports instantly to keep parents informed.</p>
+        </div>
+        {% endfor %}
       </div>
-      {% empty %}
-      <div class="feature-card">
-        <div class="feature-icon">👨‍🏫</div>
-        <h3>Teacher Management</h3>
-        <p>Assign classes, track attendance, and manage teacher workloads easily.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">👶</div>
-        <h3>Student Profiles</h3>
-        <p>Maintain full academic and health profiles with real-time updates.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">💳</div>
-        <h3>Fee Automation</h3>
-        <p>Automate billing, reminders, and receipts with secure online payments.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>Performance Reports</h3>
-        <p>Generate progress reports instantly to keep parents informed.</p>
-      </div>
-      {% endfor %}
     </div>
   </section>
 
-  <!-- PRICING -->
-  <section id="pricing" class="pricing loading">
-    <h2 class="section-title">Choose Your Perfect Plan</h2>
-    <div class="pricing-grid">
-      {% for package in packages %}
-      <div class="pricing-card">
-        <h3>{{ package.name }}</h3>
-        <div class="plan-price">₵{{ package.price }}</div>
-        <div class="plan-period">per month</div>
-        <ul class="plan-features">
-          <li><span class="icon">👩‍🎓</span> Up to {{ package.max_students }} students</li>
-          <li><span class="icon">👨‍🏫</span> Up to {{ package.max_teachers }} teachers</li>
-          
-          {% if package.features.student_management %}
-            <li><span class="icon" style="color:green;">✔</span> Student Management</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Student Management</li>
-          {% endif %}
-          
-          {% if package.features.teacher_management %}
-            <li><span class="icon" style="color:green;">✔</span> Teacher Management</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Teacher Management</li>
-          {% endif %}
-          
-          {% if package.features.basic_reports %}
-            <li><span class="icon" style="color:green;">✔</span> Basic Reports</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Basic Reports</li>
-          {% endif %}
-          
-          {% if package.features.email_notifications %}
-            <li><span class="icon" style="color:green;">✔</span> Email Notifications</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Email Notifications</li>
-          {% endif %}
-          
-          {% if package.features.parent_access %}
-            <li><span class="icon" style="color:green;">✔</span> Parent Portal Access</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Parent Portal Access</li>
-          {% endif %}
-          
-          {% if package.features.sms_alerts %}
-            <li><span class="icon" style="color:green;">✔</span> SMS Alerts</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> SMS Alerts</li>
-          {% endif %}
-          
-          {% if package.features.cloud_backup %}
-            <li><span class="icon" style="color:green;">✔</span> Cloud Backup</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> Cloud Backup</li>
-          {% endif %}
-          
-          {% if package.features.ai_prediction %}
-            <li><span class="icon" style="color:green;">✔</span> AI Predictions</li>
-          {% else %}
-            <li><span class="icon" style="color:red;">✖</span> AI Predictions</li>
-          {% endif %}
-          
-          <li><span class="icon" style="color:#667eea;">📧</span> {{ package.features.support }}</li>
-        </ul>
-        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
+  <!-- PAYMENT MODAL -->
+  <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+          <span class="text-3xl">💳</span>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2" id="modalPlanName">Starter Plan</h3>
+        <p class="text-4xl font-bold text-brand-purple" id="modalPlanPrice">₵150</p>
+        <p class="text-gray-600 text-sm">per month</p>
       </div>
-      {% empty %}
-      <div class="pricing-card">
-        <h3>Starter</h3>
-        <div class="plan-price">₵150</div>
-        <div class="plan-period">per month</div>
-        <ul class="plan-features">
-          <li><span class="icon">👩‍🎓</span> Up to 50 students</li>
-          <li><span class="icon">👨‍🏫</span> Up to 5 teachers</li>
-          <li><span class="icon" style="color:green;">✔</span> Basic Reporting</li>
-          <li><span class="icon" style="color:green;">✔</span> Email Support</li>
-          <li><span class="icon" style="color:red;">✖</span> Advanced Analytics</li>
-        </ul>
-        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
+      
+      <form id="paymentForm" class="space-y-4">
+        <input type="hidden" id="packageId" name="package_id">
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">School Name</label>
+          <input type="text" id="schoolName" name="school_name" required
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
+                 placeholder="Enter school name">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+          <input type="email" id="email" name="email" required
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
+                 placeholder="school@example.com">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+          <input type="tel" id="phone" name="phone" required
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
+                 placeholder="+233 XXX XXX XXX">
+        </div>
+        
+        <button type="submit" class="w-full gradient-bg text-white font-semibold px-8 py-4 rounded-lg hover:shadow-xl transition-all">
+          Proceed to Payment
+        </button>
+      </form>
+      
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Secured by Paystack</span>
+        </div>
       </div>
-      <div class="pricing-card">
-        <h3>Professional</h3>
-        <div class="plan-price">₵300</div>
-        <div class="plan-period">per month</div>
-        <ul class="plan-features">
-          <li><span class="icon">👩‍🎓</span> Up to 150 students</li>
-          <li><span class="icon">👨‍🏫</span> Up to 15 teachers</li>
-          <li><span class="icon" style="color:green;">✔</span> Advanced Reporting</li>
-          <li><span class="icon" style="color:green;">✔</span> Priority Support</li>
-          <li><span class="icon" style="color:green;">✔</span> Advanced Analytics</li>
-        </ul>
-        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
-      </div>
-      <div class="pricing-card">
-        <h3>Enterprise</h3>
-        <div class="plan-price">₵500</div>
-        <div class="plan-period">per month</div>
-        <ul class="plan-features">
-          <li><span class="icon">👩‍🎓</span> Unlimited students</li>
-          <li><span class="icon">👨‍🏫</span> Unlimited teachers</li>
-          <li><span class="icon" style="color:green;">✔</span> Custom Reporting</li>
-          <li><span class="icon" style="color:green;">✔</span> 24/7 Support</li>
-          <li><span class="icon" style="color:green;">✔</span> White Label Option</li>
-        </ul>
-        <a href="{% url 'account:register-school' %}" class="plan-btn"><span>Get Started</span></a>
-      </div>
-      {% endfor %}
     </div>
-  </section>
+  </div>
 
   <!-- TESTIMONIALS -->
-  <section id="testimonials" class="testimonials loading">
-    <h2 class="section-title">What Our Customers Say</h2>
-    <div class="testimonials-grid">
-      {% for testimonial in testimonials %}
-      <div class="testimonial-card">
-        <div class="testimonial-content">"{{ testimonial.content }}"</div>
-        <div class="testimonial-author">
-          <div class="author-avatar">{{ testimonial.author_initials }}</div>
-          <div class="author-info">
-            <h4>{{ testimonial.author_name }}</h4>
-            <p>{{ testimonial.author_position }}, {{ testimonial.school_name }}</p>
+  <section id="testimonials" class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
+        What Our Customers Say
+        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+        {% for testimonial in testimonials %}
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"{{ testimonial.content }}"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">
+              {{ testimonial.author_initials }}
+            </div>
+            <div>
+              <h4 class="font-semibold text-gray-800">{{ testimonial.author_name }}</h4>
+              <p class="text-sm text-gray-600">{{ testimonial.author_position }}, {{ testimonial.school_name }}</p>
+            </div>
           </div>
         </div>
-      </div>
-      {% empty %}
-      <div class="testimonial-card">
-        <div class="testimonial-content">"KiddoCore has transformed how we manage our preschool. The fee automation alone has saved us 10 hours per week!"</div>
-        <div class="testimonial-author">
-          <div class="author-avatar">AM</div>
-          <div class="author-info">
-            <h4>Akosua Mensah</h4>
-            <p>Director, Little Stars Academy</p>
+        {% empty %}
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"KiddoCore has transformed how we manage our preschool. The fee automation alone has saved us 10 hours per week!"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">AM</div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Akosua Mensah</h4>
+              <p class="text-sm text-gray-600">Director, Little Stars Academy</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="testimonial-card">
-        <div class="testimonial-content">"The parent communication features have improved our engagement rates by 75%. Parents love the real-time updates!"</div>
-        <div class="testimonial-author">
-          <div class="author-avatar">KA</div>
-          <div class="author-info">
-            <h4>Kwame Asante</h4>
-            <p>Principal, Bright Future School</p>
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"The parent communication features have improved our engagement rates by 75%. Parents love the real-time updates!"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">KA</div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Kwame Asante</h4>
+              <p class="text-sm text-gray-600">Principal, Bright Future School</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="testimonial-card">
-        <div class="testimonial-content">"Implementation was seamless, and the support team is incredibly responsive. Highly recommended for any preschool!"</div>
-        <div class="testimonial-author">
-          <div class="author-avatar">EA</div>
-          <div class="author-info">
-            <h4>Esi Addo</h4>
-            <p>Owner, Sunshine Preschool</p>
+        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"Implementation was seamless, and the support team is incredibly responsive. Highly recommended for any preschool!"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">EA</div>
+            <div>
+              <h4 class="font-semibold text-gray-800">Esi Addo</h4>
+              <p class="text-sm text-gray-600">Owner, Sunshine Preschool</p>
+            </div>
           </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
   </section>
 
   <!-- SCROLL TO TOP BUTTON -->
-  <button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top">
+  <button id="scrollTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+          class="hidden fixed bottom-8 right-8 w-12 h-12 gradient-bg text-white rounded-full shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all z-40 text-2xl"
+          aria-label="Scroll to top">
     ↑
   </button>
 
   <!-- FOOTER -->
-  <footer id="contact">
-    <h3>🎓 KiddoCore</h3>
-    <p>Empowering preschools with modern digital solutions.</p>
-    <p>Email: <a href="mailto:support@kiddocore.com">support@kiddocore.com</a> | Phone: <a href="tel:+233540501163">+233 540 501 1163</a></p>
-    <p>&copy; 2025 KiddoCore. All rights reserved.</p>
+  <footer id="contact" class="bg-gray-800 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h3 class="text-2xl font-bold mb-2">🎓 KiddoCore</h3>
+      <p class="text-gray-300 mb-4">Empowering preschools with modern digital solutions.</p>
+      <p class="text-gray-400 mb-2">
+        Email: <a href="mailto:support@kiddocore.com" class="text-brand-purple hover:text-brand-dark-purple transition-colors">support@kiddocore.com</a> | 
+        Phone: <a href="tel:+233540501163" class="text-brand-purple hover:text-brand-dark-purple transition-colors">+233 540 501 163</a>
+      </p>
+      <p class="text-gray-500 text-sm">&copy; 2025 KiddoCore. All rights reserved.</p>
+    </div>
   </footer>
 
   <script>
     // ==================== SLIDESHOW FUNCTIONALITY ====================
-    let current = 0;
+    let currentSlide = 0;
     const slides = document.querySelectorAll('.slide');
     const dots = document.querySelectorAll('.slide-dot');
     let slideInterval;
 
     function updateSlide(index) {
-      slides.forEach(s => s.classList.remove('active'));
-      dots.forEach(d => d.classList.remove('active'));
-      slides[index].classList.add('active');
-      dots[index].classList.add('active');
+      slides.forEach(s => s.classList.remove('opacity-100'));
+      slides.forEach(s => s.classList.add('opacity-0'));
+      dots.forEach(d => {
+        d.classList.remove('w-8', 'bg-white');
+        d.classList.add('w-3', 'bg-white', 'bg-opacity-50');
+      });
+      
+      slides[index].classList.remove('opacity-0');
+      slides[index].classList.add('opacity-100');
+      dots[index].classList.remove('w-3', 'bg-opacity-50');
+      dots[index].classList.add('w-8', 'bg-white');
     }
 
     function changeSlide(direction) {
-      current = (current + direction + slides.length) % slides.length;
-      updateSlide(current);
+      currentSlide = (currentSlide + direction + slides.length) % slides.length;
+      updateSlide(currentSlide);
       resetInterval();
     }
 
     function goToSlide(index) {
-      current = index;
-      updateSlide(current);
+      currentSlide = index;
+      updateSlide(currentSlide);
       resetInterval();
     }
 
     function resetInterval() {
       clearInterval(slideInterval);
       slideInterval = setInterval(() => {
-        current = (current + 1) % slides.length;
-        updateSlide(current);
+        currentSlide = (currentSlide + 1) % slides.length;
+        updateSlide(currentSlide);
       }, 5000);
     }
 
     resetInterval();
 
-    // Pause slideshow on hover
-    const hero = document.querySelector('.hero');
-    hero.addEventListener('mouseenter', () => clearInterval(slideInterval));
-    hero.addEventListener('mouseleave', () => resetInterval());
-
-    // Keyboard navigation for slideshow
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') changeSlide(-1);
-      else if (e.key === 'ArrowRight') changeSlide(1);
-    });
-
-    // ==================== MOBILE MENU FUNCTIONALITY ====================
+    // ==================== MOBILE MENU ====================
     const mobileToggle = document.getElementById('mobileToggle');
     const navLinks = document.getElementById('navLinks');
     const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const navItems = navLinks.querySelectorAll('li');
 
-    function toggleMobileMenu() {
-      mobileToggle.classList.toggle('active');
-      navLinks.classList.toggle('active');
-      mobileMenuOverlay.classList.toggle('active');
-      document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
+    mobileToggle.addEventListener('click', () => {
+      const isActive = navLinks.classList.contains('left-0');
+      
+      if (isActive) {
+        closeMobileMenu();
+      } else {
+        openMobileMenu();
+      }
+    });
+
+    function openMobileMenu() {
+      navLinks.classList.remove('-left-full');
+      navLinks.classList.add('left-0');
+      mobileMenuOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      // Animate hamburger
+      const spans = mobileToggle.querySelectorAll('span');
+      spans[0].style.transform = 'rotate(45deg) translate(8px, 8px)';
+      spans[1].style.opacity = '0';
+      spans[1].style.transform = 'translateX(20px)';
+      spans[2].style.transform = 'rotate(-45deg) translate(7px, -7px)';
+      
+      // Animate menu items
+      navItems.forEach((item, index) => {
+        setTimeout(() => {
+          item.classList.remove('opacity-0', '-translate-x-5');
+          item.classList.add('opacity-100', 'translate-x-0');
+        }, 100 + (index * 50));
+      });
     }
 
     function closeMobileMenu() {
-      mobileToggle.classList.remove('active');
-      navLinks.classList.remove('active');
-      mobileMenuOverlay.classList.remove('active');
+      navLinks.classList.remove('left-0');
+      navLinks.classList.add('-left-full');
+      mobileMenuOverlay.classList.add('hidden');
       document.body.style.overflow = '';
+      
+      // Reset hamburger
+      const spans = mobileToggle.querySelectorAll('span');
+      spans[0].style.transform = '';
+      spans[1].style.opacity = '';
+      spans[1].style.transform = '';
+      spans[2].style.transform = '';
+      
+      // Reset menu items
+      navItems.forEach(item => {
+        item.classList.add('opacity-0', '-translate-x-5');
+        item.classList.remove('opacity-100', 'translate-x-0');
+      });
     }
 
-    mobileToggle.addEventListener('click', toggleMobileMenu);
     mobileMenuOverlay.addEventListener('click', closeMobileMenu);
 
-    // Close menu on window resize to desktop
+    // Close menu on resize
     window.addEventListener('resize', () => {
-      if (window.innerWidth > 968) {
+      if (window.innerWidth >= 1024) {
         closeMobileMenu();
       }
     });
 
     // ==================== SMOOTH SCROLLING ====================
-    function smoothScrollTo(targetId) {
-      const target = document.querySelector(targetId);
-      if (target) {
-        const navbarHeight = document.getElementById('navbar').offsetHeight;
-        const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
-        const offsetPosition = targetPosition - navbarHeight;
-        
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
-    }
-
-    // Smooth scrolling for all anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
         e.preventDefault();
-        const targetId = this.getAttribute('href');
         closeMobileMenu();
-        smoothScrollTo(targetId);
-      });
-    });
-
-    // ==================== ACTIVE NAV LINK ON SCROLL ====================
-    const sections = document.querySelectorAll('section[id]');
-    const navLinksItems = document.querySelectorAll('.nav-links a');
-
-    window.addEventListener('scroll', () => {
-      let currentSection = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (window.scrollY >= sectionTop - 200) {
-          currentSection = section.getAttribute('id');
-        }
-      });
-
-      navLinksItems.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-section') === currentSection) {
-          link.classList.add('active');
+        const targetId = this.getAttribute('href');
+        const target = document.querySelector(targetId);
+        
+        if (target) {
+          const navbarHeight = document.getElementById('navbar').offsetHeight;
+          const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = targetPosition - navbarHeight;
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
         }
       });
     });
@@ -1335,9 +477,11 @@
     const navbar = document.getElementById('navbar');
     window.addEventListener('scroll', () => {
       if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
+        navbar.classList.add('py-3', 'shadow-xl');
+        navbar.classList.remove('py-4');
       } else {
-        navbar.classList.remove('scrolled');
+        navbar.classList.remove('py-3', 'shadow-xl');
+        navbar.classList.add('py-4');
       }
     });
 
@@ -1345,29 +489,376 @@
     const scrollTop = document.getElementById('scrollTop');
     window.addEventListener('scroll', () => {
       if (window.scrollY > 300) {
-        scrollTop.classList.add('visible');
+        scrollTop.classList.remove('hidden');
       } else {
-        scrollTop.classList.remove('visible');
+        scrollTop.classList.add('hidden');
       }
     });
 
-    // ==================== INTERSECTION OBSERVER FOR FADE-IN ====================
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
+    // ==================== ACTIVE NAV LINK ====================
+    const sections = document.querySelectorAll('section[id]');
+    const navLinksItems = document.querySelectorAll('a[data-section]');
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        if (window.scrollY >= sectionTop - 200) {
+          current = section.getAttribute('id');
         }
       });
-    }, observerOptions);
 
-    document.querySelectorAll('.loading').forEach(el => {
-      observer.observe(el);
+      navLinksItems.forEach(link => {
+        link.classList.remove('bg-white', 'bg-opacity-20');
+        if (link.getAttribute('data-section') === current) {
+          link.classList.add('bg-white', 'bg-opacity-20');
+        }
+      });
     });
+
+    // ==================== PAYMENT MODAL ====================
+    let selectedPlan = {};
+
+    function openPaymentModal(planName, planPrice, packageId) {
+      selectedPlan = { name: planName, price: planPrice, id: packageId };
+      
+      document.getElementById('modalPlanName').textContent = planName + ' Plan';
+      document.getElementById('modalPlanPrice').textContent = '₵' + planPrice;
+      document.getElementById('packageId').value = packageId;
+      
+      const modal = document.getElementById('paymentModal');
+      const modalContent = document.getElementById('modalContent');
+      
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      const modalContent = document.getElementById('modalContent');
+      
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        document.getElementById('paymentForm').reset();
+      }, 300);
+    }
+
+    // Close modal on outside click
+    document.getElementById('paymentModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closePaymentModal();
+      }
+    });
+
+    // ==================== PAYSTACK PAYMENT INTEGRATION ====================
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const schoolName = document.getElementById('schoolName').value;
+      const phone = document.getElementById('phone').value;
+      const packageId = document.getElementById('packageId').value;
+      
+      // Convert price to kobo (Paystack uses the smallest currency unit)
+      const amount = parseFloat(selectedPlan.price) * 100;
+      
+      // Initialize Paystack payment
+      const handler = PaystackPop.setup({
+        key: 'pk_test_7a4cf6b1079aacdf776d6fe2290490acfe7ba671', 
+        email: email,
+        amount: amount,
+        currency: 'GHS',
+        ref: 'KDC-' + Math.floor((Math.random() * 1000000000) + 1), 
+        metadata: {
+          custom_fields: [
+            {
+              display_name: "School Name",
+              variable_name: "school_name",
+              value: schoolName
+            },
+            {
+              display_name: "Phone Number",
+              variable_name: "phone",
+              value: phone
+            },
+            {
+              display_name: "Package",
+              variable_name: "package_id",
+              value: packageId
+            },
+            {
+              display_name: "Plan Name",
+              variable_name: "plan_name",
+              value: selectedPlan.name
+            }
+          ]
+        },
+        callback: function(response) {
+          // Payment successful
+          // Send the reference to your Django backend to verify the payment
+          fetch('/verify-payment/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+              reference: response.reference,
+              email: email,
+              school_name: schoolName,
+              phone: phone,
+              package_id: packageId
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 'success') {
+              alert('Payment successful! Welcome to KiddoCore!');
+              closePaymentModal();
+              // Redirect to registration page or dashboard
+              window.location.href = '/account/complete-registration/?ref=' + response.reference;
+            } else {
+              alert('Payment verification failed. Please contact support.');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please contact support.');
+          });
+        },
+        onClose: function() {
+          alert('Payment was cancelled');
+        }
+      });
+      
+      handler.openIframe();
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
   </script>
 </body>
 </html>
+
+  <!-- PRICING -->
+  <section id="pricing" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
+        Choose Your Perfect Plan
+        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+        {% for package in packages %}
+        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
+          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
+          
+          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">{{ package.name }}</h3>
+          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵{{ package.price }}</div>
+          <div class="text-gray-600 mb-8 relative">per month</div>
+          
+          <ul class="space-y-3 mb-8 relative">
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-xl">👩‍🎓</span>
+              <span class="text-gray-700">Up to {{ package.max_students }} students</span>
+            </li>
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-xl">👨‍🏫</span>
+              <span class="text-gray-700">Up to {{ package.max_teachers }} teachers</span>
+            </li>
+            
+            {% if package.features.student_management %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Student Management</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Student Management</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.teacher_management %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Teacher Management</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Teacher Management</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.basic_reports %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Basic Reports</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Basic Reports</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.email_notifications %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Email Notifications</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Email Notifications</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.parent_access %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Parent Portal Access</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Parent Portal Access</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.sms_alerts %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">SMS Alerts</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">SMS Alerts</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.cloud_backup %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">Cloud Backup</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">Cloud Backup</span>
+            </li>
+            {% endif %}
+            
+            {% if package.features.ai_prediction %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-green-500 text-xl">✔</span>
+              <span class="text-gray-700">AI Predictions</span>
+            </li>
+            {% else %}
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-red-500 text-xl">✖</span>
+              <span class="text-gray-400">AI Predictions</span>
+            </li>
+            {% endif %}
+            
+            <li class="flex items-center gap-3 hover:pl-2 transition-all">
+              <span class="text-brand-purple text-xl">📧</span>
+              <span class="text-gray-700">{{ package.features.support }}</span>
+            </li>
+          </ul>
+          
+          <button onclick="openPaymentModal('{{ package.name }}', '{{ package.price }}', '{{ package.id }}')" 
+                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden group">
+            <span class="relative z-10">Get Started</span>
+            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-30 transition-opacity rounded-full"></div>
+          </button>
+        </div>
+        {% empty %}
+        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
+          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
+          
+          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Starter</h3>
+          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵150</div>
+          <div class="text-gray-600 mb-8 relative">per month</div>
+          
+          <ul class="space-y-3 mb-8 relative">
+            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Up to 50 students</li>
+            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Up to 5 teachers</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Basic Reporting</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Email Support</li>
+            <li class="flex items-center gap-3"><span class="text-red-500 text-xl">✖</span> <span class="text-gray-400">Advanced Analytics</span></li>
+          </ul>
+          
+          <button onclick="openPaymentModal('Starter', '150', 'starter')" 
+                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
+            <span class="relative z-10">Get Started</span>
+          </button>
+        </div>
+        
+        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
+          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
+          
+          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Professional</h3>
+          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵300</div>
+          <div class="text-gray-600 mb-8 relative">per month</div>
+          
+          <ul class="space-y-3 mb-8 relative">
+            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Up to 150 students</li>
+            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Up to 15 teachers</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Advanced Reporting</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Priority Support</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Advanced Analytics</li>
+          </ul>
+          
+          <button onclick="openPaymentModal('Professional', '300', 'professional')" 
+                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
+            <span class="relative z-10">Get Started</span>
+          </button>
+        </div>
+        
+        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
+          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
+          
+          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Enterprise</h3>
+          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵500</div>
+          <div class="text-gray-600 mb-8 relative">per month</div>
+          
+          <ul class="space-y-3 mb-8 relative">
+            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Unlimited students</li>
+            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Unlimited teachers</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Custom Reporting</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> 24/7 Support</li>
+            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> White Label Option</li>
+          </ul>
+          
+          <button onclick="openPaymentModal('Enterprise', '500', 'enterprise')" 
+                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
+            <span class="relative z-10">Get Started</span>
+          </button>
+        </div>
+        {% endfor %}

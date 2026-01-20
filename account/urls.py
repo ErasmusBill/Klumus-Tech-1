@@ -16,6 +16,5 @@ urlpatterns = [
     path('forgot-password/', views.request_for_password_reset, name='forgot-password'),
     path('change-password/', views.change_password, name='change-password'),
     
-    #Add this missing URL for password reset token verification
     path('reset-password/<str:token>/', views.verify_reset_token, name='verify-reset-token'),
 ]

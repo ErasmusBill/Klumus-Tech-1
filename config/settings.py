@@ -5,8 +5,8 @@ Updated for Render Deployment with SendGrid & Twilio Integration
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
-import dj_database_url
+from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
+import dj_database_url # pyright: ignore[reportMissingImports]
 
 # Load environment variables
 load_dotenv()
@@ -21,13 +21,14 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
 
-DOMAIN_URL = os.getenv("DOMAIN_URL", "https://klumus-tech-1.onrender.com")
+DOMAIN_URL = os.getenv('*')
 
 # ========================
 # APPLICATION DEFINITION
 # ========================
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

@@ -10,3 +10,18 @@ staticfiles/
 node_modules/
 coverage/
 *.log
+.my_env/
+venv/
+env/
+.venv/
+
+# Database files
+*.sqlite3
+*.db
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+my_env/

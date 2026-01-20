@@ -91,7 +91,6 @@ def login_user(request):
                     messages.error(request, "Your subscription has expired. Please renew.")
                     return redirect("account:select-package")
 
-            # Role-based dashboards
             if user.role == "admin": # type: ignore
                 return redirect("adminservices:admin-dashboard")
             elif user.role == "teacher": # type: ignore

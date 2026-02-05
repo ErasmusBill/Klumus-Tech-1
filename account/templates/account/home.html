@@ -606,7 +606,7 @@
         callback: function(response) {
           // Payment successful
           // Send the reference to your Django backend to verify the payment
-          fetch('/verify-payment/', {
+          fetch('/verify-payment/' + schoolId + '/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -861,4 +861,19 @@
             <span class="relative z-10">Get Started</span>
           </button>
         </div>
-        {% endfor %}
+
+            {% endfor %}
+            
+
+  <footer id="contact" class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h3 class="text-2xl font-bold mb-2">🎓 KiddoCore</h3>
+          <p class="text-gray-300 mb-4">Empowering preschools with modern digital solutions.</p>
+          <p class="text-gray-400 mb-2">
+            Email: <a href="mailto:support@kiddocore.com" class="text-brand-purple hover:text-brand-dark-purple transition-colors">support@kiddocore.com</a> | 
+            Phone: <a href="tel:+233540501163" class="text-brand-purple hover:text-brand-dark-purple transition-colors">+233 540 501 163</a>
+          </p>
+          <p class="text-gray-500 text-sm">&copy; 2025 KiddoCore. All rights reserved.</p>
+        </div>
+  </footer>
+    

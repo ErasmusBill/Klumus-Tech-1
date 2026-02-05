@@ -255,18 +255,20 @@ def initiate_payment(request, package_id):
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
 
-def verify_payment_view(request):
+def verify_payment_view(request,school_id):
+    # school = School.objects.select_related('admin').get(id=school_id)
     if request.method == "POST":
         data = json.loads(request.body)
         reference = data.get("reference")
 
         response = verify_payment(reference)
 
-        if response.get("status") and response["data"]["status"] == "success":
-            metadata = response["data"]["metadata"]
-            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}
+        if response.get("status") and response["data"]["status"] == "success": # type: ignore
+            metadata = response["data"]["metadata"]  # type: ignore
+            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}  # type: ignore
 
-            school = School.objects.get(id="school_id")
+            # school = School.objects.get(id=school_id)
+            school = School.objects.select_related('admin').get(id=school_id)
             package = Package.objects.get(id=fields["package_id"])
 
             subscription = Subscription.objects.filter(school=school).first()
@@ -277,9 +279,12 @@ def verify_payment_view(request):
             subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
             subscription.save()
 
-            return JsonResponse({"status": "success"})
+            messages.success(request, "Payment verified! Your subscription is now active.")
+            return redirect("account:login")
 
-        return JsonResponse({"status": "failed"})
+        else:
+            messages.error(request, "Payment verification failed. Try again.")
+            return redirect("account:select-package")
 
 def upgrade_package(request, new_package_id):
     school = request.user.school

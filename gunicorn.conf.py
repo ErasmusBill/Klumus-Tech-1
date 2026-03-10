@@ -1,4 +1,5 @@
 # gunicorn.conf.py
+import os
 import multiprocessing
 
 # Worker configuration
@@ -11,7 +12,7 @@ max_requests = 1000
 max_requests_jitter = 100
 
 # Server socket
-bind = "0.0.0.0:10000"
+bind = f"0.0.0.0:{os.environ.get('PORT', '8080')}"
 backlog = 2048
 
 # Logging

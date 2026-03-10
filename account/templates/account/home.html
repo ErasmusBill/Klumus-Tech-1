@@ -1,879 +1,342 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KiddoCore - Preschool Management Simplified</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>KiddoCore | Modern Preschool Management</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://js.paystack.co/v1/inline.js"></script>
+
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            'poppins': ['Poppins', 'sans-serif'],
-          },
+          fontFamily: { 'sans': ['"Plus Jakarta Sans"', 'sans-serif'] },
           colors: {
-            'brand-purple': '#667eea',
-            'brand-dark-purple': '#764ba2',
+            brand: {
+              50: '#f5f7ff',
+              100: '#ebf0fe',
+              500: '#6366f1', // Indigo Primary
+              600: '#4f46e5',
+              700: '#4338ca',
+              dark: '#1e1b4b'
+            }
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            }
           }
         }
       }
     }
   </script>
+
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-    }
-    
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-    }
-    
-    .gradient-bg-2 {
-      background: linear-gradient(135deg, #f093fb, #f5576c);
-    }
-    
-    .gradient-bg-3 {
-      background: linear-gradient(135deg, #4facfe, #00f2fe);
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     }
 
-    .slide {
-      transition: opacity 1s ease-in-out;
+    .hero-gradient {
+      background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 50%);
     }
 
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -45%);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
+    .feature-card:hover .icon-container {
+      transform: scale(1.1) rotate(5deg);
+      background: #6366f1;
+      color: white;
     }
 
-    .hero-content {
-      animation: fadeInUp 0.8s ease;
-    }
-
-    .modal-backdrop {
-      backdrop-filter: blur(5px);
-    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
   </style>
 </head>
 
-<body class="bg-white text-gray-800 overflow-x-hidden">
-  
-  <!-- Mobile Menu Overlay -->
-  <div id="mobileMenuOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"></div>
+<body class="bg-white text-slate-900 antialiased overflow-x-hidden">
 
-  <!-- NAVBAR -->
-  <nav id="navbar" class="gradient-bg fixed top-0 w-full z-50 shadow-md transition-all duration-300 py-4">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 py-4 glass-nav">
+    <div class="max-w-7xl mx-auto px-6">
       <div class="flex justify-between items-center">
-        <!-- Logo -->
-        <div class="text-white font-bold text-2xl cursor-pointer transition-transform hover:scale-105" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-          🎓 KiddoCore
+        <div class="flex items-center gap-2 group cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+          <div class="bg-brand-500 p-2 rounded-xl text-white shadow-lg shadow-brand-500/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+          </div>
+          <span class="text-xl font-bold tracking-tight text-brand-dark">KiddoCore</span>
         </div>
 
-        <!-- Mobile Menu Toggle -->
-        <button id="mobileToggle" class="lg:hidden flex flex-col gap-1.5 p-2 z-50 transition-transform hover:scale-110" aria-label="Toggle menu">
-          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
-          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
-          <span class="w-7 h-0.5 bg-white rounded transition-all duration-300"></span>
+        <div class="hidden md:flex items-center gap-10">
+          <a href="#features" class="font-semibold text-slate-600 hover:text-brand-500 transition-colors">Features</a>
+          <a href="#pricing" class="font-semibold text-slate-600 hover:text-brand-500 transition-colors">Pricing</a>
+          <a href="#testimonials" class="font-semibold text-slate-600 hover:text-brand-500 transition-colors">Stories</a>
+          <div class="h-6 w-px bg-slate-200"></div>
+          <a href="{% url 'account:login' %}" class="font-bold text-slate-700 hover:text-brand-500">Log In</a>
+          <a href="{% url 'account:register-school' %}" class="bg-brand-500 text-white px-6 py-2.5 rounded-full font-bold shadow-xl shadow-brand-500/20 hover:bg-brand-600 hover:-translate-y-0.5 transition-all">Start Free</a>
+        </div>
+
+        <button class="md:hidden p-2 text-slate-600" id="mobileMenuBtn" aria-expanded="false" aria-controls="mobileMenu">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-
-        <!-- Desktop Navigation -->
-        <ul class="hidden lg:flex gap-8 items-center">
-          <li><a href="#features" data-section="features" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all relative">Features</a></li>
-          <li><a href="#pricing" data-section="pricing" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Pricing</a></li>
-          <li><a href="#testimonials" data-section="testimonials" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Testimonials</a></li>
-          <li><a href="#contact" data-section="contact" class="text-white font-medium px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">Contact</a></li>
-        </ul>
-
-        <!-- Auth Buttons -->
-        <div class="hidden lg:flex gap-4 items-center">
-          <a href="{% url 'account:login' %}" class="text-white font-medium px-5 py-2 rounded-full border-2 border-transparent hover:bg-white hover:bg-opacity-20 hover:border-white hover:border-opacity-50 transition-all">Login</a>
-          <a href="{% url 'account:register-school' %}" class="bg-white text-brand-purple font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Register School</a>
-        </div>
       </div>
 
-      <!-- Mobile Navigation Menu -->
-      <div id="navLinks" class="fixed top-20 -left-full w-72 h-screen gradient-bg lg:hidden transition-all duration-400 shadow-2xl z-40">
-        <ul class="flex flex-col pt-8">
-          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#features" data-section="features" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Features</a></li>
-          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#pricing" data-section="pricing" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Pricing</a></li>
-          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#testimonials" data-section="testimonials" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Testimonials</a></li>
-          <li class="opacity-0 -translate-x-5 transition-all duration-300"><a href="#contact" data-section="contact" class="block text-white font-medium px-8 py-4 hover:bg-white hover:bg-opacity-10">Contact</a></li>
-        </ul>
-        
-        <div class="absolute bottom-0 left-0 w-full border-t border-white border-opacity-20 p-6 flex flex-col gap-4">
-          <a href="{% url 'account:login' %}" class="text-center text-white font-medium px-6 py-3 rounded-full border-2 border-white border-opacity-30 hover:bg-white hover:bg-opacity-20">Login</a>
-          <a href="{% url 'account:register-school' %}" class="text-center bg-white text-brand-purple font-semibold px-6 py-3 rounded-full shadow-lg">Register School</a>
+      <div id="mobileMenu" class="md:hidden mt-4 overflow-hidden max-h-0 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="flex flex-col gap-4 bg-white/90 rounded-2xl p-5 shadow-xl">
+          <a href="#features" class="font-semibold text-slate-700 hover:text-brand-500">Features</a>
+          <a href="#pricing" class="font-semibold text-slate-700 hover:text-brand-500">Pricing</a>
+          <a href="#testimonials" class="font-semibold text-slate-700 hover:text-brand-500">Stories</a>
+          <div class="h-px w-full bg-slate-200"></div>
+          <a href="{% url 'account:login' %}" class="font-bold text-slate-700 hover:text-brand-500">Log In</a>
+          <a href="{% url 'account:register-school' %}" class="bg-brand-500 text-white px-6 py-3 rounded-2xl font-bold text-center shadow-xl shadow-brand-500/20 hover:bg-brand-600 transition-all">Start Free</a>
         </div>
       </div>
     </div>
   </nav>
 
-  <!-- HERO SLIDESHOW -->
-  <section class="relative mt-20 h-screen max-h-[550px] overflow-hidden">
-    {% for slide in slides %}
-    <div class="slide absolute inset-0 {% if forloop.first %}opacity-100{% else %}opacity-0{% endif %} bg-cover bg-center" 
-         style="background-image: url('{% static slide.image %}');">
+  <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 hero-gradient overflow-hidden">
+    <div class="max-w-7xl mx-auto px-6 relative z-10 text-center lg:text-left grid lg:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="inline-block px-4 py-1.5 bg-brand-100 text-brand-700 rounded-full text-sm font-bold mb-6 tracking-wide">✨ SIMPLIFIED SCHOOLING</span>
+        <h1 class="text-5xl lg:text-7xl font-extrabold text-brand-dark leading-[1.1] mb-6">
+          The heart of your <span class="text-brand-500">Preschool.</span>
+        </h1>
+        <p class="text-lg text-slate-600 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+          The all-in-one operating system for modern preschools in Ghana. Manage attendance, fees, and parent engagement with ease.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <a href="#pricing" class="bg-brand-dark text-white px-10 py-4 rounded-2xl font-bold text-lg shadow-2xl hover:bg-slate-800 transition-all text-center">Get Started Now</a>
+          <a href="#features" class="bg-white text-slate-700 border border-slate-200 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all text-center">Watch Demo</a>
+        </div>
+        <div class="mt-10 flex items-center justify-center lg:justify-start gap-4">
+          <div class="flex -space-x-3">
+             <div class="w-10 h-10 rounded-full bg-brand-500 border-2 border-white flex items-center justify-center text-white text-xs">A</div>
+             <div class="w-10 h-10 rounded-full bg-violet-500 border-2 border-white flex items-center justify-center text-white text-xs">K</div>
+             <div class="w-10 h-10 rounded-full bg-pink-500 border-2 border-white flex items-center justify-center text-white text-xs">E</div>
+          </div>
+          <p class="text-sm font-semibold text-slate-500">Trusted by 50+ Schools in Accra & Kumasi</p>
+        </div>
+      </div>
+      <div class="hidden lg:block relative">
+        <div class="animate-float">
+            <img src="{% static 'assets/img/dashboard.png' %}" alt="Dashboard Preview" class="rounded-3xl shadow-2xl border-8 border-white/50">
+        </div>
+        <div class="absolute -top-10 -right-10 w-64 h-64 bg-brand-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
+        <div class="absolute -bottom-10 -left-10 w-64 h-64 bg-pink-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
+      </div>
     </div>
-    {% empty %}
-    <div class="slide absolute inset-0 opacity-100 gradient-bg"></div>
-    <div class="slide absolute inset-0 opacity-0 gradient-bg-2"></div>
-    <div class="slide absolute inset-0 opacity-0 gradient-bg-3"></div>
-    {% endfor %}
+  </header>
 
-    <!-- Navigation Buttons -->
-    <button onclick="changeSlide(-1)" class="absolute left-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm text-white rounded-full text-2xl hover:bg-opacity-50 hover:scale-110 transition-all z-10" aria-label="Previous slide">‹</button>
-    <button onclick="changeSlide(1)" class="absolute right-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm text-white rounded-full text-2xl hover:bg-opacity-50 hover:scale-110 transition-all z-10" aria-label="Next slide">›</button>
+  <section id="features" class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center max-w-3xl mx-auto mb-20">
+        <h2 class="text-4xl font-extrabold text-brand-dark mb-4">Everything you need to thrive</h2>
+        <p class="text-lg text-slate-500">We built KiddoCore to eliminate the paperwork so teachers can focus on what they do best: teaching.</p>
+      </div>
 
-    <!-- Slide Indicators -->
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-      {% for slide in slides %}
-      <div onclick="goToSlide({{ forloop.counter0 }})" class="slide-dot cursor-pointer {% if forloop.first %}w-8 bg-white{% else %}w-3 bg-white bg-opacity-50{% endif %} h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
-      {% empty %}
-      <div onclick="goToSlide(0)" class="slide-dot cursor-pointer w-8 bg-white h-3 rounded-full hover:scale-110 transition-all"></div>
-      <div onclick="goToSlide(1)" class="slide-dot cursor-pointer w-3 bg-white bg-opacity-50 h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
-      <div onclick="goToSlide(2)" class="slide-dot cursor-pointer w-3 bg-white bg-opacity-50 h-3 rounded-full hover:bg-opacity-80 hover:scale-110 transition-all"></div>
-      {% endfor %}
-    </div>
-
-    <!-- Hero Content -->
-    <div class="hero-content absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-center bg-black bg-opacity-50 backdrop-blur-lg px-10 py-12 rounded-2xl max-w-2xl w-11/12 md:w-auto">
-      <h1 class="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">Manage Your Preschool Effortlessly</h1>
-      <p class="text-base md:text-xl mb-8 leading-relaxed">All-in-one platform for teachers, parents, and administrators. Simplify your operations and focus on what matters most — the children.</p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="#pricing" class="relative bg-white text-brand-purple font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all overflow-hidden group">
-          <span class="relative z-10">View Plans</span>
-        </a>
-        <a href="#features" class="relative text-white font-semibold px-8 py-3 rounded-full border-2 border-white hover:bg-white hover:bg-opacity-20 transition-all overflow-hidden group">
-          <span class="relative z-10">Learn More</span>
-        </a>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div class="feature-card p-10 rounded-[2.5rem] bg-brand-50 hover:bg-white border border-transparent hover:border-brand-100 hover:shadow-2xl transition-all group">
+          <div class="icon-container w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm mb-8 transition-all duration-500">👨‍🏫</div>
+          <h3 class="text-2xl font-bold text-brand-dark mb-4">Smart Attendance</h3>
+          <p class="text-slate-600 leading-relaxed">Digital check-ins for staff and students. Real-time notifications for parents when their child arrives.</p>
+        </div>
+        <div class="feature-card p-10 rounded-[2.5rem] bg-slate-50 hover:bg-white border border-transparent hover:border-slate-100 hover:shadow-2xl transition-all group">
+          <div class="icon-container w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm mb-8 transition-all duration-500">💳</div>
+          <h3 class="text-2xl font-bold text-brand-dark mb-4">Fee Automation</h3>
+          <p class="text-slate-600 leading-relaxed">Send invoices via WhatsApp or Email. Accept Mobile Money and Cards via Paystack integration.</p>
+        </div>
+        <div class="feature-card p-10 rounded-[2.5rem] bg-indigo-50 hover:bg-white border border-transparent hover:border-brand-100 hover:shadow-2xl transition-all group">
+          <div class="icon-container w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-3xl shadow-sm mb-8 transition-all duration-500">📊</div>
+          <h3 class="text-2xl font-bold text-brand-dark mb-4">Progress Tracking</h3>
+          <p class="text-slate-600 leading-relaxed">Generate end-of-term reports automatically based on teacher assessments and milestones.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section id="features" class="py-20 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
-        Powerful Tools for Modern Schools
-        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
-      </h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
-        {% for feature in features %}
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">{{ feature.icon }}</div>
-          <h3 class="text-xl font-semibold mb-3 text-gray-800">{{ feature.title }}</h3>
-          <p class="text-gray-600 leading-relaxed">{{ feature.description }}</p>
+  <section id="pricing" class="py-24 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+        <div class="max-w-xl">
+          <h2 class="text-4xl font-extrabold text-brand-dark mb-4">Fair Pricing, No Surprises</h2>
+          <p class="text-lg text-slate-500">Choose the plan that fits your school size. You can upgrade or downgrade anytime.</p>
         </div>
-        {% empty %}
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">👨‍🏫</div>
-          <h3 class="text-xl font-semibold mb-3 text-gray-800">Teacher Management</h3>
-          <p class="text-gray-600 leading-relaxed">Assign classes, track attendance, and manage teacher workloads easily.</p>
+        <div class="bg-slate-200 p-1.5 rounded-2xl flex items-center">
+            <button class="px-6 py-2 rounded-xl text-sm font-bold bg-white shadow-sm">Monthly</button>
+            <button class="px-6 py-2 rounded-xl text-sm font-bold text-slate-500">Yearly (Save 20%)</button>
         </div>
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">👶</div>
-          <h3 class="text-xl font-semibold mb-3 text-gray-800">Student Profiles</h3>
-          <p class="text-gray-600 leading-relaxed">Maintain full academic and health profiles with real-time updates.</p>
-        </div>
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">💳</div>
-          <h3 class="text-xl font-semibold mb-3 text-gray-800">Fee Automation</h3>
-          <p class="text-gray-600 leading-relaxed">Automate billing, reminders, and receipts with secure online payments.</p>
-        </div>
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-brand-purple via-opacity-10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500"></div>
-          <div class="text-5xl mb-4 transition-transform group-hover:scale-110 group-hover:rotate-6">📊</div>
-          <h3 class="text-xl font-semibold mb-3 text-gray-800">Performance Reports</h3>
-          <p class="text-gray-600 leading-relaxed">Generate progress reports instantly to keep parents informed.</p>
-        </div>
-        {% endfor %}
       </div>
+
+      {% with starter=packages_by_name.bronze pro=packages_by_name.silver enterprise=packages_by_name.gold %}
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
+          <h3 class="text-xl font-bold mb-2">Starter</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-4xl font-black text-brand-dark">₵{{ starter.price|default:"150"|floatformat:0 }}</span>
+            <span class="text-slate-500">/month</span>
+          </div>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Up to 50 Students</li>
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Basic Attendance</li>
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Email Support</li>
+          </ul>
+          {% if request.user.is_authenticated and starter %}
+            <a href="{% url 'account:initiate-package' starter.id %}" class="block text-center w-full py-4 rounded-2xl border-2 border-brand-500 text-brand-500 font-bold hover:bg-brand-500 hover:text-white transition-all">Get Started</a>
+          {% else %}
+            <button data-package-name="Starter" data-package-url="{% if starter %}{% url 'account:initiate-package' starter.id %}{% endif %}" class="open-plan-modal w-full py-4 rounded-2xl border-2 border-brand-500 text-brand-500 font-bold hover:bg-brand-500 hover:text-white transition-all">
+              Get Started
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="bg-brand-dark p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden transform lg:-translate-y-4">
+          <div class="absolute top-6 right-6 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Most Popular</div>
+          <h3 class="text-xl font-bold text-white mb-2">Professional</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-4xl font-black text-white">₵{{ pro.price|default:"450"|floatformat:0 }}</span>
+            <span class="text-brand-100/60">/month</span>
+          </div>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Unlimited Students</li>
+            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> SMS Notifications</li>
+            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Finance Dashboard</li>
+            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Priority Support</li>
+          </ul>
+          {% if request.user.is_authenticated and pro %}
+            <a href="{% url 'account:initiate-package' pro.id %}" class="block text-center w-full py-4 rounded-2xl bg-brand-500 text-white font-bold shadow-xl shadow-brand-500/20 hover:bg-brand-600 transition-all">Select Pro</a>
+          {% else %}
+            <button data-package-name="Professional" data-package-url="{% if pro %}{% url 'account:initiate-package' pro.id %}{% endif %}" class="open-plan-modal w-full py-4 rounded-2xl bg-brand-500 text-white font-bold shadow-xl shadow-brand-500/20 hover:bg-brand-600 transition-all">
+              Select Pro
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <h3 class="text-xl font-bold mb-2">Enterprise</h3>
+          <div class="flex items-baseline gap-1 mb-6">
+            <span class="text-4xl font-black text-brand-dark">Custom</span>
+          </div>
+          <ul class="space-y-4 mb-10">
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Multiple Campuses</li>
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> API Access</li>
+            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Dedicated Manager</li>
+          </ul>
+          <button class="w-full py-4 rounded-2xl border-2 border-slate-800 text-slate-800 font-bold hover:bg-slate-800 hover:text-white transition-all">Contact Sales</button>
+        </div>
+      </div>
+      {% endwith %}
     </div>
   </section>
 
-  <!-- PAYMENT MODAL -->
-  <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal-backdrop z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
-      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
-      
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
-          <span class="text-3xl">💳</span>
-        </div>
-        <h3 class="text-2xl font-bold text-gray-800 mb-2" id="modalPlanName">Starter Plan</h3>
-        <p class="text-4xl font-bold text-brand-purple" id="modalPlanPrice">₵150</p>
-        <p class="text-gray-600 text-sm">per month</p>
-      </div>
-      
-      <form id="paymentForm" class="space-y-4">
-        <input type="hidden" id="packageId" name="package_id">
-        
+  <!-- Plan Selection Modal -->
+  <div id="planModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-6">
+    <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+      <div class="flex items-start justify-between">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">School Name</label>
-          <input type="text" id="schoolName" name="school_name" required
-                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
-                 placeholder="Enter school name">
+          <h3 class="text-2xl font-bold text-slate-900">Continue to Payment</h3>
+          <p class="mt-2 text-slate-600">You chose the <span id="planName" class="font-semibold"></span> plan.</p>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-          <input type="email" id="email" name="email" required
-                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
-                 placeholder="school@example.com">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-          <input type="tel" id="phone" name="phone" required
-                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition-all"
-                 placeholder="+233 XXX XXX XXX">
-        </div>
-        
-        <button type="submit" class="w-full gradient-bg text-white font-semibold px-8 py-4 rounded-lg hover:shadow-xl transition-all">
-          Proceed to Payment
-        </button>
-      </form>
-      
-      <div class="mt-6 pt-6 border-t border-gray-200">
-        <div class="flex items-center justify-center gap-2 text-sm text-gray-500">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+        <button id="closePlanModal" class="text-slate-400 hover:text-slate-700" aria-label="Close">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
-          <span>Secured by Paystack</span>
-        </div>
+        </button>
+      </div>
+      <p class="mt-4 text-sm text-slate-500">Please log in or register to proceed with payment.</p>
+      <div class="mt-6 grid grid-cols-1 gap-3">
+        <a id="loginToPay" href="{% url 'account:login' %}" class="w-full rounded-xl bg-brand-500 py-3 text-center font-bold text-white hover:bg-brand-600 transition-all">Log In to Pay</a>
+        <a href="{% url 'account:register-school' %}" class="w-full rounded-xl border border-slate-200 py-3 text-center font-bold text-slate-700 hover:bg-slate-50 transition-all">Register School</a>
       </div>
     </div>
   </div>
 
-  <!-- TESTIMONIALS -->
-  <section id="testimonials" class="py-20 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
-        What Our Customers Say
-        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
-      </h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-        {% for testimonial in testimonials %}
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
-          <p class="text-gray-600 italic mb-6 leading-relaxed">"{{ testimonial.content }}"</p>
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">
-              {{ testimonial.author_initials }}
-            </div>
-            <div>
-              <h4 class="font-semibold text-gray-800">{{ testimonial.author_name }}</h4>
-              <p class="text-sm text-gray-600">{{ testimonial.author_position }}, {{ testimonial.school_name }}</p>
-            </div>
-          </div>
-        </div>
-        {% empty %}
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
-          <p class="text-gray-600 italic mb-6 leading-relaxed">"KiddoCore has transformed how we manage our preschool. The fee automation alone has saved us 10 hours per week!"</p>
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">AM</div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Akosua Mensah</h4>
-              <p class="text-sm text-gray-600">Director, Little Stars Academy</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
-          <p class="text-gray-600 italic mb-6 leading-relaxed">"The parent communication features have improved our engagement rates by 75%. Parents love the real-time updates!"</p>
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">KA</div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Kwame Asante</h4>
-              <p class="text-sm text-gray-600">Principal, Bright Future School</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
-          <p class="text-gray-600 italic mb-6 leading-relaxed">"Implementation was seamless, and the support team is incredibly responsive. Highly recommended for any preschool!"</p>
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 gradient-bg rounded-full flex items-center justify-center text-white font-bold">EA</div>
-            <div>
-              <h4 class="font-semibold text-gray-800">Esi Addo</h4>
-              <p class="text-sm text-gray-600">Owner, Sunshine Preschool</p>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
-
-  <!-- SCROLL TO TOP BUTTON -->
-  <button id="scrollTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-          class="hidden fixed bottom-8 right-8 w-12 h-12 gradient-bg text-white rounded-full shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all z-40 text-2xl"
-          aria-label="Scroll to top">
-    ↑
-  </button>
-
-  <!-- FOOTER -->
-  <footer id="contact" class="bg-gray-800 text-white py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <h3 class="text-2xl font-bold mb-2">🎓 KiddoCore</h3>
-      <p class="text-gray-300 mb-4">Empowering preschools with modern digital solutions.</p>
-      <p class="text-gray-400 mb-2">
-        Email: <a href="mailto:support@kiddocore.com" class="text-brand-purple hover:text-brand-dark-purple transition-colors">support@kiddocore.com</a> | 
-        Phone: <a href="tel:+233540501163" class="text-brand-purple hover:text-brand-dark-purple transition-colors">+233 540 501 163</a>
-      </p>
-      <p class="text-gray-500 text-sm">&copy; 2025 KiddoCore. All rights reserved.</p>
-    </div>
-  </footer>
-
   <script>
-    // ==================== SLIDESHOW FUNCTIONALITY ====================
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.slide');
-    const dots = document.querySelectorAll('.slide-dot');
-    let slideInterval;
+    // Simplified Scroll Effect for Nav
+    window.addEventListener('scroll', () => {
+      const nav = document.getElementById('navbar');
+      if (window.scrollY > 50) {
+        nav.classList.add('py-3', 'shadow-2xl');
+        nav.classList.remove('py-4');
+      } else {
+        nav.classList.remove('py-3', 'shadow-2xl');
+        nav.classList.add('py-4');
+      }
+    });
 
-    function updateSlide(index) {
-      slides.forEach(s => s.classList.remove('opacity-100'));
-      slides.forEach(s => s.classList.add('opacity-0'));
-      dots.forEach(d => {
-        d.classList.remove('w-8', 'bg-white');
-        d.classList.add('w-3', 'bg-white', 'bg-opacity-50');
-      });
-      
-      slides[index].classList.remove('opacity-0');
-      slides[index].classList.add('opacity-100');
-      dots[index].classList.remove('w-3', 'bg-opacity-50');
-      dots[index].classList.add('w-8', 'bg-white');
-    }
+    // Mobile Menu toggle
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
 
-    function changeSlide(direction) {
-      currentSlide = (currentSlide + direction + slides.length) % slides.length;
-      updateSlide(currentSlide);
-      resetInterval();
-    }
+    const closeMobileMenu = () => {
+      mobileMenu.classList.add('max-h-0', 'opacity-0', 'pointer-events-none');
+      mobileMenu.classList.remove('max-h-[520px]', 'opacity-100', 'pointer-events-auto');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    };
 
-    function goToSlide(index) {
-      currentSlide = index;
-      updateSlide(currentSlide);
-      resetInterval();
-    }
+    const openMobileMenu = () => {
+      mobileMenu.classList.remove('max-h-0', 'opacity-0', 'pointer-events-none');
+      mobileMenu.classList.add('max-h-[520px]', 'opacity-100', 'pointer-events-auto');
+      menuBtn.setAttribute('aria-expanded', 'true');
+    };
 
-    function resetInterval() {
-      clearInterval(slideInterval);
-      slideInterval = setInterval(() => {
-        currentSlide = (currentSlide + 1) % slides.length;
-        updateSlide(currentSlide);
-      }, 5000);
-    }
-
-    resetInterval();
-
-    // ==================== MOBILE MENU ====================
-    const mobileToggle = document.getElementById('mobileToggle');
-    const navLinks = document.getElementById('navLinks');
-    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
-    const navItems = navLinks.querySelectorAll('li');
-
-    mobileToggle.addEventListener('click', () => {
-      const isActive = navLinks.classList.contains('left-0');
-      
-      if (isActive) {
+    menuBtn.addEventListener('click', () => {
+      const isOpen = menuBtn.getAttribute('aria-expanded') === 'true';
+      if (isOpen) {
         closeMobileMenu();
       } else {
         openMobileMenu();
       }
     });
 
-    function openMobileMenu() {
-      navLinks.classList.remove('-left-full');
-      navLinks.classList.add('left-0');
-      mobileMenuOverlay.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-      
-      // Animate hamburger
-      const spans = mobileToggle.querySelectorAll('span');
-      spans[0].style.transform = 'rotate(45deg) translate(8px, 8px)';
-      spans[1].style.opacity = '0';
-      spans[1].style.transform = 'translateX(20px)';
-      spans[2].style.transform = 'rotate(-45deg) translate(7px, -7px)';
-      
-      // Animate menu items
-      navItems.forEach((item, index) => {
-        setTimeout(() => {
-          item.classList.remove('opacity-0', '-translate-x-5');
-          item.classList.add('opacity-100', 'translate-x-0');
-        }, 100 + (index * 50));
-      });
-    }
+    mobileMenu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', closeMobileMenu);
+    });
 
-    function closeMobileMenu() {
-      navLinks.classList.remove('left-0');
-      navLinks.classList.add('-left-full');
-      mobileMenuOverlay.classList.add('hidden');
-      document.body.style.overflow = '';
-      
-      // Reset hamburger
-      const spans = mobileToggle.querySelectorAll('span');
-      spans[0].style.transform = '';
-      spans[1].style.opacity = '';
-      spans[1].style.transform = '';
-      spans[2].style.transform = '';
-      
-      // Reset menu items
-      navItems.forEach(item => {
-        item.classList.add('opacity-0', '-translate-x-5');
-        item.classList.remove('opacity-100', 'translate-x-0');
-      });
-    }
-
-    mobileMenuOverlay.addEventListener('click', closeMobileMenu);
-
-    // Close menu on resize
     window.addEventListener('resize', () => {
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= 768) {
         closeMobileMenu();
       }
     });
 
-    // ==================== SMOOTH SCROLLING ====================
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        closeMobileMenu();
-        const targetId = this.getAttribute('href');
-        const target = document.querySelector(targetId);
-        
-        if (target) {
-          const navbarHeight = document.getElementById('navbar').offsetHeight;
-          const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = targetPosition - navbarHeight;
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
+    const planModal = document.getElementById('planModal');
+    const closePlanModal = document.getElementById('closePlanModal');
+    const planName = document.getElementById('planName');
+    const loginToPay = document.getElementById('loginToPay');
+
+    document.querySelectorAll('.open-plan-modal').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = btn.getAttribute('data-package-name') || 'Selected';
+        const url = btn.getAttribute('data-package-url');
+        planName.textContent = name;
+        if (url) {
+          loginToPay.href = `{% url 'account:login' %}?next=${encodeURIComponent(url)}`;
+        } else {
+          loginToPay.href = "{% url 'account:login' %}";
         }
+        planModal.classList.remove('hidden');
+        planModal.classList.add('flex');
       });
     });
 
-    // ==================== NAVBAR SCROLL EFFECT ====================
-    const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 50) {
-        navbar.classList.add('py-3', 'shadow-xl');
-        navbar.classList.remove('py-4');
-      } else {
-        navbar.classList.remove('py-3', 'shadow-xl');
-        navbar.classList.add('py-4');
+    closePlanModal.addEventListener('click', () => {
+      planModal.classList.add('hidden');
+      planModal.classList.remove('flex');
+    });
+
+    planModal.addEventListener('click', (e) => {
+      if (e.target === planModal) {
+        planModal.classList.add('hidden');
+        planModal.classList.remove('flex');
       }
     });
-
-    // ==================== SCROLL TO TOP BUTTON ====================
-    const scrollTop = document.getElementById('scrollTop');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 300) {
-        scrollTop.classList.remove('hidden');
-      } else {
-        scrollTop.classList.add('hidden');
-      }
-    });
-
-    // ==================== ACTIVE NAV LINK ====================
-    const sections = document.querySelectorAll('section[id]');
-    const navLinksItems = document.querySelectorAll('a[data-section]');
-
-    window.addEventListener('scroll', () => {
-      let current = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (window.scrollY >= sectionTop - 200) {
-          current = section.getAttribute('id');
-        }
-      });
-
-      navLinksItems.forEach(link => {
-        link.classList.remove('bg-white', 'bg-opacity-20');
-        if (link.getAttribute('data-section') === current) {
-          link.classList.add('bg-white', 'bg-opacity-20');
-        }
-      });
-    });
-
-    // ==================== PAYMENT MODAL ====================
-    let selectedPlan = {};
-
-    function openPaymentModal(planName, planPrice, packageId) {
-      selectedPlan = { name: planName, price: planPrice, id: packageId };
-      
-      document.getElementById('modalPlanName').textContent = planName + ' Plan';
-      document.getElementById('modalPlanPrice').textContent = '₵' + planPrice;
-      document.getElementById('packageId').value = packageId;
-      
-      const modal = document.getElementById('paymentModal');
-      const modalContent = document.getElementById('modalContent');
-      
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-      
-      setTimeout(() => {
-        modalContent.classList.remove('scale-95', 'opacity-0');
-        modalContent.classList.add('scale-100', 'opacity-100');
-      }, 10);
-    }
-
-    function closePaymentModal() {
-      const modal = document.getElementById('paymentModal');
-      const modalContent = document.getElementById('modalContent');
-      
-      modalContent.classList.remove('scale-100', 'opacity-100');
-      modalContent.classList.add('scale-95', 'opacity-0');
-      
-      setTimeout(() => {
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-        document.getElementById('paymentForm').reset();
-      }, 300);
-    }
-
-    // Close modal on outside click
-    document.getElementById('paymentModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        closePaymentModal();
-      }
-    });
-
-    // ==================== PAYSTACK PAYMENT INTEGRATION ====================
-    document.getElementById('paymentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const email = document.getElementById('email').value;
-      const schoolName = document.getElementById('schoolName').value;
-      const phone = document.getElementById('phone').value;
-      const packageId = document.getElementById('packageId').value;
-      
-      // Convert price to kobo (Paystack uses the smallest currency unit)
-      const amount = parseFloat(selectedPlan.price) * 100;
-      
-      // Initialize Paystack payment
-      const handler = PaystackPop.setup({
-        key: 'pk_test_7a4cf6b1079aacdf776d6fe2290490acfe7ba671', 
-        email: email,
-        amount: amount,
-        currency: 'GHS',
-        ref: 'KDC-' + Math.floor((Math.random() * 1000000000) + 1), 
-        metadata: {
-          custom_fields: [
-            {
-              display_name: "School Name",
-              variable_name: "school_name",
-              value: schoolName
-            },
-            {
-              display_name: "Phone Number",
-              variable_name: "phone",
-              value: phone
-            },
-            {
-              display_name: "Package",
-              variable_name: "package_id",
-              value: packageId
-            },
-            {
-              display_name: "Plan Name",
-              variable_name: "plan_name",
-              value: selectedPlan.name
-            }
-          ]
-        },
-        callback: function(response) {
-          // Payment successful
-          // Send the reference to your Django backend to verify the payment
-          fetch('/verify-payment/' + schoolId + '/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-              reference: response.reference,
-              email: email,
-              school_name: schoolName,
-              phone: phone,
-              package_id: packageId
-            })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.status === 'success') {
-              alert('Payment successful! Welcome to KiddoCore!');
-              closePaymentModal();
-              // Redirect to registration page or dashboard
-              window.location.href = '/account/complete-registration/?ref=' + response.reference;
-            } else {
-              alert('Payment verification failed. Please contact support.');
-            }
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred. Please contact support.');
-          });
-        },
-        onClose: function() {
-          alert('Payment was cancelled');
-        }
-      });
-      
-      handler.openIframe();
-    });
-
-    // Helper function to get CSRF token
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
   </script>
 </body>
 </html>
-
-  <!-- PRICING -->
-  <section id="pricing" class="py-20 bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 class="text-4xl font-bold text-center mb-4 relative pb-4">
-        Choose Your Perfect Plan
-        <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-1 gradient-bg rounded-full"></span>
-      </h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-        {% for package in packages %}
-        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
-          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
-          
-          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">{{ package.name }}</h3>
-          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵{{ package.price }}</div>
-          <div class="text-gray-600 mb-8 relative">per month</div>
-          
-          <ul class="space-y-3 mb-8 relative">
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-xl">👩‍🎓</span>
-              <span class="text-gray-700">Up to {{ package.max_students }} students</span>
-            </li>
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-xl">👨‍🏫</span>
-              <span class="text-gray-700">Up to {{ package.max_teachers }} teachers</span>
-            </li>
-            
-            {% if package.features.student_management %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Student Management</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Student Management</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.teacher_management %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Teacher Management</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Teacher Management</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.basic_reports %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Basic Reports</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Basic Reports</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.email_notifications %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Email Notifications</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Email Notifications</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.parent_access %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Parent Portal Access</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Parent Portal Access</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.sms_alerts %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">SMS Alerts</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">SMS Alerts</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.cloud_backup %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">Cloud Backup</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">Cloud Backup</span>
-            </li>
-            {% endif %}
-            
-            {% if package.features.ai_prediction %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-green-500 text-xl">✔</span>
-              <span class="text-gray-700">AI Predictions</span>
-            </li>
-            {% else %}
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-red-500 text-xl">✖</span>
-              <span class="text-gray-400">AI Predictions</span>
-            </li>
-            {% endif %}
-            
-            <li class="flex items-center gap-3 hover:pl-2 transition-all">
-              <span class="text-brand-purple text-xl">📧</span>
-              <span class="text-gray-700">{{ package.features.support }}</span>
-            </li>
-          </ul>
-          
-          <button onclick="openPaymentModal('{{ package.name }}', '{{ package.price }}', '{{ package.id }}')" 
-                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden group">
-            <span class="relative z-10">Get Started</span>
-            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-30 transition-opacity rounded-full"></div>
-          </button>
-        </div>
-        {% empty %}
-        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
-          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
-          
-          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Starter</h3>
-          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵150</div>
-          <div class="text-gray-600 mb-8 relative">per month</div>
-          
-          <ul class="space-y-3 mb-8 relative">
-            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Up to 50 students</li>
-            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Up to 5 teachers</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Basic Reporting</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Email Support</li>
-            <li class="flex items-center gap-3"><span class="text-red-500 text-xl">✖</span> <span class="text-gray-400">Advanced Analytics</span></li>
-          </ul>
-          
-          <button onclick="openPaymentModal('Starter', '150', 'starter')" 
-                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
-            <span class="relative z-10">Get Started</span>
-          </button>
-        </div>
-        
-        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
-          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
-          
-          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Professional</h3>
-          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵300</div>
-          <div class="text-gray-600 mb-8 relative">per month</div>
-          
-          <ul class="space-y-3 mb-8 relative">
-            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Up to 150 students</li>
-            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Up to 15 teachers</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Advanced Reporting</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Priority Support</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Advanced Analytics</li>
-          </ul>
-          
-          <button onclick="openPaymentModal('Professional', '300', 'professional')" 
-                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
-            <span class="relative z-10">Get Started</span>
-          </button>
-        </div>
-        
-        <div class="border-2 border-gray-200 rounded-3xl p-10 hover:border-brand-purple hover:shadow-2xl hover:-translate-y-2 transition-all bg-white relative overflow-hidden group">
-          <div class="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-transparent via-brand-purple via-opacity-5 to-transparent rotate-45 group-hover:left-full group-hover:top-full transition-all duration-500"></div>
-          
-          <h3 class="text-2xl font-bold text-gray-800 mb-4 relative">Enterprise</h3>
-          <div class="text-5xl font-bold text-brand-purple mb-2 relative">₵500</div>
-          <div class="text-gray-600 mb-8 relative">per month</div>
-          
-          <ul class="space-y-3 mb-8 relative">
-            <li class="flex items-center gap-3"><span class="text-xl">👩‍🎓</span> Unlimited students</li>
-            <li class="flex items-center gap-3"><span class="text-xl">👨‍🏫</span> Unlimited teachers</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> Custom Reporting</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> 24/7 Support</li>
-            <li class="flex items-center gap-3"><span class="text-green-500 text-xl">✔</span> White Label Option</li>
-          </ul>
-          
-          <button onclick="openPaymentModal('Enterprise', '500', 'enterprise')" 
-                  class="relative w-full gradient-bg text-white font-semibold px-8 py-3 rounded-full hover:shadow-xl hover:-translate-y-1 transition-all">
-            <span class="relative z-10">Get Started</span>
-          </button>
-        </div>
-
-            {% endfor %}
-            
-
-  <footer id="contact" class="bg-gray-800 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h3 class="text-2xl font-bold mb-2">🎓 KiddoCore</h3>
-          <p class="text-gray-300 mb-4">Empowering preschools with modern digital solutions.</p>
-          <p class="text-gray-400 mb-2">
-            Email: <a href="mailto:support@kiddocore.com" class="text-brand-purple hover:text-brand-dark-purple transition-colors">support@kiddocore.com</a> | 
-            Phone: <a href="tel:+233540501163" class="text-brand-purple hover:text-brand-dark-purple transition-colors">+233 540 501 163</a>
-          </p>
-          <p class="text-gray-500 text-sm">&copy; 2025 KiddoCore. All rights reserved.</p>
-        </div>
-  </footer>
-    

@@ -1,503 +1,207 @@
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
-    <title>Preskool - Set New Password</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiddoCore | Set New Password</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            dark: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 30px 15px;
         }
-        
-        .reset-container {
-            width: 100%;
-            max-width: 550px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        
-        .reset-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px;
-            text-align: center;
-            color: white;
+
+        .input-focus-effect:focus {
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            border-color: #6366f1;
         }
-        
-        .reset-header .icon {
-            font-size: 70px;
-            margin-bottom: 15px;
-            opacity: 0.95;
-        }
-        
-        .reset-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .reset-header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .reset-body {
-            padding: 40px;
-        }
-        
-        .info-box {
-            background: #f7fafc;
-            border-left: 4px solid #667eea;
-            padding: 15px 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
-        }
-        
-        .info-box i {
-            color: #667eea;
-            margin-right: 10px;
-        }
-        
-        .info-box p {
-            margin: 0;
-            color: #4a5568;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-        
-        .alert {
-            padding: 14px 18px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .alert-danger {
-            background: #fff5f5;
-            border: 1px solid #feb2b2;
-            color: #c53030;
-        }
-        
-        .alert-success {
-            background: #f0fff4;
-            border: 1px solid #9ae6b4;
-            color: #2f855a;
-        }
-        
-        .alert i {
-            font-size: 20px;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        .input-group {
-            position: relative;
-        }
-        
-        .input-group i.icon-left {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #a0aec0;
-            font-size: 18px;
-            z-index: 1;
-        }
-        
-        .password-toggle {
-            position: absolute;
-            right: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #a0aec0;
-            font-size: 18px;
-            z-index: 2;
-            transition: color 0.3s;
-        }
-        
-        .password-toggle:hover {
-            color: #667eea;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 14px 50px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 15px;
-            transition: all 0.3s;
-            font-family: 'Poppins', sans-serif;
-            background: #fafafa;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            background: white;
-        }
-        
-        .form-control.is-invalid {
-            border-color: #e53e3e;
-        }
-        
-        .error-message {
-            color: #e53e3e;
-            font-size: 12px;
-            margin-top: 8px;
-            display: block;
-        }
-        
-        .help-text {
-            font-size: 12px;
-            color: #718096;
-            margin-top: 8px;
-            display: block;
-        }
-        
-        .password-strength {
-            margin-top: 10px;
+
+        .password-strength-container {
             display: none;
+            animation: fadeIn 0.3s ease-out;
         }
-        
-        .password-strength.show {
-            display: block;
-        }
-        
-        .strength-bar {
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-        
-        .strength-bar-fill {
-            height: 100%;
-            width: 0%;
-            transition: all 0.3s;
-            border-radius: 3px;
-        }
-        
-        .strength-bar-fill.weak {
-            width: 33%;
-            background: #e53e3e;
-        }
-        
-        .strength-bar-fill.medium {
-            width: 66%;
-            background: #ed8936;
-        }
-        
-        .strength-bar-fill.strong {
-            width: 100%;
-            background: #38a169;
-        }
-        
-        .strength-text {
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .strength-text.weak {
-            color: #e53e3e;
-        }
-        
-        .strength-text.medium {
-            color: #ed8936;
-        }
-        
-        .strength-text.strong {
-            color: #38a169;
-        }
-        
-        .btn-reset {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 30px;
-        }
-        
-        .btn-reset:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-reset:active {
-            transform: translateY(0);
-        }
-        
-        .btn-reset:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        @media (max-width: 576px) {
-            .reset-container {
-                margin: 20px;
-            }
-            
-            .reset-header {
-                padding: 30px 20px;
-            }
-            
-            .reset-body {
-                padding: 30px 20px;
-            }
-            
-            .reset-header .icon {
-                font-size: 60px;
-            }
-            
-            .reset-header h1 {
-                font-size: 24px;
-            }
+        .password-strength-container.show { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body>
+<body class="flex items-center justify-center p-6 antialiased text-slate-900">
 
-<div class="reset-container">
-    <!-- Header -->
-    <div class="reset-header">
-        <div class="icon"><i class="fas fa-lock-open"></i></div>
-        <h1>Set New Password</h1>
-        <p>Create a strong password for your account</p>
-    </div>
-    
-    <!-- Body -->
-    <div class="reset-body">
-        <!-- Info Box -->
-        <div class="info-box">
-            <i class="fas fa-shield-alt"></i>
-            <p>Choose a strong password with at least 8 characters, including letters, numbers, and symbols.</p>
+<div class="w-full max-w-[520px] opacity-0 translate-y-4 transition-all duration-500" id="mainContainer">
+    <div class="flex items-center justify-center gap-3 mb-8">
+        <div class="bg-brand-500 p-2 rounded-xl text-white shadow-lg shadow-brand-500/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+            </svg>
         </div>
-        
-        <!-- Django Messages -->
+        <span class="text-xl font-bold tracking-tight text-brand-dark">KiddoCore</span>
+    </div>
+
+    <div class="glass-card rounded-[2.5rem] shadow-2xl p-8 lg:p-10">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-extrabold text-brand-dark mb-2">Secure Your Account</h2>
+            <p class="text-slate-500 text-sm font-medium">Please enter and confirm your new password below.</p>
+        </div>
+
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {% if message.tags == 'error' %}
-                        <i class="fas fa-exclamation-circle"></i>
-                    {% else %}
-                        <i class="fas fa-check-circle"></i>
-                    {% endif %}
+                <div class="mb-6 p-4 rounded-2xl flex items-center gap-3 text-xs font-bold {% if message.tags == 'error' %}bg-red-50 text-red-600 border border-red-100{% else %}bg-green-50 text-green-600 border border-green-100{% endif %}">
+                    <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
                     <span>{{ message }}</span>
                 </div>
             {% endfor %}
         {% endif %}
-        
-        <!-- Form Errors -->
-        {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>{{ form.non_field_errors }}</span>
-            </div>
-        {% endif %}
-        
-        <form method="post" id="resetForm">
+
+        <form method="post" id="resetForm" class="space-y-6">
             {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="{{ form.new_password.id_for_label }}">{{ form.new_password.label }}</label>
-                <div class="input-group">
-                    <i class="fas fa-lock icon-left"></i>
-                    <input type="password" 
-                           class="form-control {% if form.new_password.errors %}is-invalid{% endif %}" 
-                           id="{{ form.new_password.id_for_label }}" 
-                           name="{{ form.new_password.name }}" 
-                           placeholder="Enter new password"
-                           minlength="8"
-                           oninput="checkPasswordStrength(this.value)"
-                           required
-                           autofocus>
-                    <i class="fas fa-eye password-toggle" 
-                       onclick="togglePassword('{{ form.new_password.id_for_label }}', this)"
-                       id="togglePassword1"></i>
+
+            <div class="space-y-2">
+                <label class="text-xs font-extrabold text-slate-500 uppercase tracking-widest ml-1">New Password</label>
+                <div class="relative group">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <input type="password" name="{{ form.new_password.name }}" id="{{ form.new_password.id_for_label }}"
+                           class="w-full pl-14 pr-14 py-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white outline-none transition-all input-focus-effect"
+                           placeholder="••••••••" oninput="checkStrength(this.value)" required autofocus>
+                    <button type="button" onclick="togglePass('{{ form.new_password.id_for_label }}', this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-500 transition-colors">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
-                {% if form.new_password.errors %}
-                    <span class="error-message">{{ form.new_password.errors.0 }}</span>
-                {% else %}
-                    {% if form.new_password.help_text %}
-                        <span class="help-text">{{ form.new_password.help_text }}</span>
-                    {% endif %}
-                {% endif %}
-                
-                <!-- Password Strength Indicator -->
-                <div class="password-strength" id="passwordStrength">
-                    <div class="strength-bar">
-                        <div class="strength-bar-fill" id="strengthBar"></div>
+
+                <div id="strengthContainer" class="password-strength-container pt-1">
+                    <div class="flex gap-1 h-1.5 mb-2">
+                        <div id="bar1" class="flex-1 rounded-full bg-slate-200 transition-all duration-500"></div>
+                        <div id="bar2" class="flex-1 rounded-full bg-slate-200 transition-all duration-500"></div>
+                        <div id="bar3" class="flex-1 rounded-full bg-slate-200 transition-all duration-500"></div>
                     </div>
-                    <span class="strength-text" id="strengthText"></span>
+                    <span id="strengthText" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Strength: Weak</span>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }}</label>
-                <div class="input-group">
-                    <i class="fas fa-lock icon-left"></i>
-                    <input type="password" 
-                           class="form-control {% if form.confirm_password.errors %}is-invalid{% endif %}" 
-                           id="{{ form.confirm_password.id_for_label }}" 
-                           name="{{ form.confirm_password.name }}" 
-                           placeholder="Confirm new password"
-                           oninput="checkPasswordMatch()"
-                           required>
-                    <i class="fas fa-eye password-toggle" 
-                       onclick="togglePassword('{{ form.confirm_password.id_for_label }}', this)"
-                       id="togglePassword2"></i>
+
+            <div class="space-y-2">
+                <label class="text-xs font-extrabold text-slate-500 uppercase tracking-widest ml-1">Confirm Password</label>
+                <div class="relative group">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                        <i class="fas fa-shield-check"></i>
+                    </span>
+                    <input type="password" name="{{ form.confirm_password.name }}" id="{{ form.confirm_password.id_for_label }}"
+                           class="w-full pl-14 pr-14 py-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white outline-none transition-all input-focus-effect"
+                           placeholder="••••••••" oninput="checkMatch()" required>
+                    <button type="button" onclick="togglePass('{{ form.confirm_password.id_for_label }}', this)" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-500 transition-colors">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
-                {% if form.confirm_password.errors %}
-                    <span class="error-message">{{ form.confirm_password.errors.0 }}</span>
-                {% endif %}
-                <span class="error-message" id="matchError" style="display: none;">Passwords do not match</span>
+                <p id="matchError" class="hidden text-[11px] text-red-500 font-bold ml-1">Passwords do not match</p>
             </div>
-            
-            <button type="submit" class="btn-reset" id="submitBtn">
-                <i class="fas fa-check"></i>
-                <span>Reset Password</span>
+
+            <button type="submit" id="submitBtn" class="w-full bg-brand-dark text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:bg-slate-800 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3">
+                <span>Update Password</span>
+                <i class="fas fa-check-circle text-sm"></i>
             </button>
         </form>
     </div>
 </div>
 
 <script>
-function togglePassword(fieldId, icon) {
-    const field = document.getElementById(fieldId);
-    
-    if (field.type === 'password') {
-        field.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-    } else {
-        field.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-    }
-}
+    window.onload = () => {
+        const container = document.getElementById('mainContainer');
+        container.classList.remove('opacity-0', 'translate-y-4');
+    };
 
-function checkPasswordStrength(password) {
-    const strengthDiv = document.getElementById('passwordStrength');
-    const strengthBar = document.getElementById('strengthBar');
-    const strengthText = document.getElementById('strengthText');
-    
-    if (password.length === 0) {
-        strengthDiv.classList.remove('show');
-        return;
+    function togglePass(id, btn) {
+        const input = document.getElementById(id);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
     }
-    
-    strengthDiv.classList.add('show');
-    
-    let strength = 0;
-    
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^a-zA-Z0-9]/.test(password)) strength++;
-    
-    strengthBar.className = 'strength-bar-fill';
-    strengthText.className = 'strength-text';
-    
-    if (strength <= 2) {
-        strengthBar.classList.add('weak');
-        strengthText.classList.add('weak');
-        strengthText.textContent = 'Weak password';
-    } else if (strength <= 4) {
-        strengthBar.classList.add('medium');
-        strengthText.classList.add('medium');
-        strengthText.textContent = 'Medium password';
-    } else {
-        strengthBar.classList.add('strong');
-        strengthText.classList.add('strong');
-        strengthText.textContent = 'Strong password';
-    }
-}
 
-function checkPasswordMatch() {
-    const password = document.getElementById('{{ form.new_password.id_for_label }}').value;
-    const confirmPassword = document.getElementById('{{ form.confirm_password.id_for_label }}').value;
-    const matchError = document.getElementById('matchError');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    if (confirmPassword.length === 0) {
-        matchError.style.display = 'none';
-        submitBtn.disabled = false;
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        matchError.style.display = 'block';
-        submitBtn.disabled = true;
-    } else {
-        matchError.style.display = 'none';
-        submitBtn.disabled = false;
-    }
-}
+    function checkStrength(p) {
+        const container = document.getElementById('strengthContainer');
+        const text = document.getElementById('strengthText');
+        const bars = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
 
-document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            alert.style.animation = 'slideDown 0.3s ease-out reverse';
-            setTimeout(() => alert.remove(), 300);
-        }, 5000);
-    });
-});
+        if (!p) { container.classList.remove('show'); return; }
+        container.classList.add('show');
+
+        let s = 0;
+        if (p.length >= 8) s++;
+        if (/[A-Z]/.test(p) && /[0-9]/.test(p)) s++;
+        if (/[^A-Za-z0-9]/.test(p)) s++;
+
+        bars.forEach(b => b.className = 'flex-1 rounded-full bg-slate-200');
+
+        if (s === 1) {
+            bars[0].classList.add('bg-red-400');
+            text.innerText = "Strength: Weak";
+            text.className = "text-[10px] font-bold uppercase tracking-wider text-red-400";
+        } else if (s === 2) {
+            bars[0].classList.add('bg-amber-400');
+            bars[1].classList.add('bg-amber-400');
+            text.innerText = "Strength: Medium";
+            text.className = "text-[10px] font-bold uppercase tracking-wider text-amber-400";
+        } else if (s === 3) {
+            bars.forEach(b => b.classList.add('bg-emerald-400'));
+            text.innerText = "Strength: Strong";
+            text.className = "text-[10px] font-bold uppercase tracking-wider text-emerald-400";
+        }
+    }
+
+    function checkMatch() {
+        const p = document.getElementById('{{ form.new_password.id_for_label }}').value;
+        const c = document.getElementById('{{ form.confirm_password.id_for_label }}').value;
+        const err = document.getElementById('matchError');
+        const btn = document.getElementById('submitBtn');
+
+        if (c && p !== c) {
+            err.classList.remove('hidden');
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+        } else {
+            err.classList.add('hidden');
+            btn.disabled = false;
+            btn.style.opacity = "1";
+        }
+    }
 </script>
 
 </body>

@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.forms import ModelForm
 from account.models import Announcement, CustomUser, Department, Fees, Parent, Student, Subject, Teacher
+from .utils import generate_default_password
 from django.core.exceptions import ObjectDoesNotExist
 from django_select2.forms import Select2Widget
 
@@ -35,7 +36,7 @@ class AddTeacherForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'})
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}, render_value=True),
         required=False
     )
     gender = forms.ChoiceField(
@@ -119,7 +120,9 @@ class AddTeacherForm(forms.ModelForm):
             self.fields['profile_picture'].initial = user.profile_picture
         else:
             # Creating new teacher
-            self.fields['password'].required = True
+            self.fields['password'].required = False
+            self.fields['password'].help_text = "Password will be generated automatically."
+            self.fields['password'].initial = generate_default_password()
 
         # Filter department queryset by school
         if self.school:
@@ -163,8 +166,6 @@ class AddTeacherForm(forms.ModelForm):
         password = self.cleaned_data.get('password')
         if password:
             validate_password(password)
-        elif not self.instance.pk:  # Only required on create
-            raise forms.ValidationError("Password is required when creating a new teacher.")
         return password
 
     def clean_hire_date(self):
@@ -202,16 +203,20 @@ class AddTeacherForm(forms.ModelForm):
         user.gender = self.cleaned_data['gender']
         user.date_of_birth = self.cleaned_data['date_of_birth']
 
-        # Handle password only if provided
+        # Handle password
         password = self.cleaned_data.get('password')
-        if password:
+        if password and user.pk:
             user.set_password(password)
-        elif not user.pk:  # New user must have password
-            user.set_password('default123')  # Set a default password
+        elif not user.pk:
+            user.set_password(generate_default_password())
 
-        # Handle profile picture for user
-        if 'profile_picture' in self.files:
-            user.profile_picture = self.files['profile_picture']
+        # Keep user profile and teacher image in sync when an upload is provided.
+        profile_picture = self.files.get("profile_picture")
+        teacher_image = self.files.get("image")
+        uploaded_image = teacher_image or profile_picture
+
+        if uploaded_image:
+            user.profile_picture = uploaded_image
 
         # Save the user
         user.save()
@@ -219,6 +224,8 @@ class AddTeacherForm(forms.ModelForm):
         # Link user to teacher and set school
         teacher.user = user
         teacher.school = self.school
+        if uploaded_image:
+            teacher.image = uploaded_image
         
         if commit:
             teacher.save()
@@ -271,9 +278,9 @@ class AddStudentForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'})
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}),
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}, render_value=True),
         required=False,
-        help_text="Enter a strong password. Leave blank to keep current password when editing."
+        help_text="Password will be generated automatically for new students."
     )
     gender = forms.ChoiceField(
         choices=GENDER_CHOICES,
@@ -360,14 +367,10 @@ class AddStudentForm(forms.ModelForm):
         self.school = kwargs.pop('school', None)
         super().__init__(*args, **kwargs)
         
-        print(f"DEBUG Form Init - Instance PK: {self.instance.pk}")
-        print(f"DEBUG Form Init - Has user: {hasattr(self.instance, 'user')}")
-
         # Only populate fields if editing an existing student
         if self.instance.pk and hasattr(self.instance, 'user'):
             try:
                 user = self.instance.user
-                print(f"DEBUG Form Init - User: {user}")
                 
                 # Populate user fields
                 self.fields['first_name'].initial = user.first_name
@@ -382,14 +385,8 @@ class AddStudentForm(forms.ModelForm):
                     self.fields['profile_picture'].initial = user.profile_picture
 
                 # Populate parent fields if parent exists
-                print(f"DEBUG Form Init - Has parent: {hasattr(self.instance, 'parent')}")
-                print(f"DEBUG Form Init - Parent value: {self.instance.parent if hasattr(self.instance, 'parent') else 'No attr'}")
-                
                 if hasattr(self.instance, 'parent') and self.instance.parent:
                     parent = self.instance.parent
-                    print(f"DEBUG Form Init - Parent object: {parent}")
-                    print(f"DEBUG Form Init - Father name: {parent.father_name}")
-                    
                     self.fields['father_name'].initial = parent.father_name or ''
                     self.fields['mother_name'].initial = parent.mother_name or ''
                     self.fields['father_occupation'].initial = parent.father_occupation or ''
@@ -398,20 +395,17 @@ class AddStudentForm(forms.ModelForm):
                     self.fields['mother_email'].initial = parent.mother_email or ''
                     self.fields['father_phone'].initial = parent.father_phone or ''
                     self.fields['mother_phone'].initial = parent.mother_phone or ''
-                    
-                    print(f"DEBUG Form Init - Set father_name initial to: {self.fields['father_name'].initial}")
-                else:
-                    print("DEBUG Form Init - No parent found or parent is None")
 
                 # Make password optional for editing
                 self.fields['password'].required = False
                 self.fields['password'].help_text = "Leave blank to keep current password."
                 
-            except (AttributeError, ObjectDoesNotExist) as e:
+            except (AttributeError, ObjectDoesNotExist):
                 # Handle case where related objects don't exist
-                print(f"ERROR Form Init: {e}")
-                import traceback
-                traceback.print_exc()
+                pass
+        else:
+            # New student: show the default password in the form
+            self.fields['password'].initial = generate_default_password()
             
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -435,8 +429,6 @@ class AddStudentForm(forms.ModelForm):
         password = self.cleaned_data.get('password')
         if password:
             validate_password(password)
-        elif not self.instance.pk and not password:
-            raise forms.ValidationError("Password is required for new students.")
         return password
 
     def save(self, commit=True):
@@ -466,12 +458,15 @@ class AddStudentForm(forms.ModelForm):
 
         # Handle password
         password = self.cleaned_data.get('password')
-        if password:
+        if password and is_update:
             user.set_password(password)
+        elif not is_update:
+            user.set_password(generate_default_password())
 
-        # Handle profile picture
-        if 'profile_picture' in self.files:
-            user.profile_picture = self.files['profile_picture']
+        # Keep legacy/new student image fields synchronized.
+        profile_picture = self.files.get("profile_picture")
+        if profile_picture:
+            user.profile_picture = profile_picture
 
         if commit:
             # Save user first (must exist before linking to student)
@@ -495,6 +490,8 @@ class AddStudentForm(forms.ModelForm):
                 student.allergies = self.cleaned_data.get('allergies', '')   # type: ignore
                 student.medical_conditions = self.cleaned_data.get('medical_conditions', '')   # type: ignore
                 student.notes = self.cleaned_data.get('notes', '')   # type: ignore
+                if profile_picture:
+                    student.student_image = profile_picture  # type: ignore
                 student.save()   # type: ignore
             else:
                 # Create new student with all required fields
@@ -508,6 +505,7 @@ class AddStudentForm(forms.ModelForm):
                     medical_conditions=self.cleaned_data.get('medical_conditions', ''),
                     notes=self.cleaned_data.get('notes', ''),
                     mobile_number=self.cleaned_data.get('phone_number', ''),
+                    student_image=profile_picture,
                     is_active=True
                 )
 
@@ -525,12 +523,13 @@ class AddFeesForm(forms.ModelForm):
 
     class Meta:
         model = Fees
-        fields = ['student', 'fee_type', 'amount', 'due_date', 'status', 'notes']
+        fields = ['student', 'fee_type', 'amount', 'due_date', 'status', 'payment_date', 'notes']
         widgets = {
             'fee_type': forms.Select(attrs={'class': 'form-control'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 

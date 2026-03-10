@@ -1,5 +1,5 @@
 {% extends 'student/base.html' %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}My Assignments - Student Portal{% endblock %}
 
@@ -160,9 +160,19 @@
                                         <td>
                                             <h2 class="table-avatar">
                                                 <a href="#" class="avatar avatar-sm mr-2">
-                                                    <img class="avatar-img rounded-circle" 
-                                                         src="{% if assignment.teacher.user.profile_picture %}{{ assignment.teacher.user.profile_picture.url }}{% else %}{% static 'assets/img/profiles/avatar-01.jpg' %}{% endif %}" 
-                                                         alt="Teacher Image">
+                                                    {% if assignment.teacher.user.profile_picture %}
+                                                        <img class="avatar-img rounded-circle"
+                                                             src="{{ assignment.teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                                                             alt="Teacher Image">
+                                                    {% elif assignment.teacher.image %}
+                                                        <img class="avatar-img rounded-circle"
+                                                             src="{{ assignment.teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                                                             alt="Teacher Image">
+                                                    {% else %}
+                                                        <img class="avatar-img rounded-circle"
+                                                             src="{% static 'assets/img/profiles/avatar-01.jpg' %}"
+                                                             alt="Teacher Image">
+                                                    {% endif %}
                                                 </a>
                                                 <a href="#">{{ assignment.teacher.user.get_full_name }}</a>
                                             </h2>

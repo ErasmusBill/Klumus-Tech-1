@@ -1,397 +1,259 @@
 {% extends "adminservices/base.html" %}
 {% load static %}
 
-{% block title %}Add Fees{% endblock %}
+{% block title %}Add Fees | Kiddo Care Admin{% endblock %}
 
 {% block extra_css %}
-<!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
   .page-wrapper {
-    background: #f8f9fa;
+    background: #fdfdfd;
     padding: 30px;
     min-height: 100vh;
   }
 
-  .page-header {
-    margin-bottom: 30px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eaeaea;
+  /* Branded Header */
+  .page-header .page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.025em;
   }
 
-  .page-header h3 {
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 5px;
-  }
-
-  .breadcrumb {
-    background: transparent;
-    padding: 0;
-    margin-bottom: 0;
-  }
-
-  .breadcrumb-item a {
-    color: #6c757d;
-    text-decoration: none;
-  }
-
-  .breadcrumb-item.active {
-    color: #2c3e50;
-    font-weight: 500;
-  }
-
+  /* Kiddo Care Card Style */
   .form-card {
     background: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.08);
-    border: 1px solid #eef2f7;
+    padding: 40px;
+    border-radius: 2rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+    border: 1px solid #f1f5f9;
   }
 
-  .form-group {
-    margin-bottom: 25px;
-  }
-
-  label {
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    display: block;
-  }
-
-  .form-control, .form-select {
-    border-radius: 8px;
-    border: 2px solid #eef2f7;
-    padding: 12px 15px;
-    transition: all 0.3s ease;
-    font-size: 14px;
-  }
-
-  .form-control:focus, .form-select:focus {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.15);
-    outline: none;
-  }
-
-  .btn {
-    border-radius: 8px;
-    padding: 12px 30px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: none;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
-  }
-
-  .btn-secondary {
-    background: #6c757d;
-  }
-
-  .btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
-  }
-
-  .alert {
-    border-radius: 10px;
-    border: none;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    padding: 15px 20px;
-  }
-
-  .text-danger {
-    font-size: 13px;
-    margin-top: 5px;
-  }
-
-  /* Select2 Custom Styling */
-  .select2-container--default .select2-selection--single {
-    height: 48px;
-    border: 2px solid #eef2f7;
-    border-radius: 8px;
-    padding: 8px 12px;
-    background: #fff;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 46px;
-  }
-
-  .select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 30px;
-    color: #495057;
-    font-size: 14px;
-  }
-
-  .select2-container--default.select2-container--focus .select2-selection--single {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.15);
-  }
-
-  .select2-dropdown {
-    border: 2px solid #eef2f7;
-    border-radius: 8px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-  }
-
-  .select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  }
-
-  .form-section {
-    margin-bottom: 30px;
-  }
-
+  /* Form Sections */
   .section-title {
-    color: #2c3e50;
-    font-weight: 700;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f4ff;
-    font-size: 18px;
+    color: #1e293b;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
   }
 
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .page-wrapper {
-      padding: 20px 15px;
-    }
-    
-    .form-card {
-      padding: 20px;
-    }
-    
-    .btn {
-      padding: 10px 20px;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-    }
+  .icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+  }
+
+  /* Input Styling */
+  label {
+    font-weight: 700;
+    color: #64748b;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+
+  .form-control, .form-select, .select2-container--default .select2-selection--single {
+    border-radius: 12px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    padding: 10px 16px !important;
+    font-weight: 500;
+    height: auto !important;
+    transition: all 0.2s ease;
+  }
+
+  .form-control:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+  }
+
+  /* Modern Buttons */
+  .btn-save {
+    background: #4f46e5;
+    color: white;
+    border-radius: 12px;
+    padding: 14px 32px;
+    font-weight: 700;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-save:hover {
+    background: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+  }
+
+  .btn-cancel {
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 12px;
+    padding: 14px 32px;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  /* Status Badge UI */
+  .select2-results__option--highlighted {
+    background-color: #4f46e5 !important;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
+<div class="page-wrapper px-4">
   <div class="content container-fluid">
-    <!-- Page Header -->
-    <div class="page-header">
+
+    <div class="page-header border-0 mb-4">
       <div class="row align-items-center">
         <div class="col">
-          <h3 class="page-title">Add New Fee</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-fees' %}">Fee Management</a></li>
-            <li class="breadcrumb-item active">Add Fee</li>
+          <h3 class="page-title">Generate Invoice</h3>
+          <ul class="breadcrumb bg-transparent p-0">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}" class="text-indigo-600 font-bold">Dashboard</a></li>
+            <li class="breadcrumb-item active font-medium text-slate-400">Add New Fee</li>
           </ul>
         </div>
         <div class="col-auto">
-          <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Fees
+          <a href="{% url 'adminservices:list-fees' %}" class="btn btn-light rounded-pill px-4 shadow-sm border-0 font-bold">
+            <i class="fas fa-list me-2"></i>View All Fees
           </a>
         </div>
       </div>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
-          <div class="d-flex align-items-center">
-            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
-            <span class="flex-grow-1">{{ message }}</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        </div>
-      {% endfor %}
-    {% endif %}
+    <div class="row justify-content-center">
+      <div class="col-lg-10 col-xl-8">
+        <div class="form-card">
+          <form method="post" id="feeForm" novalidate>
+            {% csrf_token %}
 
-    <!-- Form Card -->
-    <div class="form-card">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        
-        <!-- Student Information Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-user-graduate me-2 text-primary"></i>Student Information
-          </h5>
-          <div class="row">
-            <div class="col-md-12">
-              <div class="form-group">
-                <label for="{{ form.student.id_for_label }}">
-                  <i class="fas fa-search me-2 text-success"></i>{{ form.student.label }}
-                </label>
+            <div class="mb-5">
+              <div class="section-title">
+                <div class="icon-box bg-indigo-50 text-indigo-600">
+                  <i class="fas fa-user-graduate"></i>
+                </div>
+                Assign to Student
+              </div>
+              <div class="form-group position-relative">
+                <label>Search Student Record</label>
                 {{ form.student }}
+                <div class="mt-2 d-flex align-items-center text-slate-400">
+                  <i class="fas fa-info-circle me-2 text-xs"></i>
+                  <small class="font-medium">Type Name or ID to fetch billing profile</small>
+                </div>
                 {% if form.student.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.student.errors }}
-                  </div>
-                {% endif %}
-                <small class="form-text text-muted mt-1">
-                  <i class="fas fa-info-circle me-1"></i>
-                  Start typing to search for students by name or student ID
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Fee Details Section -->
-        <div class="form-section">
-          <h5 class="section-title">
-            <i class="fas fa-receipt me-2 text-warning"></i>Fee Details
-          </h5>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="{{ form.fee_type.id_for_label }}">
-                  <i class="fas fa-tag me-2 text-info"></i>{{ form.fee_type.label }}
-                </label>
-                {{ form.fee_type }}
-                {% if form.fee_type.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.fee_type.errors }}
-                  </div>
+                  <div class="text-danger mt-1 font-bold text-xs"><i class="fas fa-exclamation-triangle me-1"></i> {{ form.student.errors.0 }}</div>
                 {% endif %}
               </div>
             </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="{{ form.amount.id_for_label }}">
-                  <i class="fas fa-money-bill-wave me-2 text-success"></i>{{ form.amount.label }}
-                </label>
-                {{ form.amount }}
-                {% if form.amount.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.amount.errors }}
+            <hr class="border-slate-100 my-5">
+
+            <div class="mb-4">
+              <div class="section-title">
+                <div class="icon-box bg-emerald-50 text-emerald-600">
+                  <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+                Fee Particulars
+              </div>
+
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <label>Type of Fee</label>
+                  {{ form.fee_type }}
+                  {% if form.fee_type.errors %}<div class="text-danger text-xs font-bold mt-1">{{ form.fee_type.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <label>Billing Amount (GHS)</label>
+                  <div class="input-group">
+                    <span class="input-group-text border-0 bg-slate-50 text-slate-400 rounded-start-3">₵</span>
+                    {{ form.amount }}
                   </div>
-                {% endif %}
+                  {% if form.amount.errors %}<div class="text-danger text-xs font-bold mt-1">{{ form.amount.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <label>Payment Date</label>
+                  {{ form.due_date }}
+                  {% if form.due_date.errors %}<div class="text-danger text-xs font-bold mt-1">{{ form.due_date.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <label>Initial Payment Status</label>
+                  {{ form.status }}
+                  {% if form.status.errors %}<div class="text-danger text-xs font-bold mt-1">{{ form.status.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                  <label>Payment Date (if paid)</label>
+                  {{ form.payment_date }}
+                  {% if form.payment_date.errors %}<div class="text-danger text-xs font-bold mt-1">{{ form.payment_date.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-12">
+                  <label>Memo / Internal Notes</label>
+                  {{ form.notes }}
+                  <small class="text-slate-400">Visible on student invoice</small>
+                </div>
               </div>
             </div>
 
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="{{ form.due_date.id_for_label }}">
-                  <i class="fas fa-calendar-alt me-2 text-danger"></i>{{ form.due_date.label }}
-                </label>
-                {{ form.due_date }}
-                {% if form.due_date.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.due_date.errors }}
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="{{ form.status.id_for_label }}">
-                  <i class="fas fa-check-circle me-2 text-primary"></i>{{ form.status.label }}
-                </label>
-                {{ form.status }}
-                {% if form.status.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.status.errors }}
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="col-12">
-              <div class="form-group">
-                <label for="{{ form.notes.id_for_label }}">
-                  <i class="fas fa-sticky-note me-2 text-secondary"></i>{{ form.notes.label }}
-                </label>
-                {{ form.notes }}
-                {% if form.notes.errors %}
-                  <div class="text-danger">
-                    <i class="fas fa-exclamation-circle me-1"></i>
-                    {{ form.notes.errors }}
-                  </div>
-                {% endif %}
-                <small class="form-text text-muted mt-1">
-                  <i class="fas fa-info-circle me-1"></i>
-                  Optional notes or description about this fee
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="row mt-4">
-          <div class="col-12">
-            <div class="d-flex justify-content-end gap-3 btn-group">
-              <a href="{% url 'adminservices:list-fees' %}" class="btn btn-secondary">
-                <i class="fas fa-times me-2"></i>Cancel
+            <div class="d-flex flex-column flex-md-row justify-content-end gap-3 mt-5 pt-4 border-top border-slate-50">
+              <a href="{% url 'adminservices:list-fees' %}" class="btn btn-cancel order-2 order-md-1">
+                Cancel
               </a>
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>Save Fee
+              <button type="submit" class="btn btn-save order-1 order-md-2" id="submitBtn">
+                <i class="fas fa-check-circle me-2"></i>Generate Fee Entry
               </button>
             </div>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
+
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- jQuery + Select2 JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 $(document).ready(function() {
-    // Initialize Select2 on the student field
+    // Select2 Branding
     $('#id_student').select2({
-        placeholder: "Type student name or ID...",
+        placeholder: "Start typing Name or ID...",
         allowClear: true,
         width: '100%',
-        minimumInputLength: 1,
-        theme: 'default',
         dropdownParent: $('.form-card')
     });
-    
-    // Debug: Check if Select2 is working
-    console.log('Select2 initialized on student field');
-    
-    // Add loading state to form submission
-    $('form').on('submit', function() {
-        const submitBtn = $(this).find('button[type="submit"]');
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+
+    // Auto-apply Bootstrap classes to Django fields
+    $('select:not(#id_student)').addClass('form-select');
+    $('input[type="number"], input[type="date"], textarea').addClass('form-control');
+
+    // Dynamic Button Feedback
+    $('#feeForm').on('submit', function() {
+        if($(this).valid?.() !== false) {
+            $('#submitBtn').html('<i class="fas fa-circle-notch fa-spin me-2"></i>Processing...').prop('disabled', true);
+        }
     });
-    
-    // Enhance form controls with additional styling
-    $('select:not(.select2-hidden-accessible)').addClass('form-select');
-    $('textarea').addClass('form-control');
-    $('input[type="number"]').addClass('form-control');
-    $('input[type="date"]').addClass('form-control');
-    
-    // Auto-focus on student search field
-    setTimeout(function() {
-        $('#id_student').select2('focus');
-    }, 500);
+
+    // UX: Auto-focus search on load
+    setTimeout(() => { $('#id_student').select2('open'); }, 400);
 });
 </script>
 {% endblock %}

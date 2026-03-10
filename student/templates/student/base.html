@@ -1,4 +1,4 @@
-{% load static %}
+{% load static media_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,16 +11,51 @@
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <style>
+        /* Responsive header tweaks */
+        @media (max-width: 991.98px) {
+            .top-nav-search { display: none; }
+            .header .header-left .logo h2 {
+                font-size: 1rem;
+                max-width: 160px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .header { padding-left: 10px; padding-right: 10px; }
+            .header .user-menu .nav-item { margin-left: 6px; }
+            .header .user-menu .noti-dropdown { display: none; }
+            .header-left .logo img { max-height: 32px; }
+        }
+    </style>
 </head>
 <body>
     <div class="main-wrapper">
         <div class="header">
             <div class="header-left">
                 <a href="{% url 'student:student-dashboard' %}" class="logo">
-                    <h2>KIDDO CARE</h2>
+                    {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                        <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ request.user.student_profile.school.name }} Logo">
+                    {% else %}
+                        <img src="{% static 'assets/img/logo.png' %}" alt="Logo">
+                    {% endif %}
+                    <h2>
+                        {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                            {{ request.user.student_profile.school.name }}
+                        {% else %}
+                            KIDDO CARE
+                        {% endif %}
+                    </h2>
                 </a>
                 <a href="{% url 'student:student-dashboard' %}" class="logo logo-small">
-                    <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
+                    {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                        <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.student_profile.school.name }} Logo" width="30" height="30">
+                    {% else %}
+                        <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
+                    {% endif %}
                 </a>
             </div>
             <a href="javascript:void(0);" id="toggle_btn">
@@ -38,54 +73,36 @@
             <ul class="nav user-menu">
                 <li class="nav-item dropdown noti-dropdown">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-                        <i class="far fa-bell"></i> <span class="badge badge-pill">3</span>
+                        <i class="far fa-bell"></i> <span class="badge badge-pill">{{ navbar_unread_count|default:0 }}</span>
                     </a>
                     <div class="dropdown-menu notifications">
                         <div class="topnav-dropdown-header">
                             <span class="notification-title">Notifications</span>
-                            <a href="javascript:void(0)" class="clear-noti"> Clear All </a>
+                            <a href="{% url 'account:notifications-clear' %}?next={{ request.path }}" class="clear-noti"> Clear All </a>
                         </div>
                         <div class="noti-content">
                             <ul class="notification-list">
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media">
-                                            <span class="avatar avatar-sm">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-02.jpg' %}">
-                                            </span>
-                                            <div class="media-body">
-                                                <p class="noti-details"><span class="noti-title">New assignment</span> posted in Mathematics</p>
-                                                <p class="noti-time"><span class="notification-time">4 mins ago</span></p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media">
-                                            <span class="avatar avatar-sm">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-11.jpg' %}">
-                                            </span>
-                                            <div class="media-body">
-                                                <p class="noti-details"><span class="noti-title">Grade updated</span> for Science Quiz</p>
-                                                <p class="noti-time"><span class="notification-time">1 hour ago</span></p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li class="notification-message">
-                                    <a href="#">
-                                        <div class="media">
-                                            <span class="avatar avatar-sm">
-                                                <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-17.jpg' %}">
-                                            </span>
-                                            <div class="media-body">
-                                                <p class="noti-details"><span class="noti-title">Fee payment</span> reminder for this month</p>
-                                                <p class="noti-time"><span class="notification-time">2 days ago</span></p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </li>
+                                {% if navbar_notifications %}
+                                    {% for n in navbar_notifications %}
+                                        <li class="notification-message">
+                                            <a href="{% url 'account:notification-go' n.id %}">
+                                                <div class="media">
+                                                    <span class="avatar avatar-sm">
+                                                        <i class="fas fa-bell text-primary"></i>
+                                                    </span>
+                                                    <div class="media-body">
+                                                        <p class="noti-details"><span class="noti-title">{{ n.title }}</span> {{ n.message|truncatechars:60 }}</p>
+                                                        <p class="noti-time"><span class="notification-time">{{ n.created_at|timesince }} ago</span></p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="notification-message">
+                                        <p class="text-center text-muted mb-0">No new notifications</p>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </div>
                         <div class="topnav-dropdown-footer">
@@ -96,13 +113,25 @@
                 <li class="nav-item dropdown has-arrow">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
-                            <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" alt="{{ request.user.get_full_name }}">
+                            {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                                <img class="rounded-circle" src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" width="31" height="31" alt="{{ request.user.student_profile.school.name }} Logo">
+                            {% elif request.user.profile_picture %}
+                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% else %}
+                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% endif %}
                         </span>
                     </a>
                     <div class="dropdown-menu">
                         <div class="user-header">
                             <div class="avatar avatar-sm">
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                                    <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.student_profile.school.name }} Logo" class="avatar-img rounded-circle">
+                                {% elif request.user.profile_picture %}
+                                    <img src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                {% else %}
+                                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                {% endif %}
                             </div>
                             <div class="user-text">
                                 <h6>{{ request.user.get_full_name }}</h6>
@@ -128,12 +157,12 @@
                             <a href="{% url 'student:student-dashboard' %}"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
                         </li>
                         <li>
-                            <a href="#"><i class="fas fa-user"></i> <span>My Profile</span></a>
+                            <a href="{% url 'student:student-detail' %}"><i class="fas fa-user"></i> <span>My Profile</span></a>
                         </li>
                         <li>
                             <a href="{% url 'student:enrolled-courses' %}"><i class="fas fa-book-reader"></i> <span>Enrolled Courses</span></a>
                         </li>
-                        
+
                         <!-- Assignments Management -->
                         <li class="submenu {% if 'assignment' in request.resolver_match.url_name %}active open{% endif %}">
                             <a href="#">
@@ -152,14 +181,14 @@
                         <li>
                             <a href="{% url 'student:view-result' request.user.student_profile.id %}"><i class="fas fa-chart-line"></i> <span>Grades</span></a>
                         </li>
-                        
+
                         <li class="menu-title">
                             <span>Financial</span>
                         </li>
                         <li>
                             <a href="{% url 'student:fees-list' request.user.student_profile.id %}"><i class="fas fa-money-bill-wave"></i> <span>Fees & Payments</span></a>
                         </li>
-                        
+
                         <li class="menu-title">
                             <span>Settings</span>
                         </li>

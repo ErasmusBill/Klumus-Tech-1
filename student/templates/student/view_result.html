@@ -1,5 +1,5 @@
 {% extends 'student/base.html' %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}{{ student.user.get_full_name }} - Result Sheet{% endblock %}
 
@@ -29,7 +29,11 @@
                         <div class="row">
                             <div class="col-md-2">
                                 {% if student.student_image %}
-                                    <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" class="img-fluid rounded">
+                                    <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" class="img-fluid rounded">
+                                {% elif student.user.profile_picture %}
+                                    <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" class="img-fluid rounded">
+                                {% elif student.school.logo %}
+                                    <img src="{{ student.school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ student.school.name }} Logo" class="img-fluid rounded">
                                 {% else %}
                                     <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Student" class="img-fluid rounded">
                                 {% endif %}

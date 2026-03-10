@@ -1,712 +1,309 @@
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
-<title>Preskool - School Registration</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px 15px;
-    }
-    
-    .registration-container {
-        width: 100%;
-        max-width: 1400px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        overflow: hidden;
-        display: flex;
-    }
-    
-    .left-panel {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 60px 40px;
-        color: white;
-        width: 350px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    
-    .logo-section {
-        text-align: center;
-    }
-    
-    .logo-section h1 {
-        font-size: 36px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    
-    .logo-section .icon {
-        font-size: 80px;
-        margin-bottom: 20px;
-        opacity: 0.9;
-    }
-    
-    .info-section {
-        margin-top: 40px;
-    }
-    
-    .info-item {
-        display: flex;
-        align-items: start;
-        margin-bottom: 25px;
-        padding: 15px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .info-item i {
-        font-size: 24px;
-        margin-right: 15px;
-        margin-top: 5px;
-    }
-    
-    .info-item div h4 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 5px;
-    }
-    
-    .info-item div p {
-        font-size: 13px;
-        opacity: 0.9;
-        margin: 0;
-    }
-    
-    .right-panel {
-        flex: 1;
-        padding: 50px 60px;
-        overflow-y: auto;
-        max-height: 90vh;
-    }
-    
-    .form-header {
-        margin-bottom: 35px;
-    }
-    
-    .form-header h2 {
-        font-size: 32px;
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 8px;
-    }
-    
-    .form-header p {
-        color: #718096;
-        font-size: 15px;
-    }
-    
-    .progress-steps {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 40px;
-        position: relative;
-    }
-    
-    .progress-steps::before {
-        content: '';
-        position: absolute;
-        top: 20px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: #e2e8f0;
-        z-index: 0;
-    }
-    
-    .step {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        z-index: 1;
-        flex: 1;
-    }
-    
-    .step-circle {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        color: #a0aec0;
-        margin-bottom: 8px;
-        transition: all 0.3s;
-    }
-    
-    .step.active .step-circle {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .step-label {
-        font-size: 13px;
-        color: #a0aec0;
-        font-weight: 500;
-    }
-    
-    .step.active .step-label {
-        color: #667eea;
-    }
-    
-    .form-section {
-        display: none;
-        animation: fadeIn 0.3s;
-    }
-    
-    .form-section.active {
-        display: block;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .form-row {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 25px;
-        margin-bottom: 25px;
-    }
-    
-    .form-group {
-        margin-bottom: 0;
-    }
-    
-    .form-group.full-width {
-        grid-column: 1 / -1;
-    }
-    
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-    
-    .required::after {
-        content: ' *';
-        color: #e53e3e;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 12px 16px;
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        font-size: 14px;
-        transition: all 0.3s;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
-    .form-control.is-invalid {
-        border-color: #e53e3e;
-    }
-    
-    .error-message {
-        color: #e53e3e;
-        font-size: 12px;
-        margin-top: 5px;
-        display: block;
-    }
-    
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
-    }
-    
-    .file-input-wrapper input[type=file] {
-        position: absolute;
-        left: -9999px;
-    }
-    
-    .file-input-label {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px 16px;
-        border: 2px dashed #e2e8f0;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: #f7fafc;
-    }
-    
-    .file-input-label:hover {
-        border-color: #667eea;
-        background: #edf2f7;
-    }
-    
-    .file-input-label i {
-        margin-right: 8px;
-        color: #667eea;
-    }
-    
-    .file-name {
-        font-size: 12px;
-        color: #4a5568;
-        margin-top: 5px;
-    }
-    
-    .button-group {
-        display: flex;
-        gap: 15px;
-        margin-top: 35px;
-        padding-top: 25px;
-        border-top: 2px solid #e2e8f0;
-    }
-    
-    .btn {
-        padding: 14px 30px;
-        border: none;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 15px;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        flex: 1;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-    }
-    
-    .btn-secondary {
-        background: #e2e8f0;
-        color: #4a5568;
-    }
-    
-    .btn-secondary:hover {
-        background: #cbd5e0;
-    }
-    
-    .login-link {
-        text-align: center;
-        margin-top: 25px;
-        color: #718096;
-        font-size: 14px;
-    }
-    
-    .login-link a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 600;
-    }
-    
-    .login-link a:hover {
-        text-decoration: underline;
-    }
-    
-    .alert {
-        padding: 12px 16px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .alert-danger {
-        background: #fff5f5;
-        border: 1px solid #feb2b2;
-        color: #c53030;
-    }
-    
-    @media (max-width: 1200px) {
-        .form-row {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-    
-    @media (max-width: 768px) {
-        .registration-container {
-            flex-direction: column;
-        }
-        
-        .left-panel {
-            width: 100%;
-            padding: 40px 30px;
-        }
-        
-        .right-panel {
-            padding: 40px 30px;
-        }
-        
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-        
-        .info-section {
-            display: none;
-        }
-    }
-</style>
-</head>
-<body>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiddoCore | School Registration</title>
 
-<div class="registration-container">
-    <!-- Left Panel -->
-    <div class="left-panel">
-        <div class="logo-section">
-            <div class="icon"><i class="fas fa-school"></i></div>
-            <h1>KIDDOCORE</h1>
-            <p style="opacity: 0.9; font-size: 14px;">School Management System</p>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            dark: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .step-line::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: -1;
+        }
+
+        .form-section { display: none; }
+        .form-section.active { display: block; animation: slideUp 0.4s ease-out; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 md:p-8 antialiased text-slate-900">
+
+<div class="w-full max-w-6xl glass-card rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[800px]">
+
+    <div class="lg:w-1/3 bg-brand-dark p-10 text-white flex flex-col relative overflow-hidden">
+        <div class="absolute -top-20 -left-20 w-64 h-64 bg-brand-600 rounded-full filter blur-3xl opacity-20"></div>
+
+        <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="bg-brand-500 p-2 rounded-xl">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold">KiddoCore</span>
+            </div>
+
+            <h2 class="text-3xl font-extrabold mb-4">Start your trial.</h2>
+            <p class="text-slate-400 mb-10 leading-relaxed">Join hundreds of schools digitizing their operations in Ghana.</p>
+
+            <div class="space-y-6">
+                <div class="flex items-start gap-4">
+                    <div class="mt-1 text-brand-500"><i class="fas fa-bolt"></i></div>
+                    <div>
+                        <h4 class="font-bold">Instant Setup</h4>
+                        <p class="text-xs text-slate-400">Configure your school in under 5 minutes.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="mt-1 text-brand-500"><i class="fas fa-lock"></i></div>
+                    <div>
+                        <h4 class="font-bold">Encrypted Data</h4>
+                        <p class="text-xs text-slate-400">Bank-level security for student records.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="mt-1 text-brand-500"><i class="fas fa-headset"></i></div>
+                    <div>
+                        <h4 class="font-bold">Local Support</h4>
+                        <p class="text-xs text-slate-400">Dedicated assistance for Ghanaian schools.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <div class="info-section">
-            <div class="info-item">
-                <i class="fas fa-check-circle"></i>
-                <div>
-                    <h4>Quick Setup</h4>
-                    <p>Get your school registered in minutes</p>
-                </div>
-            </div>
-            <div class="info-item">
-                <i class="fas fa-shield-alt"></i>
-                <div>
-                    <h4>Secure Platform</h4>
-                    <p>Your data is encrypted and protected</p>
-                </div>
-            </div>
-            <div class="info-item">
-                <i class="fas fa-headset"></i>
-                <div>
-                    <h4>24/7 Support</h4>
-                    <p>We're here to help anytime you need</p>
-                </div>
-            </div>
+
+        <div class="mt-auto relative z-10 pt-10">
+            <p class="text-xs text-slate-500 font-bold uppercase tracking-tighter">Trusted by RS Group Ghana</p>
         </div>
     </div>
-    
-    <!-- Right Panel -->
-    <div class="right-panel">
-        <div class="form-header">
-            <h2>School Registration</h2>
-            <p>Complete the form below to register your school and create an administrator account</p>
-        </div>
-        
-        <!-- Progress Steps -->
-        <div class="progress-steps">
-            <div class="step active" data-step="1">
-                <div class="step-circle">1</div>
-                <span class="step-label">School Info</span>
+
+    <div class="flex-1 p-8 lg:p-16 flex flex-col">
+        <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <h2 class="text-3xl font-extrabold text-brand-dark">Register School</h2>
+                <p class="text-slate-500 text-sm font-medium">Step-by-step school onboarding</p>
             </div>
-            <div class="step" data-step="2">
-                <div class="step-circle">2</div>
-                <span class="step-label">Admin Account</span>
-            </div>
-        </div>
-        
-        <!-- Django Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span>{{ message }}</span>
+
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col items-center">
+                    <div id="step-1-circle" class="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold shadow-lg shadow-brand-500/20 transition-all">1</div>
+                    <span class="text-[10px] font-bold uppercase mt-1 text-brand-500">School</span>
                 </div>
-            {% endfor %}
-        {% endif %}
-        
-        <!-- Non-field Errors -->
-        {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>{{ form.non_field_errors }}</span>
+                <div class="w-8 h-0.5 bg-slate-200"></div>
+                <div class="flex flex-col items-center">
+                    <div id="step-2-circle" class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold transition-all border border-slate-200">2</div>
+                    <span class="text-[10px] font-bold uppercase mt-1 text-slate-400">Admin</span>
+                </div>
             </div>
-        {% endif %}
-        
-        <form method="post" enctype="multipart/form-data" id="registrationForm">
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="registrationForm" class="flex-1 flex flex-col">
             {% csrf_token %}
-            
-            <!-- Step 1: School Information -->
+            {% if form.errors %}
+                <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <strong>Fix the errors below.</strong>
+                </div>
+            {% endif %}
+
             <div class="form-section active" data-section="1">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.school_name.id_for_label }}" class="required">{{ form.school_name.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.school_name.errors %}is-invalid{% endif %}" 
-                               id="{{ form.school_name.id_for_label }}" 
-                               name="{{ form.school_name.name }}" 
-                               value="{{ form.school_name.value|default:'' }}"
-                               placeholder="Enter school name" 
-                               required>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">School Name</label>
+                        <input type="text" name="{{ form.school_name.name }}" value="{{ form.school_name.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="e.g. Nungua Senior High" required>
                         {% if form.school_name.errors %}
-                            <span class="error-message">{{ form.school_name.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.school_name.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.email.id_for_label }}" class="required">{{ form.email.label }}</label>
-                        <input type="email" 
-                               class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
-                               id="{{ form.email.id_for_label }}" 
-                               name="{{ form.email.name }}" 
-                               value="{{ form.email.value|default:'' }}"
-                               placeholder="school@example.com" 
-                               required>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">School Email</label>
+                        <input type="email" name="{{ form.email.name }}" value="{{ form.email.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="admin@school.com" required>
                         {% if form.email.errors %}
-                            <span class="error-message">{{ form.email.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.email.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.phone_number.id_for_label }}" class="required">{{ form.phone_number.label }}</label>
-                        <input type="tel" 
-                               class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}" 
-                               id="{{ form.phone_number.id_for_label }}" 
-                               name="{{ form.phone_number.name }}" 
-                               value="{{ form.phone_number.value|default:'' }}"
-                               placeholder="+233 XXX XXX XXX" 
-                               required>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Phone Number</label>
+                        <input type="tel" name="{{ form.phone_number.name }}" value="{{ form.phone_number.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="+233..." required>
                         {% if form.phone_number.errors %}
-                            <span class="error-message">{{ form.phone_number.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.phone_number.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label for="{{ form.location.id_for_label }}" class="required">{{ form.location.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.location.errors %}is-invalid{% endif %}" 
-                               id="{{ form.location.id_for_label }}" 
-                               name="{{ form.location.name }}" 
-                               value="{{ form.location.value|default:'' }}"
-                               placeholder="Enter full school address" 
-                               required>
-                        {% if form.location.errors %}
-                            <span class="error-message">{{ form.location.errors.0 }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.address.id_for_label }}" class="required">{{ form.address.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.address.errors %}is-invalid{% endif %}" 
-                               id="{{ form.address.id_for_label }}" 
-                               name="{{ form.address.name }}" 
-                               value="{{ form.address.value|default:'' }}"
-                               placeholder="Street address" 
-                               required>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Address/Street</label>
+                        <input type="text" name="{{ form.address.name }}" value="{{ form.address.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="P.O. Box or Street Name" required>
                         {% if form.address.errors %}
-                            <span class="error-message">{{ form.address.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.address.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.postal_code.id_for_label }}" class="required">{{ form.postal_code.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.postal_code.errors %}is-invalid{% endif %}" 
-                               id="{{ form.postal_code.id_for_label }}" 
-                               name="{{ form.postal_code.name }}" 
-                               value="{{ form.postal_code.value|default:'' }}"
-                               placeholder="Postal code" 
-                               required>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Location</label>
+                        <input type="text" name="{{ form.location.name }}" value="{{ form.location.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="e.g. Accra" required>
+                        {% if form.location.errors %}
+                            <p class="text-xs text-red-600">{{ form.location.errors|striptags }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Postal Code</label>
+                        <input type="text" name="{{ form.postal_code.name }}" value="{{ form.postal_code.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="GA-123-4567" required>
                         {% if form.postal_code.errors %}
-                            <span class="error-message">{{ form.postal_code.errors.0 }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.school_logo.id_for_label }}">{{ form.school_logo.label }}</label>
-                        <div class="file-input-wrapper">
-                            <input type="file" 
-                                   id="{{ form.school_logo.id_for_label }}" 
-                                   name="{{ form.school_logo.name }}" 
-                                   accept="image/*" 
-                                   onchange="updateFileName(this)">
-                            <label for="{{ form.school_logo.id_for_label }}" class="file-input-label">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <span>Choose Logo</span>
-                            </label>
-                        </div>
-                        <div class="file-name" id="logo_file_name"></div>
-                        {% if form.school_logo.errors %}
-                            <span class="error-message">{{ form.school_logo.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.postal_code.errors|striptags }}</p>
                         {% endif %}
                     </div>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.created_at.id_for_label }}" class="required">{{ form.created_at.label }}</label>
-                        <input type="date" 
-                               class="form-control {% if form.created_at.errors %}is-invalid{% endif %}" 
-                               id="{{ form.created_at.id_for_label }}" 
-                               name="{{ form.created_at.name }}" 
-                               value="{{ form.created_at.value|default:'' }}"
-                               required>
-                        {% if form.created_at.errors %}
-                            <span class="error-message">{{ form.created_at.errors.0 }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.updated_at.id_for_label }}" class="required">{{ form.updated_at.label }}</label>
-                        <input type="date" 
-                               class="form-control {% if form.updated_at.errors %}is-invalid{% endif %}" 
-                               id="{{ form.updated_at.id_for_label }}" 
-                               name="{{ form.updated_at.name }}" 
-                               value="{{ form.updated_at.value|default:'' }}"
-                               required>
-                        {% if form.updated_at.errors %}
-                            <span class="error-message">{{ form.updated_at.errors.0 }}</span>
-                        {% endif %}
+
+                <div class="space-y-2 mb-8">
+                    <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">School Logo</label>
+                    <div class="relative group">
+                        <input type="file" id="schoolLogo" name="{{ form.school_logo.name }}" class="hidden" onchange="updateFileName(this)">
+                        <label for="schoolLogo" class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-white hover:border-brand-500 transition-all cursor-pointer">
+                            <i class="fas fa-cloud-upload-alt text-2xl text-brand-500 mb-2"></i>
+                            <span class="text-sm font-bold text-slate-600" id="fileNameDisplay">Click to upload brand logo</span>
+                            <span class="text-[10px] text-slate-400 mt-1">PNG, JPG up to 2MB</span>
+                        </label>
                     </div>
                 </div>
             </div>
-            
-            <!-- Step 2: Admin Account -->
+
             <div class="form-section" data-section="2">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.admin_username.id_for_label }}" class="required">{{ form.admin_username.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.admin_username.errors %}is-invalid{% endif %}" 
-                               id="{{ form.admin_username.id_for_label }}" 
-                               name="{{ form.admin_username.name }}" 
-                               value="{{ form.admin_username.value|default:'' }}"
-                               placeholder="Choose username" 
-                               required>
-                        {% if form.admin_username.errors %}
-                            <span class="error-message">{{ form.admin_username.errors.0 }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.admin_full_name.id_for_label }}" class="required">{{ form.admin_full_name.label }}</label>
-                        <input type="text" 
-                               class="form-control {% if form.admin_full_name.errors %}is-invalid{% endif %}" 
-                               id="{{ form.admin_full_name.id_for_label }}" 
-                               name="{{ form.admin_full_name.name }}" 
-                               value="{{ form.admin_full_name.value|default:'' }}"
-                               placeholder="Enter full name" 
-                               required>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Admin Full Name</label>
+                        <input type="text" name="{{ form.admin_full_name.name }}" value="{{ form.admin_full_name.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="Erasmus Bonsu">
                         {% if form.admin_full_name.errors %}
-                            <span class="error-message">{{ form.admin_full_name.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.admin_full_name.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.admin_phone.id_for_label }}" class="required">{{ form.admin_phone.label }}</label>
-                        <input type="tel" 
-                               class="form-control {% if form.admin_phone.errors %}is-invalid{% endif %}" 
-                               id="{{ form.admin_phone.id_for_label }}" 
-                               name="{{ form.admin_phone.name }}" 
-                               value="{{ form.admin_phone.value|default:'' }}"
-                               placeholder="+233 XXX XXX XXX" 
-                               required>
-                        {% if form.admin_phone.errors %}
-                            <span class="error-message">{{ form.admin_phone.errors.0 }}</span>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Admin Username</label>
+                        <input type="text" name="{{ form.admin_username.name }}" value="{{ form.admin_username.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="erasmus_admin">
+                        {% if form.admin_username.errors %}
+                            <p class="text-xs text-red-600">{{ form.admin_username.errors|striptags }}</p>
                         {% endif %}
                     </div>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.admin_email.id_for_label }}" class="required">{{ form.admin_email.label }}</label>
-                        <input type="email" 
-                               class="form-control {% if form.admin_email.errors %}is-invalid{% endif %}" 
-                               id="{{ form.admin_email.id_for_label }}" 
-                               name="{{ form.admin_email.name }}" 
-                               value="{{ form.admin_email.value|default:'' }}"
-                               placeholder="admin@example.com" 
-                               required>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Admin Email</label>
+                        <input type="email" name="{{ form.admin_email.name }}" value="{{ form.admin_email.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="admin@school.com">
                         {% if form.admin_email.errors %}
-                            <span class="error-message">{{ form.admin_email.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.admin_email.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.password.id_for_label }}" class="required">{{ form.password.label }}</label>
-                        <input type="password" 
-                               class="form-control {% if form.password.errors %}is-invalid{% endif %}" 
-                               id="{{ form.password.id_for_label }}" 
-                               name="{{ form.password.name }}" 
-                               placeholder="Create strong password" 
-                               required>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Admin Phone</label>
+                        <input type="tel" name="{{ form.admin_phone.name }}" value="{{ form.admin_phone.value|default:'' }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="+233...">
+                        {% if form.admin_phone.errors %}
+                            <p class="text-xs text-red-600">{{ form.admin_phone.errors|striptags }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Create Password</label>
+                        <input type="password" name="{{ form.password.name }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="••••••••">
                         {% if form.password.errors %}
-                            <span class="error-message">{{ form.password.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.password.errors|striptags }}</p>
                         {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.confirm_password.id_for_label }}" class="required">{{ form.confirm_password.label }}</label>
-                        <input type="password" 
-                               class="form-control {% if form.confirm_password.errors %}is-invalid{% endif %}" 
-                               id="{{ form.confirm_password.id_for_label }}" 
-                               name="{{ form.confirm_password.name }}" 
-                               placeholder="Re-enter password" 
-                               required>
+                    <div class="space-y-2">
+                        <label class="text-xs font-extrabold text-slate-500 uppercase tracking-wider ml-1">Confirm Password</label>
+                        <input type="password" name="{{ form.confirm_password.name }}"
+                               class="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                               placeholder="••••••••">
                         {% if form.confirm_password.errors %}
-                            <span class="error-message">{{ form.confirm_password.errors.0 }}</span>
+                            <p class="text-xs text-red-600">{{ form.confirm_password.errors|striptags }}</p>
                         {% endif %}
                     </div>
+                </div>
+
+                <div class="p-4 bg-brand-50 rounded-2xl border border-brand-100 flex gap-4 items-center">
+                    <div class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center text-brand-500 flex-shrink-0">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <p class="text-xs text-brand-700 leading-tight">By clicking finish, you agree to our <strong>Terms of Service</strong> and will start a 14-day free trial for your school.</p>
                 </div>
             </div>
-            
-            <!-- Navigation Buttons -->
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
-                    <i class="fas fa-arrow-left"></i> Previous
-                </button>
-                <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
-                    Next <i class="fas fa-arrow-right"></i>
-                </button>
-                <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
-                    <i class="fas fa-check"></i> Complete Registration
-                </button>
+
+            <div class="mt-auto pt-8 border-t border-slate-100 flex items-center justify-between">
+                <a href="{% url 'account:login' %}" class="text-sm font-bold text-slate-400 hover:text-brand-500 transition-colors">Back to Login</a>
+
+                <div class="flex gap-4">
+                    <button type="button" id="prevBtn" onclick="changeStep(-1)" class="hidden px-8 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-all">
+                        Previous
+                    </button>
+                    <button type="button" id="nextBtn" onclick="changeStep(1)" class="px-10 py-4 rounded-2xl font-bold text-white bg-brand-500 shadow-xl shadow-brand-500/20 hover:bg-brand-600 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                        Next <i class="fas fa-chevron-right text-xs"></i>
+                    </button>
+                    <button type="submit" id="submitBtn" class="hidden px-10 py-4 rounded-2xl font-bold text-white bg-brand-dark shadow-xl hover:bg-slate-800 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                        Finish Registration <i class="fas fa-check"></i>
+                    </button>
+                </div>
             </div>
         </form>
-        
-        <div class="login-link">
-            Already have an account? <a href="{% url 'account:login' %}">Login here</a>
-        </div>
     </div>
 </div>
 
@@ -714,52 +311,41 @@
 let currentStep = 1;
 
 function updateFileName(input) {
-    const fileName = input.files[0]?.name;
-    const fileNameDisplay = document.getElementById('logo_file_name');
-    if (fileName) {
-        fileNameDisplay.textContent = fileName;
+    const display = document.getElementById('fileNameDisplay');
+    if (input.files && input.files[0]) {
+        display.textContent = input.files[0].name;
+        display.classList.add('text-brand-600');
     }
 }
 
-function changeStep(direction) {
-    const totalSteps = 2;
-    const newStep = currentStep + direction;
-    
-    if (newStep < 1 || newStep > totalSteps) return;
-    
-    // Hide current section
-    document.querySelector(`.form-section[data-section="${currentStep}"]`).classList.remove('active');
-    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
-    
-    // Show new section
-    currentStep = newStep;
-    document.querySelector(`.form-section[data-section="${currentStep}"]`).classList.add('active');
-    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
-    
-    // Update buttons
-    document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'flex';
-    document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'flex';
-    document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'flex' : 'none';
-    
-    // Scroll to top
-    document.querySelector('.right-panel').scrollTop = 0;
-}
+function changeStep(dir) {
+    const sections = document.querySelectorAll('.form-section');
+    const totalSteps = sections.length;
+    const nextStep = currentStep + dir;
 
-// Set today's date as default if no value exists
-document.addEventListener('DOMContentLoaded', function() {
-    const createdAtInput = document.getElementById('{{ form.created_at.id_for_label }}');
-    const updatedAtInput = document.getElementById('{{ form.updated_at.id_for_label }}');
-    
-    if (createdAtInput && !createdAtInput.value) {
-        const today = new Date().toISOString().split('T')[0];
-        createdAtInput.value = today;
+    if (nextStep < 1 || nextStep > totalSteps) return;
+
+    // Transition Section
+    sections[currentStep - 1].classList.remove('active');
+    sections[nextStep - 1].classList.add('active');
+
+    // Update Progress UI
+    const circle2 = document.getElementById('step-2-circle');
+    if (nextStep === 2) {
+        circle2.classList.replace('bg-slate-100', 'bg-brand-500');
+        circle2.classList.replace('text-slate-400', 'text-white');
+    } else {
+        circle2.classList.replace('bg-brand-500', 'bg-slate-100');
+        circle2.classList.replace('text-white', 'text-slate-400');
     }
-    
-    if (updatedAtInput && !updatedAtInput.value) {
-        const today = new Date().toISOString().split('T')[0];
-        updatedAtInput.value = today;
-    }
-});
+
+    currentStep = nextStep;
+
+    // Toggle Buttons
+    document.getElementById('prevBtn').classList.toggle('hidden', currentStep === 1);
+    document.getElementById('nextBtn').classList.toggle('hidden', currentStep === totalSteps);
+    document.getElementById('submitBtn').classList.toggle('hidden', currentStep !== totalSteps);
+}
 </script>
 
 </body>

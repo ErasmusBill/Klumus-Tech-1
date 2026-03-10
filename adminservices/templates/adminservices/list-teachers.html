@@ -1,5 +1,5 @@
 {% extends "adminservices/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Teachers List{% endblock %}
 
@@ -46,9 +46,13 @@
                     <td>{{ teacher.user.id|default:"N/A" }}</td>
                     <td>
                       <h2 class="table-avatar">
-                        {% if teacher.image %}
+                        {% if teacher.user.profile_picture %}
                           <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">
-                            <img class="avatar-img rounded-circle" src="{{ teacher.image.url }}" alt="{{ teacher.user.get_full_name }}">
+                            <img class="avatar-img rounded-circle" src="{{ teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}">
+                          </a>
+                        {% elif teacher.image %}
+                          <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">
+                            <img class="avatar-img rounded-circle" src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}">
                           </a>
                         {% else %}
                           <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">

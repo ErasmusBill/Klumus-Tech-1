@@ -1,341 +1,231 @@
-{% extends 'student/base.html' %}
-{% load static %}
+{% extends "student/base.html" %}
+{% load static media_tags %}
 
-{% block title %}Student Dashboard{% endblock %}
+{% block title %}Dashboard | KiddoCare Student{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
+<div class="page-wrapper px-4">
     <div class="content container-fluid">
 
-        <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header border-0 mb-4">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title">Welcome, {{ request.user.first_name }}!</h3>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Overview</li>
-                    </ul>
+                    <h3 class="page-title text-2xl font-extrabold text-slate-800">Hi, {{ request.user.first_name }}! 👋</h3>
+                    <p class="text-muted font-medium">Here's what's happening with your studies today.</p>
                 </div>
                 <div class="col-auto">
-                    <div class="student-info">
-                        <span class="badge bg-primary">{{ student.get_student_class_display }}</span>
-                    </div>
+                    <span class="badge bg-indigo-100 text-indigo-700 px-3 py-2 rounded-pill font-bold">
+                        <i class="fas fa-graduation-cap me-1"></i> {{ student.get_student_class_display }}
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Stats Cards -->
-        <div class="row">
-            <!-- Enrolled Courses -->
-            <div class="col-xl-3 col-sm-6 col-12 mb-4">
-                <div class="card bg-secondary text-white shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="me-3">
-                            <i class="fas fa-book-reader fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-subtitle mb-1">Enrolled Courses</h6>
-                            <h3 class="mb-0">{{ enrolled_courses_count }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pending Assignments -->
-            <div class="col-xl-3 col-sm-6 col-12 mb-4">
-                <div class="card bg-warning text-white shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="me-3">
-                            <i class="fas fa-tasks fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-subtitle mb-1">Pending Assignments</h6>
-                            <h3 class="mb-0">{{ pending_assignments_count|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Overdue Assignments -->
-            <div class="col-xl-3 col-sm-6 col-12 mb-4">
-                <div class="card bg-danger text-white shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="me-3">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-subtitle mb-1">Overdue</h6>
-                            <h3 class="mb-0">{{ overdue_assignments_count|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submitted Assignments -->
-            <div class="col-xl-3 col-sm-6 col-12 mb-4">
-                <div class="card bg-success text-white shadow-sm h-100">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="me-3">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-subtitle mb-1">Submitted</h6>
-                            <h3 class="mb-0">{{ submitted_assignments_count|default:"0" }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Content Row -->
-        <div class="row">
-            <!-- Student Profile -->
-            <div class="col-xl-4 col-lg-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">My Profile</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        {% if student.student_image %}
-                            <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" 
-                                 class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
-                        {% else %}
-                            <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Profile" 
-                                 class="rounded-circle mb-3" style="width: 120px; height: 120px;">
-                        {% endif %}
-                        <h4 class="mb-1">{{ student.user.get_full_name }}</h4>
-                        <p class="text-muted mb-2">{{ student.student_id }}</p>
-                        <div class="mt-3 text-start">
-                            <p class="mb-1"><strong>Class:</strong> {{ student.get_student_class_display }}</p>
-                            <p class="mb-1"><strong>Admission No:</strong> {{ student.admission_number }}</p>
-                            <p class="mb-1"><strong>School:</strong> {{ student.school.name }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Assignments -->
-            <div class="col-xl-8 col-lg-12 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Recent Assignments</h5>
-                        <a href="{% url 'student:list-all-assignments' %}" class="btn btn-sm btn-primary">View All</a>
-                    </div>
-                    <div class="card-body">
-                        {% if recent_assignments %}
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Assignment</th>
-                                            <th>Subject</th>
-                                            <th>Due Date</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for assignment in recent_assignments %}
-                                        <tr>
-                                            <td>
-                                                <strong>{{ assignment.title }}</strong>
-                                                {% if assignment.description %}
-                                                    <br><small class="text-muted">{{ assignment.description|truncatewords:10 }}</small>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ assignment.subject.name }}</td>
-                                            <td>
-                                                <span class="{% if assignment.is_overdue %}text-danger{% endif %}">
-                                                    {{ assignment.due_date|date:"M d, Y" }}
-                                                </span>
-                                                {% if assignment.is_overdue %}
-                                                    <br><small class="text-danger">Overdue</small>
-                                                {% else %}
-                                                    <br><small class="text-muted">{{ assignment.due_date|timeuntil }} left</small>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% with submission=assignment.submissions.all|first %}
-                                                    {% if submission %}
-                                                        {% if submission.status == 'graded' %}
-                                                            <span class="badge bg-success">Graded</span>
-                                                        {% elif submission.status == 'submitted' %}
-                                                            <span class="badge bg-info">Submitted</span>
-                                                        {% elif submission.status == 'late' %}
-                                                            <span class="badge bg-warning">Late</span>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        {% if assignment.is_overdue %}
-                                                            <span class="badge bg-danger">Not Submitted</span>
-                                                        {% else %}
-                                                            <span class="badge bg-warning">Pending</span>
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    <a href="{% url 'student:assignment-detail' assignment.id %}" 
-                                                       class="btn btn-sm btn-outline-primary" title="View Assignment">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    {% with submission=assignment.submissions.all|first %}
-                                                        {% if not submission and not assignment.is_overdue %}
-                                                            <a href="{% url 'student:submit-assignment' assignment.id %}" 
-                                                               class="btn btn-sm btn-primary" title="Submit Assignment">
-                                                                <i class="fas fa-upload"></i>
-                                                            </a>
-                                                        {% elif submission %}
-                                                            <a href="{% url 'student:submit-assignment' assignment.id %}" 
-                                                               class="btn btn-sm btn-outline-secondary" title="Update Submission">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
-                                                        {% endif %}
-                                                    {% endwith %}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+        <div class="row g-4 mb-4">
+            <div class="col-xl-3 col-sm-6">
+                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden">
+                    <div class="card-body p-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="bg-indigo-50 text-indigo-600 p-3 rounded-2xl">
+                                <i class="fas fa-book-reader fa-lg"></i>
                             </div>
-                        {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-clipboard-check fa-2x text-muted mb-2"></i>
-                                <p class="text-muted mb-0">No assignments available</p>
-                                <a href="{% url 'student:list-all-assignments' %}" class="btn btn-primary mt-2">Check All Assignments</a>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Courses</span>
+                        </div>
+                        <h3 class="text-3xl font-extrabold text-slate-800">{{ enrolled_courses_count }}</h3>
+                        <p class="text-xs text-muted mb-0 font-medium">Currently enrolled</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-warning">
+                    <div class="card-body p-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="bg-orange-50 text-orange-600 p-3 rounded-2xl">
+                                <i class="fas fa-hourglass-half fa-lg text-warning"></i>
                             </div>
-                        {% endif %}
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending</span>
+                        </div>
+                        <h3 class="text-3xl font-extrabold text-slate-800">{{ pending_assignments_count|default:"0" }}</h3>
+                        <p class="text-xs text-muted mb-0 font-medium">Needs submission</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-danger">
+                    <div class="card-body p-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="bg-red-50 text-red-600 p-3 rounded-2xl">
+                                <i class="fas fa-calendar-times fa-lg text-danger"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Overdue</span>
+                        </div>
+                        <h3 class="text-3xl font-extrabold text-slate-800 text-danger">{{ overdue_assignments_count|default:"0" }}</h3>
+                        <p class="text-xs text-danger mb-0 font-bold italic">Urgent action required</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-sm-6">
+                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-success">
+                    <div class="card-body p-4 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="bg-green-50 text-green-600 p-3 rounded-2xl">
+                                <i class="fas fa-check-circle fa-lg text-success"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Completed</span>
+                        </div>
+                        <h3 class="text-3xl font-extrabold text-slate-800 text-success">{{ submitted_assignments_count|default:"0" }}</h3>
+                        <p class="text-xs text-muted mb-0 font-medium">Great job so far!</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Second Row: Upcoming Deadlines & Recent Announcements -->
         <div class="row">
-            <!-- Upcoming Deadlines -->
-            <div class="col-xl-6 col-lg-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Upcoming Deadlines</h5>
-                        <span class="badge bg-warning">{{ upcoming_deadlines_count }} due soon</span>
+            <div class="col-xl-8 mb-4">
+                <div class="card border-0 shadow-sm rounded-[2rem] h-100 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="font-extrabold text-slate-800 mb-0">Active Assignments</h5>
+                        <a href="{% url 'student:list-all-assignments' %}" class="btn btn-sm btn-light font-bold text-xs rounded-pill px-3">View All</a>
                     </div>
-                    <div class="card-body">
-                        {% if upcoming_deadlines %}
-                            <ul class="list-unstyled">
-                                {% for assignment in upcoming_deadlines %}
-                                <li class="mb-3 pb-2 border-bottom">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ assignment.title }}</h6>
-                                            <p class="text-muted small mb-1">
-                                                <i class="fas fa-book me-1"></i> {{ assignment.subject.name }}
-                                            </p>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-warning">
-                                                    <i class="fas fa-clock me-1"></i> Due in {{ assignment.due_date|timeuntil }}
-                                                </small>
-                                                <span class="badge bg-warning text-dark">Due Soon</span>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr class="text-xs font-bold text-slate-400 uppercase">
+                                    <th class="px-4 py-3">Task & Subject</th>
+                                    <th class="py-3 text-center">Deadline</th>
+                                    <th class="py-3 text-center">Status</th>
+                                    <th class="px-4 py-3 text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in recent_assignments %}
+                                <tr>
+                                    <td class="px-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-indigo-50 text-indigo-600 p-2 rounded-lg me-3">
+                                                <i class="fas fa-file-alt"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800">{{ assignment.title }}</div>
+                                                <div class="text-xs text-muted">{{ assignment.subject.name }}</div>
                                             </div>
                                         </div>
-                                        <a href="{% url 'student:submit-assignment' assignment.id %}" 
-                                           class="btn btn-sm btn-primary ms-2">Submit</a>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-calendar-check fa-2x text-muted mb-2"></i>
-                                <p class="text-muted mb-0">No upcoming deadlines</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Announcements -->
-            <div class="col-xl-6 col-lg-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Recent Announcements</h5>
-                        <span class="badge bg-info">{{ announcements.count }} new</span>
-                    </div>
-                    <div class="card-body">
-                        {% if announcements %}
-                            <ul class="list-unstyled">
-                                {% for announcement in announcements %}
-                                <li class="mb-3 pb-2 border-bottom">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ announcement.title }}</h6>
-                                            <p class="text-muted small mb-1">{{ announcement.content|truncatewords:20 }}</p>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i> {{ announcement.created_at|timesince }} ago
-                                            </small>
-                                        </div>
-                                        <span class="badge 
-                                            {% if announcement.priority == 'urgent' %}bg-danger
-                                            {% elif announcement.priority == 'high' %}bg-warning text-dark
-                                            {% else %}bg-info
-                                            {% endif %} ms-2">
-                                            {{ announcement.get_priority_display }}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-sm font-bold {% if assignment.is_overdue %}text-danger{% else %}text-slate-700{% endif %}">
+                                            {{ assignment.due_date|date:"M d" }}
                                         </span>
-                                    </div>
-                                </li>
+                                        <div class="text-[10px] text-muted">{{ assignment.due_date|timeuntil }} left</div>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if assignment.is_overdue %}
+                                            <span class="badge bg-soft-danger text-danger rounded-pill">Overdue</span>
+                                        {% else %}
+                                            <span class="badge bg-soft-warning text-warning rounded-pill px-3">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 text-end">
+                                        <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-bold shadow-sm">
+                                            Submit
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">All caught up! No assignments found.</td>
+                                </tr>
                                 {% endfor %}
-                            </ul>
-                        {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-bullhorn fa-2x text-muted mb-2"></i>
-                                <p class="text-muted mb-0">No announcements available</p>
-                            </div>
-                        {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Quick Actions -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Quick Actions</h5>
+            <div class="col-xl-4 mb-4">
+                <div class="card border-0 shadow-sm rounded-[2rem] mb-4 text-center p-4">
+                    <div class="mx-auto mb-3 position-relative" style="width: 100px;">
+                        {% if student.student_image %}
+                            <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
+                        {% elif student.user.profile_picture %}
+                            <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
+                        {% else %}
+                            <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
+                        {% endif %}
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2 shadow-sm" title="Online"></span>
                     </div>
-                    <div class="card-body">
-                        <div class="row text-center">
-                            <div class="col-md-3 col-6 mb-3">
-                                <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-primary btn-lg w-100 h-100 py-3">
-                                    <i class="fas fa-tasks fa-2x mb-2"></i><br>
-                                    View Assignments
-                                </a>
+                    <h5 class="font-extrabold text-slate-800 mb-1">{{ student.user.get_full_name }}</h5>
+                    <p class="text-xs font-bold text-indigo-600 uppercase mb-4">{{ student.student_id }}</p>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="bg-light p-3 rounded-2xl">
+                                <div class="text-xs font-bold text-slate-400 mb-1">Adm. No</div>
+                                <div class="text-sm font-extrabold text-slate-800">{{ student.admission_number }}</div>
                             </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <a href="{% url 'student:enrolled-courses' %}" class="btn btn-outline-success btn-lg w-100 h-100 py-3">
-                                    <i class="fas fa-book-reader fa-2x mb-2"></i><br>
-                                    My Courses
-                                </a>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <a href="{% url 'student:view-result' request.user.student_profile.id %}" class="btn btn-outline-info btn-lg w-100 h-100 py-3">
-                                    <i class="fas fa-chart-line fa-2x mb-2"></i><br>
-                                    View Grades
-                                </a>
-                            </div>
-                            <div class="col-md-3 col-6 mb-3">
-                                <a href="{% url 'student:fees-list' request.user.student_profile.id %}" class="btn btn-outline-warning btn-lg w-100 h-100 py-3">
-                                    <i class="fas fa-money-bill-wave fa-2x mb-2"></i><br>
-                                    Fee Payments
-                                </a>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light p-3 rounded-2xl">
+                                <div class="text-xs font-bold text-slate-400 mb-1">Rank</div>
+                                <div class="text-sm font-extrabold text-slate-800">#--</div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="card border-0 shadow-sm rounded-[2rem] overflow-hidden">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between">
+                        <h6 class="font-extrabold text-slate-800 mb-0">Latest Updates</h6>
+                        <span class="badge bg-indigo-50 text-indigo-600 rounded-pill px-2">New</span>
+                    </div>
+                    <div class="card-body p-4">
+                        {% for announcement in announcements|slice:":3" %}
+                        <div class="d-flex gap-3 mb-4 last:mb-0">
+                            <div class="flex-shrink-0 text-indigo-500">
+                                <i class="fas fa-bullhorn"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-sm font-bold text-slate-800 mb-1">{{ announcement.title }}</h6>
+                                <p class="text-xs text-muted mb-1 line-clamp-2">{{ announcement.content|truncatewords:10 }}</p>
+                                <span class="text-[10px] text-indigo-400 font-bold">{{ announcement.created_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-xs text-center text-muted">No recent school news.</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
 
+        <div class="card border-0 rounded-[1.5rem] shadow-sm mb-5 bg-indigo-600 text-white overflow-hidden">
+            <div class="card-body p-4 position-relative">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4 class="font-extrabold mb-1">Need something else?</h4>
+                        <p class="text-indigo-100 mb-0 text-sm">Quickly access your grades or financial records.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end">
+                        <a href="{% url 'student:view-result' request.user.student_profile.id %}" class="btn btn-white text-indigo-600 rounded-pill font-bold px-4 shadow-sm">My Grades</a>
+                        <a href="{% url 'student:fees-list' request.user.student_profile.id %}" class="btn btn-indigo-400 text-white rounded-pill font-bold px-4 border border-indigo-400 shadow-sm">Fee Portal</a>
+                    </div>
+                </div>
+                <div class="position-absolute rounded-circle bg-white opacity-10" style="width: 200px; height: 200px; right: -50px; top: -100px;"></div>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+    /* Status Badge Styling */
+    .bg-soft-danger { background-color: #fee2e2; }
+    .bg-soft-warning { background-color: #fef3c7; }
+    .bg-soft-success { background-color: #dcfce7; }
+
+    .last\:mb-0:last-child { margin-bottom: 0 !important; }
+    .btn-white { background: white; color: #4f46e5; }
+    .btn-white:hover { background: #f8fafc; }
+</style>
 {% endblock %}

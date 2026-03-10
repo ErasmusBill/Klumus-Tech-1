@@ -247,7 +247,7 @@ class Package(models.Model):
         verbose_name_plural = "Packages"
 
     def __str__(self):
-        return f"{self.get_name_display()} Package - ${self.price}"
+        return f"{self.get_name_display()} Package - ₵{self.price}"
 
 
 class Subscription(models.Model):
@@ -820,6 +820,14 @@ class Fees(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
+        if self.status == 'paid':
+            self.paid = True
+            if not self.payment_date:
+                self.payment_date = timezone.now().date()
+        else:
+            self.paid = False
+            if self.payment_date:
+                self.payment_date = None
         if self.paid and not self.receipt_number:
             self.receipt_number = f"RCP-{get_random_string(8).upper()}"
         super().save(*args, **kwargs)
@@ -834,7 +842,7 @@ class Fees(models.Model):
 
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
-        return f"{self.student.user.get_full_name()} - {self.get_fee_type_display()} - ${self.amount} ({status})"
+        return f"{self.student.user.get_full_name()} - {self.get_fee_type_display()} - ₵{self.amount} ({status})"
 
 
 class Attendance(models.Model):

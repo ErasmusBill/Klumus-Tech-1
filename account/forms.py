@@ -15,8 +15,6 @@ class SchoolRegistrationForm(forms.Form):
     address = forms.CharField(max_length=20, label="address")
     postal_code = forms.CharField(max_length=20,label="Postal code")
     email = forms.EmailField()
-    created_at = forms.DateField()
-    updated_at = forms.DateField()
 
 
     admin_username = forms.CharField(max_length=150, label="Admin Username")

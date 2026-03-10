@@ -2,139 +2,175 @@
 {% load static %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
-    <div class="page-header">
-      <div class="row">
-        <div class="col-sm-12">
-          <h3 class="page-title">Welcome {{ request.user.first_name }}!</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item active">Admin-Dashboard</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    {% if search_query %}
-    <div class="search-results">
-      <h4>Search Results for "{{ search_query }}" ({{ students.count }} found)</h4>
-      {% if students %}
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Student ID</th>
-            <th>Name</th>
-            <th>Class</th>
-            <th>Admission Number</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for student in students %}
-          <tr>
-            <td>{{ student.student_id }}</td>
-            <td>{{ student.user.get_full_name }}</td>
-            <td>{{ student.get_student_class_display }}</td>
-            <td>{{ student.admission_number }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="text-muted">No students found matching your search.</p>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Dashboard Cards -->
-    <div class="row">
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card bg-one w-100">
-          <div class="card-body">
-            <div class="db-widgets d-flex justify-content-between align-items-center">
-              <div class="db-icon">
-                <i class="fas fa-user-graduate"></i>
-              </div>
-              <div class="db-info">
-                <h1>{{ students_count }}</h1>
-                <h6>Students</h6>
-              </div>
+<div class="page-wrapper px-4">
+    <div class="content container-fluid">
+        <div class="page-header border-0 mb-6">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title text-2xl font-extrabold text-slate-800">Hello, {{ request.user.first_name }}! 👋</h3>
+                    <p class="text-slate-500 font-medium">Here's what's happening in your school today.</p>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'adminservices:add-student' %}" class="btn btn-primary px-4 py-2 rounded-xl font-bold shadow-lg shadow-indigo-200">
+                        <i class="fas fa-plus me-2 text-xs"></i> New Student
+                    </a>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card bg-two w-100">
-          <div class="card-body">
-            <div class="db-widgets d-flex justify-content-between align-items-center">
-              <div class="db-icon">
-                <i class="fas fa-crown"></i>
-              </div>
-              <div class="db-info">
-                <h3>{{ teachers_count }}</h3>
-                <h6>Teachers</h6>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card bg-three w-100">
-          <div class="card-body">
-            <div class="db-widgets d-flex justify-content-between align-items-center">
-              <div class="db-icon">
-                <i class="fas fa-building"></i>
-              </div>
-              <div class="db-info">
-                <h3>{{ departments_count }}</h3>
-                <h6>Department</h6>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Step 7: Predict Student Performance -->
-    <div class="row mt-4">
-      <div class="col-md-12">
-        <div class="card shadow-sm">
-          <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">AI Student Performance Predictor</h5>
-          </div>
-          <div class="card-body text-center">
-            <p class="text-muted">
-              Click the button below to analyze student performance and predict grades using AI.
-            </p>
-            <button class="btn btn-success btn-lg" onclick="predictPerformance(1)">
-              <i class="fas fa-robot me-2"></i> Predict Performance
-            </button>
-            <div id="result" class="mt-4"></div>
-          </div>
+        {% if search_query %}
+        <div class="bg-white rounded-[2rem] shadow-sm border p-6 mb-8">
+            <h4 class="text-lg font-bold mb-4">Results for "{{ search_query }}" <span class="badge bg-indigo-50 text-indigo-600 px-3 py-2 ms-2 rounded-lg">{{ students.count }} Found</span></h4>
+            <div class="table-responsive">
+                <table class="table custom-table">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="border-0 rounded-start text-xs font-bold uppercase tracking-wider text-slate-400">Student ID</th>
+                            <th class="border-0 text-xs font-bold uppercase tracking-wider text-slate-400">Name</th>
+                            <th class="border-0 text-xs font-bold uppercase tracking-wider text-slate-400">Class</th>
+                            <th class="border-0 rounded-end text-xs font-bold uppercase tracking-wider text-slate-400">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td class="py-3 font-bold text-slate-700">#{{ student.student_id }}</td>
+                            <td class="py-3 font-bold">{{ student.user.get_full_name }}</td>
+                            <td class="py-3"><span class="badge bg-slate-100 text-slate-600">{{ student.get_student_class_display }}</span></td>
+                            <td class="py-3">
+                                <button onclick="predictPerformance({{ student.id }})" class="btn btn-sm btn-outline-primary rounded-lg font-bold">Predict AI</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-xl-4 col-sm-6">
+                <div class="card border-0 rounded-[2rem] shadow-sm hover-translate transition-all p-4">
+                    <div class="d-flex align-items-center gap-4">
+                        <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl d-flex align-items-center justify-content-center text-2xl">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-slate-800 mb-0">{{ students_count }}</h2>
+                            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-0">Total Students</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-sm-6">
+                <div class="card border-0 rounded-[2rem] shadow-sm hover-translate transition-all p-4">
+                    <div class="d-flex align-items-center gap-4">
+                        <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl d-flex align-items-center justify-content-center text-2xl">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-slate-800 mb-0">{{ teachers_count }}</h2>
+                            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-0">Teachers</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4 col-sm-12">
+                <div class="card border-0 rounded-[2rem] shadow-sm hover-translate transition-all p-4">
+                    <div class="d-flex align-items-center gap-4">
+                        <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl d-flex align-items-center justify-content-center text-2xl">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-slate-800 mb-0">{{ departments_count }}</h2>
+                            <p class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-0">Departments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-8">
+            <div class="col-md-12">
+                <div class="card border-0 rounded-[2.5rem] shadow-2xl bg-brand-dark overflow-hidden position-relative">
+                    <div class="position-absolute top-0 end-0 p-5 opacity-10">
+                        <i class="fas fa-robot text-9xl text-white"></i>
+                    </div>
+
+                    <div class="card-body p-8 lg:p-12 text-center text-white z-1">
+                        <div class="badge bg-indigo-500 text-white px-4 py-2 rounded-full mb-6 font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30">
+                            Powered by KiddoAI
+                        </div>
+                        <h2 class="text-4xl font-extrabold mb-4">Student Performance Insights</h2>
+                        <p class="text-slate-400 text-lg mb-8 max-w-2xl mx-auto font-medium">
+                            Our neural network analyzes attendance, participation, and grade history to predict end-of-term results with high accuracy.
+                        </p>
+
+                        <div class="max-w-md mx-auto">
+                            <button id="mainPredictBtn" class="btn btn-light btn-lg px-8 py-4 rounded-2xl font-extrabold text-brand-dark shadow-xl hover:-translate-y-1 transition-all"
+                                    onclick="predictPerformance(1)">
+                                <i class="fas fa-wand-magic-sparkles me-2"></i> Run AI Analysis
+                            </button>
+                        </div>
+
+                        <div id="result" class="mt-8 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
 function predictPerformance(studentId) {
-  fetch(`/ai/predict/${studentId}/`)
+    const resultDiv = document.getElementById('result');
+    const btn = document.getElementById('mainPredictBtn');
+
+    // Loading State
+    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin me-2"></i> Analyzing Data...`;
+    btn.disabled = true;
+
+    fetch(`/ai/predict/${studentId}/`)
     .then(response => response.json())
     .then(data => {
-      document.getElementById('result').innerHTML = `
-        <div class="alert alert-info mt-3">
-          <h4>${data.student}</h4>
-          <p><strong>Predicted Grade:</strong> ${data.predicted_grade}</p>
-          <p><strong>Risk Level:</strong> ${data.risk_level}</p>
-          <p>${data.message}</p>
-        </div>
-      `;
+        btn.innerHTML = `<i class="fas fa-wand-magic-sparkles me-2"></i> Run AI Analysis`;
+        btn.disabled = false;
+
+        resultDiv.innerHTML = `
+            <div class="glass-card bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 animate-fade-in text-left max-w-xl mx-auto">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center text-xl font-bold">${data.student[0]}</div>
+                    <div>
+                        <h4 class="font-bold mb-0">${data.student}</h4>
+                        <span class="text-xs uppercase font-extrabold tracking-widest text-indigo-400">Prediction Result</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Grade</p>
+                        <h3 class="text-2xl font-extrabold text-emerald-400 mb-0">${data.predicted_grade}</h3>
+                    </div>
+                    <div class="bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Risk Status</p>
+                        <h3 class="text-2xl font-extrabold text-amber-400 mb-0">${data.risk_level}</h3>
+                    </div>
+                </div>
+                <p class="mt-4 text-sm text-slate-300 font-medium italic">"${data.message}"</p>
+            </div>
+        `;
     })
     .catch(err => {
-      document.getElementById('result').innerHTML = `
-        <div class="alert alert-danger mt-3">Error fetching prediction.</div>
-      `;
+        btn.innerHTML = `Retry Analysis`;
+        btn.disabled = false;
+        resultDiv.innerHTML = `<div class="alert alert-danger rounded-2xl border-0 font-bold">Analysis failed. Please check student records.</div>`;
     });
 }
 </script>
+
+<style>
+    .hover-translate:hover { transform: translateY(-5px); }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .bg-brand-dark { background: #0f172a; }
+</style>
 {% endblock %}

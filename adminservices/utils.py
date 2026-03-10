@@ -1,4 +1,4 @@
-# adminservices/utils.py
+
 import logging
 import asyncio
 from typing import List, Dict, Any, Optional, Tuple
@@ -28,6 +28,12 @@ except ImportError:
     logging.warning("Twilio not available. Install with: pip install twilio")
 
 logger = logging.getLogger(__name__)
+
+# ===== PASSWORD GENERATION =====
+
+def generate_default_password() -> str:
+    """Default password for new teacher/student registrations."""
+    return "Abc@12345"
 
 # ===== CONFIGURATION CHECK =====
 
@@ -302,13 +308,62 @@ async def send_email_async(to_emails: List[str], subject: str, message: str, htm
 
 def send_email_sync(to_emails: List[str], subject: str, message: str, html_message: Optional[str] = None) -> Dict[str, Any]:
     """
-    Synchronous wrapper for email sending
+    Synchronous email sending (no asyncio).
     """
+    result = {'success': False, 'message_id': None, 'error': None}
+
+    if not to_emails:
+        result['error'] = "No recipient emails provided"
+        return result
+
     try:
-        return asyncio.run(send_email_async(to_emails, subject, message, html_message))
+        to_emails = list(set([email.strip() for email in to_emails if email.strip()]))
+
+        if SENDGRID_AVAILABLE and getattr(settings, "SENDGRID_API_KEY", None):
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)  # type: ignore
+            from_email = Email(settings.DEFAULT_FROM_EMAIL)  # type: ignore
+            to_emails_list = [To(email) for email in to_emails]  # type: ignore
+            content = Content("text/html", html_message) if html_message else Content("text/plain", message)  # type: ignore
+
+            successful_sends = 0
+            errors = []
+            for to_email in to_emails_list:
+                try:
+                    mail = Mail(from_email, to_email, subject, content)  # type: ignore
+                    if html_message:
+                        mail.add_content(Content("text/plain", message))  # type: ignore
+                    response = sg.send(mail)  # type: ignore
+                    if response.status_code in [200, 202]:
+                        successful_sends += 1
+                        result['message_id'] = response.headers.get('X-Message-Id', 'Unknown')
+                    else:
+                        errors.append(f"SendGrid API error: {response.status_code} - {response.body}")
+                except Exception as e:
+                    errors.append(f"Failed to send email to {to_email.email}: {str(e)}")
+
+            result['success'] = successful_sends > 0
+            if errors:
+                result['error'] = "; ".join(errors)
+            return result
+
+        # Fallback to Django email backend (console in dev)
+        send_mail(
+            subject=subject,
+            message=message,
+            html_message=html_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=to_emails,
+            fail_silently=False,
+        )
+        result['success'] = True
+        result['message_id'] = "django-fallback-sent"
+        return result
+
     except Exception as e:
-        logger.error(f"Error in synchronous email send: {str(e)}")
-        return {'success': False, 'error': str(e)}
+        error_msg = f"Failed to send email: {str(e)}"
+        result['error'] = error_msg
+        logger.error(error_msg, exc_info=True)
+        return result
 
 # ===== SMS FUNCTIONS =====
 
@@ -426,13 +481,57 @@ async def send_sms_async(to_phones: List[str], message: str) -> Dict[str, Any]:
 
 def send_sms_sync(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
-    Synchronous wrapper for SMS sending
+    Synchronous SMS sending (no asyncio).
     """
+    result = {'success': False, 'message_sid': None, 'error': None}
+
+    if not to_phones:
+        result['error'] = "No recipient phone numbers provided"
+        return result
+
+    if not TWILIO_AVAILABLE:
+        result['error'] = "Twilio not available"
+        return result
+
+    if not all([getattr(settings, "TWILIO_ACCOUNT_SID", None),
+                getattr(settings, "TWILIO_AUTH_TOKEN", None),
+                getattr(settings, "TWILIO_PHONE_NUMBER", None)]):
+        result['error'] = "Twilio credentials not set in environment variables"
+        return result
+
     try:
-        return asyncio.run(send_sms_async(to_phones, message))
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)  # type: ignore
+        successful_sends = 0
+        errors = []
+
+        for phone in to_phones:
+            try:
+                formatted_phone = phone
+                if not phone.startswith('+'):
+                    if phone.startswith('0'):
+                        formatted_phone = f"+233{phone[1:]}"
+                    else:
+                        formatted_phone = f"+233{phone}"
+                message_obj = client.messages.create(
+                    body=message,
+                    from_=settings.TWILIO_PHONE_NUMBER,  # type: ignore
+                    to=formatted_phone
+                )
+                result['message_sid'] = message_obj.sid
+                successful_sends += 1
+            except Exception as e:
+                errors.append(str(e))
+
+        result['success'] = successful_sends > 0
+        if errors:
+            result['error'] = "; ".join(errors)
+        return result
+
     except Exception as e:
-        logger.error(f"Error in synchronous SMS send: {str(e)}")
-        return {'success': False, 'error': str(e)}
+        error_msg = f"Failed to send SMS: {str(e)}"
+        result['error'] = error_msg
+        logger.error(error_msg, exc_info=True)
+        return result
 
 # ===== NOTIFICATION MANAGEMENT =====
 
@@ -441,21 +540,32 @@ def create_in_app_notification(
     title: str, 
     message: str, 
     notification_type: str = "info",
-    related_object=None
+    related_object=None,
+    link: str = ""
 ) -> bool:
     """
     Create an in-app notification for a user
     """
     try:
         from account.models import Notification
-        notification = Notification(
-            user=user,
-            title=title,
-            message=message,
-            notification_type=notification_type,
-            related_object=related_object,
-        )
+        field_names = {f.name for f in Notification._meta.fields}
+        notification_kwargs = {
+            "user": user,
+            "title": title,
+            "message": message,
+            "notification_type": notification_type,
+        }
+        if "related_object" in field_names:
+            notification_kwargs["related_object"] = related_object
+        if "link" in field_names:
+            notification_kwargs["link"] = link or ""
+        notification = Notification(**notification_kwargs)
         notification.save()
+        logger.info(
+            "In-app notification created for %s: %s",
+            getattr(user, "username", user),
+            title,
+        )
         return True
     except Exception as e:
         logger.error(f"Failed to create in-app notification for {user}: {str(e)}")
@@ -466,7 +576,8 @@ def create_bulk_in_app_notifications(
     title: str, 
     message: str, 
     notification_type: str = "info",
-    related_object=None
+    related_object=None,
+    link: str = ""
 ) -> int:
     """
     Create in-app notifications for multiple users
@@ -475,15 +586,20 @@ def create_bulk_in_app_notifications(
     created_count = 0
     try:
         from account.models import Notification
+        field_names = {f.name for f in Notification._meta.fields}
         notifications = []
         for user in users:
-            notifications.append(Notification(
-                user=user,
-                title=title,
-                message=message,
-                notification_type=notification_type,
-                related_object=related_object,
-            ))
+            notification_kwargs = {
+                "user": user,
+                "title": title,
+                "message": message,
+                "notification_type": notification_type,
+            }
+            if "related_object" in field_names:
+                notification_kwargs["related_object"] = related_object
+            if "link" in field_names:
+                notification_kwargs["link"] = link or ""
+            notifications.append(Notification(**notification_kwargs))
         
         # Bulk create for efficiency
         Notification.objects.bulk_create(notifications)
@@ -506,7 +622,8 @@ async def send_notification_async(
     html_message: Optional[str] = None,
     create_in_app: bool = True,
     notification_type: str = "info",
-    related_object=None
+    related_object=None,
+    link: str = ""
 ) -> Dict[str, Any]:
     """
     Main notification function that handles email, SMS, and in-app notifications asynchronously
@@ -529,31 +646,43 @@ async def send_notification_async(
     }
     
     try:
-        # Send emails asynchronously
+        # Queue emails via Celery
         if emails and subject and message:
-            email_result = await send_email_async(emails, subject, message, html_message)
-            results['email_sent'] = email_result['success']
-            results['emails_queued'] = len(emails) if email_result['success'] else 0
-            results['email_error'] = email_result.get('error')
+            try:
+                from celery import current_app
+                current_app.send_task(
+                    "adminservices.tasks.send_email_task",
+                    args=[emails, subject, message, html_message],
+                )
+                results['email_sent'] = True
+                results['emails_queued'] = len(emails)
+            except Exception as e:
+                results['email_error'] = str(e)
         
-        # Send SMS asynchronously
+        # Queue SMS via Celery
         if phones and message:
-            sms_result = await send_sms_async(phones, message)
-            results['sms_sent'] = sms_result['success']
-            results['sms_sent_count'] = len(phones) if sms_result['success'] else 0
-            results['sms_error'] = sms_result.get('error')
+            try:
+                from celery import current_app
+                current_app.send_task(
+                    "adminservices.tasks.send_sms_task",
+                    args=[phones, message],
+                )
+                results['sms_sent'] = True
+                results['sms_sent_count'] = len(phones)
+            except Exception as e:
+                results['sms_error'] = str(e)
         
         # Create in-app notifications
         if create_in_app and users:
             if hasattr(users, '__iter__') and not isinstance(users, str):
                 # Multiple users
                 results['in_app_created'] = await sync_to_async(create_bulk_in_app_notifications)(
-                    users, subject or "Notification", message, notification_type, related_object
+                    users, subject or "Notification", message, notification_type, related_object, link
                 )
             else:
                 # Single user
                 success = await sync_to_async(create_in_app_notification)(
-                    users, subject or "Notification", message, notification_type, related_object
+                    users, subject or "Notification", message, notification_type, related_object, link
                 )
                 results['in_app_created'] = 1 if success else 0
         
@@ -561,8 +690,8 @@ async def send_notification_async(
         
         # Log results
         logger.info(
-            f"Notification results - Emails: {results['emails_queued']}, "
-            f"SMS: {results['sms_sent_count']}, In-app: {results['in_app_created']}"
+            f"Notification results - Emails queued: {results['emails_queued']}, "
+            f"SMS queued: {results['sms_sent_count']}, In-app: {results['in_app_created']}"
         )
         
     except Exception as e:
@@ -580,26 +709,71 @@ def send_notification(
     html_message: Optional[str] = None,
     create_in_app: bool = True,
     notification_type: str = "info",
-    related_object=None
+    related_object=None,
+    link: str = ""
 ) -> Dict[str, Any]:
     """
-    Synchronous wrapper for the main notification function
+    Synchronous notification function (no asyncio).
     """
+    emails = emails or []
+    phones = phones or []
+    users = users or []
+
+    results = {
+        'email_sent': False,
+        'sms_sent': False,
+        'in_app_created': 0,
+        'email_error': None,
+        'sms_error': None,
+        'in_app_error': None,
+        'notifications_created': 0,
+        'emails_queued': 0,
+        'sms_sent_count': 0
+    }
+
     try:
-        return asyncio.run(send_notification_async(
-            emails=emails,
-            phones=phones,
-            users=users,
-            subject=subject,
-            message=message,
-            html_message=html_message,
-            create_in_app=create_in_app,
-            notification_type=notification_type,
-            related_object=related_object
-        ))
+        if emails and subject and message:
+            try:
+                from celery import current_app
+                current_app.send_task(
+                    "adminservices.tasks.send_email_task",
+                    args=[emails, subject, message, html_message],
+                )
+                results['email_sent'] = True
+                results['emails_queued'] = len(emails)
+            except Exception as e:
+                results['email_error'] = str(e)
+
+        if phones and message:
+            try:
+                from celery import current_app
+                current_app.send_task(
+                    "adminservices.tasks.send_sms_task",
+                    args=[phones, message],
+                )
+                results['sms_sent'] = True
+                results['sms_sent_count'] = len(phones)
+            except Exception as e:
+                results['sms_error'] = str(e)
+
+        if create_in_app and users:
+            if hasattr(users, '__iter__') and not isinstance(users, str):
+                results['in_app_created'] = create_bulk_in_app_notifications(
+                    users, subject or "Notification", message, notification_type, related_object, link
+                )
+            else:
+                success = create_in_app_notification(
+                    users, subject or "Notification", message, notification_type, related_object, link
+                )
+                results['in_app_created'] = 1 if success else 0
+
+        results['notifications_created'] = results['in_app_created']
+
     except Exception as e:
         logger.error(f"Error in synchronous notification send: {str(e)}")
-        return {'general_error': str(e)}
+        results['general_error'] = str(e)
+
+    return results
 
 # ===== ANNOUNCEMENT SPECIFIC FUNCTIONS =====
 
@@ -640,10 +814,18 @@ async def send_announcement_via_email_and_sms_async(announcement) -> Dict[str, A
             'current_year': timezone.now().year
         })
         
+        # Build in-app recipient users for the school (admins, teachers, students)
+        users = CustomUser.objects.filter(  # type: ignore
+            Q(managed_school=school) |
+            Q(teacher_profile__school=school, teacher_profile__is_active=True) |
+            Q(student_profile__school=school, student_profile__is_active=True)
+        ).distinct()
+
         # Send notifications
         notification_results = await send_notification_async(
             emails=all_emails,
             phones=all_phones,
+            users=users,
             subject=subject,
             message=message_content,
             html_message=html_message,
@@ -660,12 +842,86 @@ async def send_announcement_via_email_and_sms_async(announcement) -> Dict[str, A
             results['errors'].append(f"Email: {notification_results['email_error']}")
         if notification_results.get('sms_error'):
             results['errors'].append(f"SMS: {notification_results['sms_error']}")
+        if results['errors']:
+            logger.warning(
+                "Announcement notification errors (all): %s",
+                "; ".join(results['errors'])
+            )
             
     except Exception as e:
         error_msg = f"Failed to send announcement: {str(e)}"
         results['errors'].append(error_msg)
         logger.error(error_msg, exc_info=True)
     
+    return results
+
+
+def send_announcement_via_email_and_sms(announcement) -> Dict[str, Any]:
+    """
+    Send announcement to all school members via email, SMS, and in-app (sync).
+    """
+    school = announcement.school
+    results = {
+        'notifications_created': 0,
+        'emails_queued': 0,
+        'sms_sent': 0,
+        'errors': []
+    }
+
+    try:
+        # Get all contacts for the school
+        teacher_emails, teacher_phones = get_all_teachers_contacts(school)
+        student_emails, student_phones = get_all_students_parents_contacts(school)
+
+        all_emails = list(set(teacher_emails + student_emails))
+        all_phones = list(set(teacher_phones + student_phones))
+
+        subject = f"Announcement: {announcement.title}"
+        message_content = f"{announcement.content}\n\n- {school.name} Administration"
+
+        from django.utils import timezone
+        html_message = render_to_string('emails/announcement.html', {
+            'announcement': announcement,
+            'school': school,
+            'target_audience': 'all',
+            'current_year': timezone.now().year
+        })
+
+        users = CustomUser.objects.filter(  # type: ignore
+            Q(managed_school=school) |
+            Q(teacher_profile__school=school, teacher_profile__is_active=True) |
+            Q(student_profile__school=school, student_profile__is_active=True)
+        ).distinct()
+
+        notification_results = send_notification(
+            emails=all_emails,
+            phones=all_phones,
+            users=users,
+            subject=subject,
+            message=message_content,
+            html_message=html_message,
+            create_in_app=True,
+            notification_type="announcement",
+            related_object=announcement
+        )
+
+        results.update(notification_results)
+
+        if notification_results.get('email_error'):
+            results['errors'].append(f"Email: {notification_results['email_error']}")
+        if notification_results.get('sms_error'):
+            results['errors'].append(f"SMS: {notification_results['sms_error']}")
+        if results['errors']:
+            logger.warning(
+                "Announcement notification errors (all): %s",
+                "; ".join(results['errors'])
+            )
+
+    except Exception as e:
+        error_msg = f"Failed to send announcement: {str(e)}"
+        results['errors'].append(error_msg)
+        logger.error(error_msg, exc_info=True)
+
     return results
 
 # ===== SIMPLIFIED SMS FUNCTION (for direct use) =====
@@ -766,6 +1022,12 @@ def send_targeted_announcement(announcement, target_audience: str) -> Dict[str, 
             results['errors'].append(f"Email: {notification_results['email_error']}")
         if notification_results.get('sms_error'):
             results['errors'].append(f"SMS: {notification_results['sms_error']}")
+        if results['errors']:
+            logger.warning(
+                "Announcement notification errors (%s): %s",
+                target_audience,
+                "; ".join(results['errors'])
+            )
             
     except Exception as e:
         error_msg = f"Failed to send targeted announcement to {target_audience}: {str(e)}"

@@ -1,3 +1,4 @@
+{% load static media_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -222,7 +223,7 @@
         <!-- Header -->
         <div class="header">
             {% if school.logo %}
-                <img src="{{ school.logo.url }}" alt="{{ school.name }} Logo" class="school-logo">
+                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" class="school-logo">
             {% endif %}
             <div class="school-name">{{ school.name }}</div>
             <div class="school-tagline">Official Announcement</div>

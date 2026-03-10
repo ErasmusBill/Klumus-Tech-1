@@ -1,5 +1,5 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}My Students{% endblock %}
 
@@ -158,7 +158,9 @@
                         <h2 class="table-avatar">
                           <a href="#" class="avatar avatar-sm mr-2">
                             {% if student.user.profile_picture %}
-                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="Profile Image">
+                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
+                            {% elif student.student_image %}
+                              <img class="avatar-img rounded-circle" src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
                             {% else %}
                               {% comment %}
                                 Fixed: Properly close the URL and encode only the name

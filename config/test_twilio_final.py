@@ -1,13 +1,19 @@
 # test_twilio_final.py
 import os
+import unittest
 from twilio.rest import Client
 from dotenv import load_dotenv
 
 load_dotenv()
 
 account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-auth_token = os.getenv("TWILIO_AUTH_TOKEN") 
+auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 phone_number = os.getenv("TWILIO_PHONE_NUMBER")
+run_twilio_tests = os.getenv("RUN_TWILIO_TESTS") == "1"
+
+if not run_twilio_tests:
+    print("Skipping Twilio tests. Set RUN_TWILIO_TESTS=1 to enable.")
+    raise unittest.SkipTest("Twilio tests disabled")
 
 print("Testing Twilio with CORRECT credentials...")
 print(f"Account SID: {account_sid}")

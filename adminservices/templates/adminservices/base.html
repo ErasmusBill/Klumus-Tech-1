@@ -1,331 +1,216 @@
-{% load static %}
+{% load static media_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %}</title>
-     <link rel="shortcut icon" href="assets/img/favicon.png">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,500;0,600;0,700;1,400&amp;display=swap">
-      <link rel="stylesheet" href="{% static 'assets/plugins/bootstrap/css/bootstrap.min.css' %}">
-      <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
-      <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
-      <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <title>{% block title %}KiddoCore | Dashboard{% endblock %}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'assets/plugins/bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        .sidebar { background: #ffffff; border-right: 1px solid #f1f5f9; }
+        .sidebar-menu li a { border-radius: 12px; margin: 2px 12px; font-weight: 600; transition: all 0.2s; }
+        .sidebar-menu li a:hover, .sidebar-menu li.active a { background: #f1f5f9 !important; color: #6366f1 !important; }
+        .menu-title { padding: 20px 25px 10px !important; text-transform: uppercase; font-size: 11px !important; letter-spacing: 1px; color: #94a3b8 !important; font-weight: 800; }
+        .user-img img { border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+        /* Responsive header tweaks */
+        @media (max-width: 991.98px) {
+            .top-nav-search { display: none; }
+            .header .header-left .logo h2 {
+                font-size: 1rem !important;
+                margin-top: 8px !important;
+                max-width: 160px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .header { padding-left: 10px; padding-right: 10px; }
+            .header .user-menu .nav-item { margin-left: 6px; }
+            .header .user-menu .noti-dropdown { display: none; }
+            .header-left .logo img { max-height: 32px; }
+        }
+    </style>
 </head>
 <body>
 
-
-
-
-
-
     <div class="main-wrapper">
-         <div class="header">
+        <div class="header">
             <div class="header-left">
-               <a href="index.html" class="logo">
-               {% comment %} <img src="{% static 'assets/img/logo.png' %}" alt="Logo"> {% endcomment %}
-               <h2>KIDDO CARE</h2>
-               </a>
-               <a href="index.html" class="logo logo-small">
-               <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
-               </a>
+                <a href="/" class="logo">
+                    <h2 class="font-extrabold text-indigo-600 tracking-tighter" style="font-size: 1.4rem; margin-top: 15px;">
+                        {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}
+                    </h2>
+                </a>
+                <a href="/" class="logo logo-small">
+                    <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
+                </a>
             </div>
-            <a href="javascript:void(0);" id="toggle_btn">
-            <i class="fas fa-align-left"></i>
-            </a>
+
+            <a href="javascript:void(0);" id="toggle_btn"><i class="fas fa-align-left"></i></a>
+
             <div class="top-nav-search">
-               <form method = "POST">
-                  {% csrf_token %}
-                  <input type="text" class="form-control" placeholder="Search here" name="search">
-                  <button class="btn" type="submit"><i class="fas fa-search"></i></button>
-               </form>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="text" class="form-control rounded-pill border-0 bg-light" placeholder="Search data..." name="search">
+                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                </form>
             </div>
-            <a class="mobile_btn" id="mobile_btn">
-            <i class="fas fa-bars"></i>
-            </a>
+
+            <a class="mobile_btn" id="mobile_btn"><i class="fas fa-bars"></i></a>
+
             <ul class="nav user-menu">
-               <li class="nav-item dropdown noti-dropdown">
-                  <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-                  <i class="far fa-bell"></i> <span class="badge badge-pill">3</span>
-                  </a>
-                  <div class="dropdown-menu notifications">
-                     <div class="topnav-dropdown-header">
-                        <span class="notification-title">Notifications</span>
-                        <a href="javascript:void(0)" class="clear-noti"> Clear All </a>
-                     </div>
-                     <div class="noti-content">
-                        <ul class="notification-list">
-                           <li class="notification-message">
-                              <a href="#">
-                                 <div class="media">
-                                    <span class="avatar avatar-sm">
-                                    <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-02.jpg' %}">
-                                    </span>
-                                    <div class="media-body">
-                                       <p class="noti-details"><span class="noti-title">Carlson Tech</span> has approved <span class="noti-title">your estimate</span></p>
-                                       <p class="noti-time"><span class="notification-time">4 mins ago</span></p>
-                                    </div>
-                                 </div>
-                              </a>
-                           </li>
-                           <li class="notification-message">
-                              <a href="#">
-                                 <div class="media">
-                                    <span class="avatar avatar-sm">
-                                    <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-11.jpg' %}">
-                                    </span>
-                                    <div class="media-body">
-                                       <p class="noti-details"><span class="noti-title">International Software Inc</span> has sent you a invoice in the amount of <span class="noti-title">$218</span></p>
-                                       <p class="noti-time"><span class="notification-time">6 mins ago</span></p>
-                                    </div>
-                                 </div>
-                              </a>
-                           </li>
-                           <li class="notification-message">
-                              <a href="#">
-                                 <div class="media">
-                                    <span class="avatar avatar-sm">
-                                    <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-17.jpg' %}">
-                                    </span>
-                                    <div class="media-body">
-                                       <p class="noti-details"><span class="noti-title">John Hendry</span> sent a cancellation request <span class="noti-title">Apple iPhone XR</span></p>
-                                       <p class="noti-time"><span class="notification-time">8 mins ago</span></p>
-                                    </div>
-                                 </div>
-                              </a>
-                           </li>
-                           <li class="notification-message">
-                              <a href="#">
-                                 <div class="media">
-                                    <span class="avatar avatar-sm">
-                                    <img class="avatar-img rounded-circle" alt="User Image" src="{% static 'assets/img/profiles/avatar-13.jpg' %}">
-                                    </span>
-                                    <div class="media-body">
-                                       <p class="noti-details"><span class="noti-title">Mercury Software Inc</span> added a new product <span class="noti-title">Apple MacBook Pro</span></p>
-                                       <p class="noti-time"><span class="notification-time">12 mins ago</span></p>
-                                    </div>
-                                 </div>
-                              </a>
-                           </li>
-                        </ul>
-                     </div>
-                     <div class="topnav-dropdown-footer">
-                        <a href="#">View all Notifications</a>
-                     </div>
-                  </div>
-               </li>
-               <li class="nav-item dropdown has-arrow">
-                  <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-                  <span class="user-img"><img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" alt="Ryan Taylor"></span>
-                  </a>
-                  <div class="dropdown-menu">
-                     <div class="user-header">
-                        <div class="avatar avatar-sm">
-                           <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                <li class="nav-item dropdown noti-dropdown">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <i class="far fa-bell"></i> <span class="badge badge-pill badge-primary">{{ navbar_unread_count|default:0 }}</span>
+                    </a>
+                    <div class="dropdown-menu notifications shadow-lg border-0 rounded-4">
+                        <div class="topnav-dropdown-header px-3 py-2 border-bottom">
+                            <span class="notification-title font-bold">Notifications</span>
+                            <a href="{% url 'account:notifications-clear' %}?next={{ request.path }}" class="clear-noti text-xs"> Clear All </a>
                         </div>
-                        <div class="user-text">
-                           <h6>Ryan Taylor</h6>
-                           <p class="text-muted mb-0">Administrator</p>
+                        <div class="noti-content">
+                            <ul class="notification-list">
+                                {% for n in navbar_notifications %}
+                                <li class="notification-message">
+                                    <a href="{% url 'account:notification-go' n.id %}" class="p-3 d-block border-bottom">
+                                        <div class="media d-flex gap-3">
+                                            <span class="avatar avatar-sm bg-indigo-50 text-indigo-600 rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center">
+                                                <i class="fas fa-bell"></i>
+                                            </span>
+                                            <div class="media-body">
+                                                <p class="noti-details mb-0 text-sm font-bold">{{ n.title }}</p>
+                                                <p class="noti-time mb-0 text-xs text-muted">{{ n.created_at|timesince }} ago</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% empty %}
+                                <li class="p-4 text-center text-muted text-sm font-medium">No notifications</li>
+                                {% endfor %}
+                            </ul>
                         </div>
-                     </div>
-                     <a class="dropdown-item" href="profile.html">My Profile</a>
-                     <a class="dropdown-item" href="inbox.html">Inbox</a>
-                     <a class="dropdown-item" href="{% url 'account:logout' %}">Logout</a>
-                  </div>
-               </li>
+                    </div>
+                </li>
+
+                <li class="nav-item dropdown has-arrow">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <span class="user-img">
+                            {% if request.user.profile_picture %}
+                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% elif request.user.managed_school and request.user.managed_school.logo %}
+                                <img class="rounded-circle" src="{{ request.user.managed_school.logo|safe_media_url:'assets/img/logo-small.png' }}" width="31" height="31" alt="{{ request.user.managed_school.name }} Logo">
+                            {% else %}
+                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% endif %}
+                        </span>
+                    </a>
+                    <div class="dropdown-menu shadow-lg border-0 rounded-4 p-2">
+                        <div class="user-header bg-light rounded-3 p-3 mb-2">
+                            <h6 class="font-bold mb-0">{{ request.user.get_full_name|default:request.user.username }}</h6>
+                            <p class="text-muted text-xs font-bold uppercase mb-0">Administrator</p>
+                        </div>
+                        <a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a>
+                        <a class="dropdown-item rounded-2 py-2 text-danger" href="{% url 'account:logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                    </div>
+                </li>
             </ul>
-         </div>
-         <div class="sidebar" id="sidebar">
+        </div>
+
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-inner slimscroll">
-               <div id="sidebar-menu" class="sidebar-menu">
-                  <ul>
-                     <li class="menu-title">
-                        <span>Main Menu</span>
-                     </li>
-                     {% comment %} <li class="submenu active">
-                        <a href="#"><i class="fas fa-user-graduate"></i> <span> Dashboard</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="index.html" class="active">Admin Dashboard</a></li>
-                           <li><a href="teacher-dashboard.html">Teacher Dashboard</a></li>
-                           <li><a href="student-dashboard.html">Student Dashboard</a></li>
-                        </ul>
-                     </li> {% endcomment %}
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-user-graduate"></i> <span> Students</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="{% url 'adminservices:list-students' %}">Student List</a></li>
-                           {% comment %} <li><a href="student-details.html">Student View</a></li> {% endcomment %}
-                           <li><a href="{% url 'adminservices:add-student' %}">Student Add</a></li>
-                           {% comment %} <li><a href="edit-student.html">Student Edit</a></li> {% endcomment %}
-                        </ul>
-                     </li>
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-chalkboard-teacher"></i> <span> Teachers</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="{% url 'adminservices:list-teachers' %}">Teacher List</a></li>
-                           {% comment %} <li><a href="teacher-details.html">Teacher View</a></li> {% endcomment %}
-                           <li><a href="{% url 'adminservices:add-teacher' %}">Teacher Add</a></li>
-                           {% comment %} <li><a href="edit-teacher.html">Teacher Edit</a></li> {% endcomment %}
-                        </ul>
-                     </li>
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-building"></i> <span> Departments</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="{% url 'adminservices:list-departments' %}">Department List</a></li>
-                           <li><a href="{% url 'adminservices:add-department' %}">Department Add</a></li>
-                           {% comment %} <li><a href="edit-department.html">Department Edit</a></li> {% endcomment %}
-                        </ul>
-                     </li>
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-book-reader"></i> <span> Subjects</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="{% url 'adminservices:list-subjects' %}">Subject List</a></li>
-                           <li><a href="{% url 'adminservices:add-subject' %}">Subject Add</a></li>
-                           {% comment %} <li><a href="edit-subject.html">Subject Edit</a></li> {% endcomment %}
-                        </ul>
-                     </li>
-                     <li class="menu-title">
-                        <span>Management</span>
-                     </li>
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-file-invoice-dollar"></i> <span> Accounts</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="{% url 'adminservices:list-fees' %}">Fees Collection</a></li>
-                           {% comment %} <li><a href="expenses.html">Expenses</a></li>
-                           <li><a href="salary.html">Salary</a></li> {% endcomment %}
-                           <li><a href="{% url 'adminservices:add-fees' %}">Add Fees</a></li>
-                           {% comment %} <li><a href="add-expenses.html">Add Expenses</a></li>
-                           <li><a href="add-salary.html">Add Salary</a></li> {% endcomment %}
-                        </ul>
-                     </li>
-                     <!-- ✅ ANNOUNCEMENTS MENU -->
-                     <li class="submenu">
-                     <a href="#"><i class="fas fa-bullhorn"></i> <span> Announcements</span> <span class="menu-arrow"></span></a>
-                     <ul>
-                        <li><a href="{% url 'adminservices:announcement_list' %}">Announcement List</a></li>
-                        <li><a href="{% url 'adminservices:announcement_create' %}">Add Announcement</a></li>
-                     </ul>
-                     </li>
-                     <li>
-                     <a href="#">AI Analytics</a>
-                     <ul>
-                        <li><a href="{% url 'ai_predictor:ai_dashboard' %}">AI Performance Dashboard</a></li>
-                     </ul>
-                  </li>
-                     {% comment %} <li class="menu-title">
-                        <span>Pages</span>
+                <div id="sidebar-menu" class="sidebar-menu">
+                    <ul>
+                        <li class="menu-title"><span>Main Panel</span></li>
+                        <li >
+                            <a href="#"><i class="fas fa-th-large"></i> <span>Dashboard</span></a>
+                        </li>
 
-                     {% comment %} <li>
-                        <a href="holiday.html"><i class="fas fa-holly-berry"></i> <span>Holiday</span></a>
-                     </li>
-                     <li>
-                        <a href="fees.html"><i class="fas fa-comment-dollar"></i> <span>Fees</span></a>
-                     </li>
-                     <li>
-                        <a href="exam.html"><i class="fas fa-clipboard-list"></i> <span>Exam list</span></a>
-                     </li>
-                     <li>
-                        <a href="event.html"><i class="fas fa-calendar-day"></i> <span>Events</span></a>
-                     </li>
-                     <li>
-                        <a href="time-table.html"><i class="fas fa-table"></i> <span>Time Table</span></a>
-                     </li>
-                     <li>
-                        <a href="library.html"><i class="fas fa-book"></i> <span>Library</span></a>
-                     </li>
-                     <li class="menu-title">
-                        <span>Pages</span>
-                     </li> {% endcomment %}
+                        <li class="menu-title"><span>Academic Resources</span></li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-user-graduate"></i> <span> Students</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-students' %}">Student List</a></li>
+                                <li><a href="{% url 'adminservices:add-student' %}">Add Student</a></li>
+                            </ul>
+                        </li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-chalkboard-teacher"></i> <span> Teachers</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-teachers' %}">Teacher List</a></li>
+                                <li><a href="{% url 'adminservices:add-teacher' %}">Add Teacher</a></li>
+                            </ul>
+                        </li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-building"></i> <span> Departments</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-departments' %}">Department List</a></li>
+                                <li><a href="{% url 'adminservices:add-department' %}">Add Department</a></li>
+                            </ul>
+                        </li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-book-reader"></i> <span> Subjects</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-subjects' %}">Subject List</a></li>
+                                <li><a href="{% url 'adminservices:add-subject' %}">Add Subject</a></li>
+                            </ul>
+                        </li>
 
-                        <a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Change Password </span> <span class="menu-arrow"></span></a>
-                        {% comment %} <ul>
-                           <li><a href="login.html">Login</a></li>
-                           <li><a href="register.html">Register</a></li>
-                           <li><a href="forgot-password.html">Forgot Password</a></li>
-                           <li><a href="error-404.html">Error Page</a></li>
-                        </ul> {% endcomment %}
-               
-                     {% comment %} <li>
-                        <a href="blank-page.html"><i class="fas fa-file"></i> <span>Blank Page</span></a>
-                     </li>
-                     <li class="menu-title">
-                        <span>Others</span>
-                     </li>
-                     <li>
-                        <a href="sports.html"><i class="fas fa-baseball-ball"></i> <span>Sports</span></a>
-                     </li>
-                     <li>
-                        <a href="hostel.html"><i class="fas fa-hotel"></i> <span>Hostel</span></a>
-                     </li>
-                     <li>
-                        <a href="transport.html"><i class="fas fa-bus"></i> <span>Transport</span></a>
-                     </li>
-                     <li class="menu-title">
-                        <span>UI Interface</span>
-                     </li> {% endcomment %}
-                     {% comment %} <li>
-                        <a href="components.html"><i class="fas fa-vector-square"></i> <span>Components</span></a>
-                     </li>
-                     <li class="submenu">
-                        <a href="#"><i class="fas fa-columns"></i> <span> Forms </span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="form-basic-inputs.html">Basic Inputs </a></li>
-                           <li><a href="form-input-groups.html">Input Groups </a></li>
-                           <li><a href="form-horizontal.html">Horizontal Form </a></li>
-                           <li><a href="form-vertical.html"> Vertical Form </a></li>
-                           <li><a href="form-mask.html"> Form Mask </a></li>
-                           <li><a href="form-validation.html"> Form Validation </a></li>
-                        </ul>
-                     </li> {% endcomment %}
-                     {% comment %} <li class="submenu">
-                        <a href="#"><i class="fas fa-table"></i> <span> Tables </span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li><a href="tables-basic.html">Basic Tables </a></li>
-                           <li><a href="data-tables.html">Data Table </a></li>
-                        </ul>
-                     </li> {% endcomment %}
-                     {% comment %} <li class="submenu">
-                        <a href="javascript:void(0);"><i class="fas fa-code"></i> <span>Multi Level</span> <span class="menu-arrow"></span></a>
-                        <ul>
-                           <li class="submenu">
-                              <a href="javascript:void(0);"> <span>Level 1</span> <span class="menu-arrow"></span></a>
-                              <ul>
-                                 <li><a href="javascript:void(0);"><span>Level 2</span></a></li>
-                                 <li class="submenu">
-                                    <a href="javascript:void(0);"> <span> Level 2</span> <span class="menu-arrow"></span></a>
-                                    <ul>
-                                       <li><a href="javascript:void(0);">Level 3</a></li>
-                                       <li><a href="javascript:void(0);">Level 3</a></li>
-                                    </ul>
-                                 </li>
-                                 <li><a href="javascript:void(0);"> <span>Level 2</span></a></li>
-                              </ul>
-                           </li>
-                           <li>
-                              <a href="javascript:void(0);"> <span>Level 1</span></a>
-                           </li>
-                        </ul>
-                     </li> {% endcomment %}
-                  </ul>
-               </div>
+                        <li class="menu-title"><span>Administration</span></li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-file-invoice-dollar"></i> <span> Accounts</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-fees' %}">Fees Collection</a></li>
+                                <li><a href="{% url 'adminservices:add-fees' %}">Add Fees Entry</a></li>
+                            </ul>
+                        </li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-bullhorn"></i> <span> Announcements</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:announcement_list' %}">All Announcements</a></li>
+                                <li><a href="{% url 'adminservices:announcement_create' %}">Create New</a></li>
+                            </ul>
+                        </li>
+
+                        <li class="menu-title"><span>Intelligence</span></li>
+                        <li class="submenu">
+                            <a href="#" class="text-indigo-600"><i class="fas fa-robot"></i> <span> AI Analytics</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'ai_predictor:ai_dashboard' %}">Performance Dashboard</a></li>
+                            </ul>
+                        </li>
+
+                        <li class="menu-title"><span>Settings</span></li>
+                        <li>
+                            <a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a>
+                        </li>
+                        <li>
+                            <a href="{% url 'account:logout' %}" class="text-danger"><i class="fas fa-power-off"></i> <span>Sign Out</span></a>
+                        </li>
+                    </ul>
+                </div>
             </div>
-         </div>
-         {% block content%}
+        </div>
 
-         {% endblock %}
+        {% block content %}{% endblock %}
 
-         <footer>
-                <p>Copyright © {{ year }} {{ request.user.managed_school.name }}. All rights reserved.</p>
-            </footer>
-         </div>
-      </div>
-      <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
-      <script src="{% static 'assets/js/popper.min.js' %}"></script>
-      <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
-      <script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
-      <script src="{% static 'assets/plugins/apexchart/apexcharts.min.js' %}"></script>
-      <script src="{% static 'assets/plugins/apexchart/chart-data.js' %}"></script>
-      <script src="{% static 'assets/js/script.js' %}"></script>
- 
+        <footer class="mt-4">
+            <p>Copyright © {{ year|default:"2026" }} {{ request.user.managed_school.name|default:"KiddoCore" }}. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static 'assets/js/popper.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+    <script src="{% static 'assets/js/script.js' %}"></script>
 </body>
 </html>

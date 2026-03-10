@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.conf import settings
 from django.views.decorators.cache import never_cache
+from django.core.cache import cache
 
 from account.models import (
      Teacher, CustomUser, Department, School, 
@@ -18,7 +19,7 @@ from .forms import (
     AddFeesForm, AddSubjectForm, AnnouncementForm
 )
 from .utils import *
-from .utils import send_announcement_via_email_and_sms_async
+from .utils import send_announcement_via_email_and_sms
 from django.template.loader import render_to_string
 from django.http import HttpResponse    
 from datetime import datetime
@@ -35,6 +36,29 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# ===== CACHE HELPERS =====
+
+def _cache_version_key(school_id, section: str) -> str:
+    return f"cache_version:{section}:{school_id}"
+
+def get_cache_version(school_id, section: str) -> int:
+    return cache.get(_cache_version_key(school_id, section), 1)
+
+def bump_cache_version(school_id, section: str) -> None:
+    key = _cache_version_key(school_id, section)
+    try:
+        cache.incr(key)
+    except Exception:
+        current = cache.get(key, 1)
+        cache.set(key, current + 1, None)
+
+def make_cache_key(section: str, school_id, suffix: str = "") -> str:
+    version = get_cache_version(school_id, section)
+    return f"{section}:{school_id}:v{version}:{suffix}"
+
+def should_cache(request) -> bool:
+    return request.method == "GET" and not request.session.get("_messages")
+
 # ===== DASHBOARD VIEWS =====
 
 @login_required(login_url='account:login')
@@ -50,17 +74,23 @@ def admin_dashboard(request):
         messages.error(request, "You haven't registered for a school")
         return redirect("account:login")
 
+    cache_key = make_cache_key("admin_dashboard", school.id, "default")
+    if request.method != "POST" and should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     # Get basic counts
     students_count = Student.objects.filter(school=school).count()
     teachers_count = Teacher.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
-    
+
     # Handle student search
     students = Student.objects.filter(school=school).select_related('user')
     search_query = None
-    
+
     if request.method == "POST":
-        search_query = request.POST.get("search")  
+        search_query = request.POST.get("search")
         if search_query:
             students = students.filter(
                 Q(user__first_name__icontains=search_query) |
@@ -72,7 +102,7 @@ def admin_dashboard(request):
                 messages.info(request, f"No students found matching '{search_query}'")
         else:
             messages.error(request, "Please enter a search term")
-    
+
     context = {
         "students_count": students_count,
         "departments_count": departments_count,
@@ -80,8 +110,11 @@ def admin_dashboard(request):
         "students": students,
         "search_query": search_query
     }
-    
-    return render(request, 'adminservices/admin_dashboard.html', context)
+
+    response = render(request, 'adminservices/admin_dashboard.html', context)
+    if request.method != "POST" and should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @never_cache
 @login_required(login_url='account:login')
@@ -103,10 +136,11 @@ def add_teacher(request):
             try:
                 with transaction.atomic():
                     # Create user account
+                    default_password = generate_default_password()
                     user = CustomUser.objects.create_user(
                         username=form.cleaned_data['username'],
                         email=form.cleaned_data['email'],
-                        password=form.cleaned_data['password'],
+                        password=default_password,
                         first_name=form.cleaned_data['first_name'],
                         last_name=form.cleaned_data['last_name'],
                         role="teacher",
@@ -116,10 +150,13 @@ def add_teacher(request):
                         phone_number=form.cleaned_data.get('phone_number', ''),
                     )
                     
-                    # Add profile picture if provided
-                    if form.cleaned_data.get('profile_picture'):
-                        user.profile_picture = form.cleaned_data['profile_picture']
-                        user.save()
+                    # Keep user profile and teacher image aligned for templates that use either field.
+                    profile_picture = form.cleaned_data.get("profile_picture")
+                    teacher_image = form.cleaned_data.get("image")
+                    uploaded_image = teacher_image or profile_picture
+                    if uploaded_image:
+                        user.profile_picture = uploaded_image
+                    user.save()
                     
                     # Create teacher profile
                     teacher = Teacher(
@@ -136,13 +173,13 @@ def add_teacher(request):
                         is_active=True
                     )
                     
-                    if form.cleaned_data.get('image'):
-                        teacher.image = form.cleaned_data['image']
+                    if uploaded_image:
+                        teacher.image = uploaded_image
                     teacher.save()
                     
                     # Send welcome notifications (ASYNC - Won't block)
                     teacher_emails, teacher_phones = get_teacher_contacts(teacher)
-                    password = form.cleaned_data.get('password')
+                    password = default_password
                     
                     email_message = (
                         f'Hello {user.first_name},\n\n'
@@ -164,8 +201,10 @@ def add_teacher(request):
                         notification_results = send_notification(
                             emails=teacher_emails,
                             phones=teacher_phones,
+                            users=[user],
                             subject='Welcome to the School',
-                            message=email_message
+                            message=email_message,
+                            notification_type="system"
                         )
                         
                         # Provide feedback based on results
@@ -198,6 +237,8 @@ def add_teacher(request):
                             f"(Notifications may be delayed)"
                         )
                     
+                    bump_cache_version(school.id, "teachers")
+                    bump_cache_version(school.id, "admin_dashboard")
                     return redirect("adminservices:list-teachers")
                     
             except Exception as e:
@@ -225,13 +266,22 @@ def list_teachers(request):
         return redirect("adminservices:list-teachers")
     
     school = request.user.managed_school
+    page_number = request.GET.get("page") or 1
+    cache_key = make_cache_key("teachers", school.id, f"page:{page_number}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     teachers = Teacher.objects.filter(school=school, is_active=True).select_related('user', 'department')
     
     paginator = Paginator(teachers, 50)
-    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     
-    return render(request, "adminservices/list-teachers.html", {"page_obj": page_obj})
+    response = render(request, "adminservices/list-teachers.html", {"page_obj": page_obj})
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login')
 def update_teacher(request, teacher_id):
@@ -269,14 +319,17 @@ def update_teacher(request, teacher_id):
                 if password:
                     user.set_password(password)
 
-                if 'profile_picture' in request.FILES:
-                    user.profile_picture = request.FILES['profile_picture']
+                uploaded_image = request.FILES.get('image') or request.FILES.get('profile_picture')
+                if uploaded_image:
+                    user.profile_picture = uploaded_image
 
                 user.save()
 
                 # Update teacher profile
                 updated_teacher = form.save(commit=False)
                 updated_teacher.school = school
+                if uploaded_image:
+                    updated_teacher.image = uploaded_image
                 updated_teacher.save()
 
                 # Send update notification (async)
@@ -293,8 +346,10 @@ def update_teacher(request, teacher_id):
                     notification_results = send_notification(
                         emails=teacher_emails,
                         phones=teacher_phones,
+                        users=[user],
                         subject='Your Account Has Been Updated',
-                        message=email_message
+                        message=email_message,
+                        notification_type="system"
                     )
 
                     if notification_results.get('email_sent') or notification_results.get('sms_sent'): # type: ignore
@@ -306,6 +361,8 @@ def update_teacher(request, teacher_id):
                     logger.error(f"Notification error: {str(e)}")
                     messages.success(request, "Teacher updated successfully!")
 
+                bump_cache_version(school.id, "teachers")
+                bump_cache_version(school.id, "admin_dashboard")
                 return redirect("adminservices:list-teachers")
 
             except Exception as e:
@@ -338,6 +395,8 @@ def delete_teacher(request, teacher_id):
     teacher_name = teacher.user.get_full_name()
     teacher.delete()
     
+    bump_cache_version(school.id, "teachers")
+    bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Teacher '{teacher_name}' deleted successfully")
     return redirect("adminservices:list-teachers")
 
@@ -388,6 +447,8 @@ def add_department(request):
             department.school = school
             department.save()
             
+            bump_cache_version(school.id, "departments")
+            bump_cache_version(school.id, "admin_dashboard")
             messages.success(request, f"Department '{department.name}' added successfully!")
             return redirect("adminservices:list-departments")
         else:
@@ -410,11 +471,21 @@ def list_departments(request):
         messages.error(request, "No school linked to your account.")
         return redirect("adminservices:admin-dashboard")
 
+    page_number = request.GET.get("page") or 1
+    cache_key = make_cache_key("departments", school.id, f"page:{page_number}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     departments = Department.objects.filter(school=school)
     paginator = Paginator(departments, 25)
-    page_obj = paginator.get_page(request.GET.get("page"))
-    
-    return render(request, "adminservices/list_department.html", {"page_obj": page_obj})
+    page_obj = paginator.get_page(page_number)
+
+    response = render(request, "adminservices/list_department.html", {"page_obj": page_obj})
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login')
 def edit_department(request, department_id):
@@ -433,6 +504,8 @@ def edit_department(request, department_id):
             department.school = school
             department.save()
             
+            bump_cache_version(school.id, "departments")
+            bump_cache_version(school.id, "admin_dashboard")
             messages.success(request, f"Department '{department.name}' updated successfully!")
             return redirect("adminservices:list-departments")
         else:
@@ -455,6 +528,8 @@ def delete_department(request, department_id):
     department_name = department.name
     department.delete()
     
+    bump_cache_version(school.id, "departments")
+    bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Department '{department_name}' deleted successfully")
     return redirect("adminservices:list-departments")
 
@@ -489,7 +564,7 @@ def add_student(request):
             try:
                 with transaction.atomic():
                     student = form.save()
-                    password = form.cleaned_data.get('password')
+                    password = generate_default_password()
                     
                     # Send enrollment notifications
                     try:
@@ -520,8 +595,10 @@ def add_student(request):
                             notification_results = send_notification(
                                 emails=parent_emails,
                                 phones=parent_phones,
+                                users=[student.user],
                                 subject=f"Login Details for {student.user.get_full_name()} - {school.name}",
-                                message=email_message
+                                message=email_message,
+                                notification_type="system"
                             )
                             
                             # Debug log the notification results
@@ -574,6 +651,8 @@ def add_student(request):
                             f"(Notification system encountered an error)"
                         )
                     
+                    bump_cache_version(school.id, "students")
+                    bump_cache_version(school.id, "admin_dashboard")
                     return redirect("adminservices:list-students")
                     
             except Exception as e:
@@ -596,22 +675,31 @@ def list_students(request):
     """List all students with pagination"""
     if not request.user.is_authenticated or request.user.role != "admin":
         messages.error(request, "Unauthorized.")
-        return redirect("login")
+        return redirect("account:login")
 
     school = getattr(request.user, 'managed_school', None)
     if not school:
         messages.error(request, "No school assigned.")
         return redirect("adminservices:admin-dashboard")
 
+    page_number = request.GET.get('page') or 1
+    cache_key = make_cache_key("students", school.id, f"page:{page_number}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     students = Student.objects.filter(school=school).select_related('user', 'parent').order_by('-created_at')
     paginator = Paginator(students, 10)
-    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "adminservices/list_students.html", {
+    response = render(request, "adminservices/list_students.html", {
         "page_obj": page_obj,
-        "year": 2025  
+        "year": timezone.now().year,
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login') 
 def student_detail(request, student_id):
@@ -637,6 +725,8 @@ def edit_student(request, student_id):
         form = AddStudentForm(request.POST, request.FILES, instance=student, school=school)
         if form.is_valid():
             form.save()
+            bump_cache_version(school.id, "students")
+            bump_cache_version(school.id, "admin_dashboard")
             messages.success(request, "Student updated successfully!")
             return redirect("adminservices:student-detail", student_id=student.id)
         else:
@@ -662,6 +752,8 @@ def delete_student(request, student_id):
     student_name = student.user.get_full_name()
     student.delete()
     
+    bump_cache_version(school.id, "students")
+    bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Student '{student_name}' deleted successfully")
     return redirect("adminservices:list-students")
 
@@ -698,7 +790,7 @@ def add_fees(request):
                             f"A new fee has been added for your child:\n\n"
                             f"Student: {student.user.get_full_name()}\n"
                             f"Fee Type: {fee.get_fee_type_display()}\n"
-                            f"Amount: ${fee.amount:.2f}\n"
+                            f"Amount: ₵{fee.amount:.2f}\n"
                             f"Due Date: {fee.due_date}\n"
                             f"Status: {fee.get_status_display()}\n\n"
                             f"Please make payment before the due date.\n\n"
@@ -708,14 +800,16 @@ def add_fees(request):
                         
                         sms_message = (
                             f"New fee for {student.user.first_name}: {fee.get_fee_type_display()} - "
-                            f"${fee.amount:.2f} due {fee.due_date}. Check email for details."
+                            f"₵{fee.amount:.2f} due {fee.due_date}. Check email for details."
                         )
                         
                         notification_results = send_notification(
                             emails=parent_emails,
                             phones=parent_phones,
+                            users=[student.user],
                             subject=f"New Fee Added for {student.user.get_full_name()} - {school.name}",
-                            message=email_message
+                            message=email_message,
+                            notification_type="fee"
                         )
                         
                         # Provide feedback
@@ -740,6 +834,7 @@ def add_fees(request):
                             f"Fee for '{student.user.get_full_name()}' added successfully!" # type: ignore
                         )
                     
+                    bump_cache_version(school.id, "fees")
                     return redirect("adminservices:list-fees")
 
             except Exception as e:
@@ -768,6 +863,7 @@ def edit_fees(request, fee_id):
         form = AddFeesForm(request.POST, instance=fee, school=school)
         if form.is_valid():
             form.save()
+            bump_cache_version(school.id, "fees")
             messages.success(request, "Fee updated successfully!")
             return redirect("adminservices:list-fees")
         else:
@@ -785,13 +881,22 @@ def list_fees(request):
         return redirect("account:login")
 
     school = request.user.managed_school
+    page_number = request.GET.get('page') or 1
+    cache_key = make_cache_key("fees", school.id, f"page:{page_number}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     fees = Fees.objects.filter(student__school=school).select_related('student__user', 'student__parent').order_by('-created_at')
 
     paginator = Paginator(fees, 10)
-    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "adminservices/list_fees.html", {"page_obj": page_obj})
+    response = render(request, "adminservices/list_fees.html", {"page_obj": page_obj})
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login')
 def delete_fees(request, fee_id):
@@ -806,6 +911,7 @@ def delete_fees(request, fee_id):
     if request.method == "POST":
         student_name = fee.student.user.get_full_name()
         fee.delete()
+        bump_cache_version(school.id, "fees")
         messages.success(request, f"Fee for '{student_name}' deleted successfully.")
         return redirect("adminservices:list-fees")
 
@@ -832,6 +938,8 @@ def add_subject(request):
             subject.school = school
             subject.save()
             
+            bump_cache_version(school.id, "subjects")
+            bump_cache_version(school.id, "admin_dashboard")
             messages.success(request, f"Subject '{subject.name}' added successfully!")
             return redirect("adminservices:list-subjects")
         else:
@@ -854,12 +962,21 @@ def list_subjects(request):
         messages.error(request, "No school assigned.")
         return redirect("adminservices:admin-dashboard")
 
+    page_number = request.GET.get('page') or 1
+    cache_key = make_cache_key("subjects", school.id, f"page:{page_number}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     subjects = Subject.objects.filter(school=school).select_related('teacher__user', 'department').order_by('-created_at')
     paginator = Paginator(subjects, 10)
-    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "adminservices/list_subjects.html", {"page_obj": page_obj})
+    response = render(request, "adminservices/list_subjects.html", {"page_obj": page_obj})
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login')
 def subject_detail(request, subject_id):
@@ -883,6 +1000,8 @@ def edit_subject(request, subject_id):
         form = AddSubjectForm(request.POST, instance=subject, school=school)
         if form.is_valid():
             form.save()
+            bump_cache_version(school.id, "subjects")
+            bump_cache_version(school.id, "admin_dashboard")
             messages.success(request, "Subject updated successfully!")
             return redirect("adminservices:subject-detail", subject_id=subject.id)
         else:
@@ -908,6 +1027,8 @@ def delete_subject(request, subject_id):
     name = subject.name
     subject.delete()
     
+    bump_cache_version(school.id, "subjects")
+    bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Subject '{name}' deleted successfully.")
     return redirect("adminservices:list-subjects")
 
@@ -956,7 +1077,7 @@ def manage_announcement(request, pk=None):
                     
                     # Send targeted notifications based on audience
                     if target_audience == 'all':
-                        results = send_announcement_via_email_and_sms_async(announcement)
+                        results = send_announcement_via_email_and_sms(announcement)
                     else:
                         results = send_targeted_announcement(announcement, target_audience)
                     
@@ -964,6 +1085,10 @@ def manage_announcement(request, pk=None):
                     if results and results.get('errors'):
                         error_count = len(results['errors'])
                         if error_count > 0:
+                            logger.warning(
+                                "Announcement notification errors: %s",
+                                "; ".join(results['errors'])
+                            )
                             messages.warning(
                                 request,
                                 f"Announcement published! But {error_count} notification(s) failed. "
@@ -1007,7 +1132,8 @@ def manage_announcement(request, pk=None):
                     )
             else:
                 messages.success(request, "Announcement saved as draft.")
-                
+
+            bump_cache_version(school.id, "announcements")
             return redirect("adminservices:announcement_list")
         else:
             messages.error(request, "Please correct the errors below.")
@@ -1033,11 +1159,20 @@ def list_announcements(request):
         return redirect("account:home")
 
     school = request.user.managed_school
+    cache_key = make_cache_key("announcements", school.id, "list")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     announcements = Announcement.objects.filter(school=school).select_related('author').order_by('-created_at')
 
-    return render(request, "adminservices/list_announcements.html", {
+    response = render(request, "adminservices/list_announcements.html", {
         "announcements": announcements
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 @login_required(login_url='account:login')
 def announcement_delete(request, announcement_id):
@@ -1056,6 +1191,7 @@ def announcement_delete(request, announcement_id):
     announcement_title = announcement.title
     announcement.delete()
     
+    bump_cache_version(school.id, "announcements")
     messages.success(request, f"Announcement '{announcement_title}' successfully deleted")
     return redirect("adminservices:announcement_list")
 
@@ -1063,7 +1199,10 @@ def announcement_delete(request, announcement_id):
 
 def _get_academic_year(school):
     """Helper to safely get academic year."""
-    return school.get_current_academic_year() if hasattr(school, 'get_current_academic_year') else "2024/2025"
+    if hasattr(school, "get_current_academic_year"):
+        return school.get_current_academic_year()
+    current_year = timezone.now().year
+    return f"{current_year}/{current_year + 1}"
 
 # ===== PRINTING & PDF GENERATION VIEWS =====
 
@@ -1108,7 +1247,7 @@ def print_admission_form(request, student_id):
     # Use admission_number (e.g., "2025-0042") for traceability
     form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
     generated_date = timezone.now().strftime('%B %d, %Y')
-    academic_year = "2024/2025"
+    academic_year = _get_academic_year(school)
 
     context = {
         'school': school,
@@ -1133,7 +1272,7 @@ def download_fee_receipt_pdf(request, fee_id):
 
     receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
     issue_date = timezone.now().strftime('%B %d, %Y')
-    academic_year = "2024/2025"
+    academic_year = _get_academic_year(school)
     payment_method = fee.get_payment_method_display() or "Cash" # type: ignore
 
     context = {
@@ -1174,7 +1313,7 @@ def download_admission_form_pdf(request, student_id):
 
     form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
     generated_date = timezone.now().strftime('%B %d, %Y')
-    academic_year = "2024/2025"
+    academic_year = _get_academic_year(school)
 
     context = {
         'school': school,

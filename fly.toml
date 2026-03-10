@@ -23,7 +23,7 @@ console_command = "python manage.py shell"
 
 [processes]
   # FORCED TO 8080 TO MATCH FLY.IO
-  app = "gunicorn --bind :8080 --workers 2 config.wsgi"
+  app = "gunicorn config.wsgi:application --bind 0.0.0.0:8080 --config gunicorn.conf.py"
   celery = "celery -A config worker --loglevel=INFO"
 
 [[statics]]

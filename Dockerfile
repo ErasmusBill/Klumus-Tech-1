@@ -36,10 +36,10 @@ RUN poetry init -n --name klumus && \
 # Copy project files
 COPY . /app
 
-ENV PORT=8000 \
+ENV PORT=8080 \
     APP_ENV=development
 
-EXPOSE 8000
+EXPOSE 8080
 
 # Single image for dev + prod, controlled by APP_ENV
 CMD ["bash", "-lc", "if [ \"$APP_ENV\" = \"production\" ]; then python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT} --config gunicorn.conf.py; else python manage.py migrate && python manage.py runserver 0.0.0.0:${PORT}; fi"]

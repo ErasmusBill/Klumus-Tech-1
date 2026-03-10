@@ -25,6 +25,10 @@ render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 if render_hostname:
     ALLOWED_HOSTS.append(render_hostname)
 
+fly_app_name = os.getenv("FLY_APP_NAME")
+if fly_app_name:
+    ALLOWED_HOSTS.append(f"{fly_app_name}.fly.dev")
+
 DOMAIN_URL = os.getenv("DOMAIN_URL", "")
 
 # ========================
@@ -263,7 +267,11 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
 # ========================
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"]
+CSRF_TRUSTED_ORIGINS = []
+if render_hostname:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{render_hostname}")
+if fly_app_name:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{fly_app_name}.fly.dev")
 
 
 
@@ -275,8 +283,9 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # CELERY CONFIGURATION
 # ========================
 
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+REDIS_URL = os.getenv("REDIS_URL")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL") or REDIS_URL or "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or CELERY_BROKER_URL
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

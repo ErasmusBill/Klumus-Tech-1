@@ -1,4 +1,4 @@
-{% load static %}
+{% load static media_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +11,26 @@
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <style>
+        /* Responsive header tweaks */
+        @media (max-width: 991.98px) {
+            .top-nav-search { display: none; }
+            .header .header-left .logo h2 {
+                font-size: 1rem;
+                max-width: 160px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .header { padding-left: 10px; padding-right: 10px; }
+            .header .user-menu .nav-item { margin-left: 6px; }
+            .header .user-menu .noti-dropdown { display: none; }
+            .header-left .logo img { max-height: 32px; }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -49,18 +69,36 @@
                 <!-- Notifications Dropdown -->
                 <li class="nav-item dropdown noti-dropdown d-none d-sm-block">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
-                        <i class="far fa-bell"></i> <span class="badge badge-pill">0</span>
+                        <i class="far fa-bell"></i> <span class="badge badge-pill">{{ navbar_unread_count|default:0 }}</span>
                     </a>
                     <div class="dropdown-menu notifications">
                         <div class="topnav-dropdown-header">
                             <span class="notification-title">Notifications</span>
-                            <a href="javascript:void(0)" class="clear-noti">Clear All</a>
+                            <a href="{% url 'account:notifications-clear' %}?next={{ request.path }}" class="clear-noti">Clear All</a>
                         </div>
                         <div class="noti-content">
                             <ul class="notification-list">
-                                <li class="notification-message">
-                                    <p class="text-center text-muted mb-0">No new notifications</p>
-                                </li>
+                                {% if navbar_notifications %}
+                                    {% for n in navbar_notifications %}
+                                        <li class="notification-message">
+                                            <a href="{% url 'account:notification-go' n.id %}">
+                                                <div class="media">
+                                                    <span class="avatar avatar-sm">
+                                                        <i class="fas fa-bell text-primary"></i>
+                                                    </span>
+                                                    <div class="media-body">
+                                                        <p class="noti-details"><span class="noti-title">{{ n.title }}</span> {{ n.message|truncatechars:60 }}</p>
+                                                        <p class="noti-time"><span class="notification-time">{{ n.created_at|timesince }} ago</span></p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="notification-message">
+                                        <p class="text-center text-muted mb-0">No new notifications</p>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>
@@ -70,13 +108,25 @@
                 <li class="nav-item dropdown has-arrow">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
-                            <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" alt="{{ request.user.get_full_name }}">
+                            {% if request.user.profile_picture %}
+                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" alt="{{ request.user.get_full_name }}">
+                            {% elif request.user.teacher_profile and request.user.teacher_profile.image %}
+                                <img class="rounded-circle" src="{{ request.user.teacher_profile.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" alt="{{ request.user.get_full_name }}">
+                            {% else %}
+                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" alt="{{ request.user.get_full_name }}">
+                            {% endif %}
                         </span>
                     </a>
                     <div class="dropdown-menu">
                         <div class="user-header">
                             <div class="avatar avatar-sm">
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                {% if request.user.profile_picture %}
+                                    <img src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                {% elif request.user.teacher_profile and request.user.teacher_profile.image %}
+                                    <img src="{{ request.user.teacher_profile.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                {% else %}
+                                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                {% endif %}
                             </div>
                             <div class="user-text">
                                 <h6>{{ request.user.get_full_name }}</h6>

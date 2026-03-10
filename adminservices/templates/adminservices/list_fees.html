@@ -1,6 +1,6 @@
 <!-- adminservices/templates/adminservices/list_fees.html -->
 {% extends "adminservices/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Fees Collection{% endblock %}
 
@@ -79,7 +79,7 @@
                     <th>Name</th>
                     <th>Gender</th>
                     <th>Fees Type</th>
-                    <th>Amount</th>
+                    <th>Amount (GHS)</th>
                     <th>Paid Date</th>
                     <th class="text-right">Status</th>
                     <th class="text-right">Actions</th> <!-- New Actions Header -->
@@ -93,7 +93,9 @@
                         <h2 class="table-avatar">
                           <a href="{% url 'adminservices:student-detail' fee.student.id %}" class="avatar avatar-sm mr-2">
                             {% if fee.student.user.profile_picture %}
-                              <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture.url }}" alt="Profile Image">
+                              <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
+                            {% elif fee.student.student_image %}
+                              <img class="avatar-img rounded-circle" src="{{ fee.student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
                             {% else %}
                               <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ fee.student.user.get_full_name|urlencode }}&background=random" alt="Default Avatar">
                             {% endif %}
@@ -105,7 +107,7 @@
                       </td>
                       <td>{{ fee.student.user.gender|title }}</td>
                       <td>{{ fee.get_fee_type_display }}</td>
-                      <td>${{ fee.amount|floatformat:2 }}</td>
+                      <td>₵{{ fee.amount|floatformat:2 }}</td>
                       <td>
                         {% if fee.payment_date %}
                           {{ fee.payment_date|date:"d M Y" }}

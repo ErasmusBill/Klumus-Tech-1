@@ -1,4 +1,6 @@
 .env
+.venv_py39_backup
+.venv_py313_backup
 .db.sqlite3
 __pycache__/
 *.pyc

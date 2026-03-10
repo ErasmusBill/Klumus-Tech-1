@@ -1,6 +1,6 @@
 <!-- teacher/templates/teacher/list_result.html -->
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Student Results{% endblock %}
 
@@ -85,7 +85,9 @@
                                     <div class="d-flex align-items-center">
                                         <div class="avatar mr-2">
                                             {% if result.student.user.profile_picture %}
-                                                <img class="avatar-img rounded-circle" src="{{ result.student.user.profile_picture.url }}" alt="{{ result.student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                                                <img class="avatar-img rounded-circle" src="{{ result.student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ result.student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                                            {% elif result.student.student_image %}
+                                                <img class="avatar-img rounded-circle" src="{{ result.student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ result.student.user.get_full_name }}" style="width: 35px; height: 35px;">
                                             {% else %}
                                                 <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ result.student.user.get_full_name|urlencode }}&background=007bff&color=fff" alt="{{ result.student.user.get_full_name }}" style="width: 35px; height: 35px;">
                                             {% endif %}

@@ -1,16 +1,16 @@
-{% extends "adminservices/base.html" %}
+{% extends "student/base.html" %}
 {% load static media_tags %}
 
-{% block title %}Student Detail{% endblock %}
+{% block title %}My Profile | Student{% endblock %}
 
 {% block content %}
 <style>
-  .detail-hero {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  .profile-hero {
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
     color: #fff;
     border-radius: 18px;
   }
-  .detail-hero .avatar {
+  .profile-hero .avatar {
     width: 120px;
     height: 120px;
     border-radius: 9999px;
@@ -18,7 +18,14 @@
     object-fit: cover;
     background: #fff;
   }
-  .detail-card {
+  .profile-stat {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+  }
+  .profile-card {
     border-radius: 16px;
     box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
   }
@@ -33,12 +40,16 @@
     font-weight: 700;
     color: #0f172a;
   }
-  .stat-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 16px;
-    text-align: center;
+  .fee-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #fef3c7;
+    color: #92400e;
   }
   .section-title {
     display: flex;
@@ -47,17 +58,30 @@
     font-weight: 800;
     color: #0f172a;
   }
-  .section-title i { color: #6366f1; }
-  .badge-soft {
+  .section-title i {
+    color: #6366f1;
+  }
+  .copy-btn {
+    border: 0;
     background: #eef2ff;
     color: #4338ca;
     font-weight: 700;
-    border-radius: 999px;
-    padding: 4px 10px;
+    border-radius: 10px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .copy-btn:active {
+    transform: scale(0.98);
   }
   @media (max-width: 767.98px) {
-    .detail-hero { text-align: center; }
-    .detail-hero .d-flex { flex-direction: column; gap: 12px; }
+    .profile-hero {
+      text-align: center;
+    }
+    .profile-hero .d-flex {
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
   }
 </style>
 
@@ -66,21 +90,16 @@
     <div class="page-header">
       <div class="row align-items-center">
         <div class="col">
-          <h3 class="page-title">Student Detail</h3>
+          <h3 class="page-title">My Profile</h3>
           <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-students' %}">Students</a></li>
-            <li class="breadcrumb-item active">{{ student.user.get_full_name }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Profile</li>
           </ul>
-        </div>
-        <div class="col-auto">
-          <a href="{% url 'adminservices:edit-student' student.id %}" class="btn btn-primary">
-            <i class="fas fa-pen"></i> Edit
-          </a>
         </div>
       </div>
     </div>
 
-    <div class="detail-hero p-4 mb-4">
+    <div class="profile-hero p-4 mb-4">
       <div class="d-flex align-items-center justify-content-between flex-wrap">
         <div class="d-flex align-items-center gap-3">
           {% if student.student_image %}
@@ -94,37 +113,37 @@
             <h3 class="mb-1">{{ student.user.get_full_name }}</h3>
             <div class="text-white-50">{{ student.get_student_class_display }}</div>
             <div class="mt-2">
-              <span class="badge badge-light text-dark mr-2">{{ student.student_id }}</span>
+              <span class="badge badge-light text-dark mr-2" id="studentIdText">{{ student.student_id }}</span>
               <span class="badge badge-info">{{ student.get_promotion_status_display }}</span>
             </div>
           </div>
         </div>
         <div class="mt-3 mt-md-0">
-          <span class="badge-soft">Admission: {{ student.admission_number }}</span>
+          <button class="copy-btn" type="button" data-copy="#studentIdText">Copy ID</button>
         </div>
       </div>
     </div>
 
     <div class="row">
       <div class="col-xl-4 col-lg-5 col-md-12 mb-4">
-        <div class="card detail-card">
+        <div class="card profile-card">
           <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-chart-line"></i> Stats</div>
+            <div class="section-title mb-3"><i class="fas fa-chart-line"></i> Quick Stats</div>
             <div class="row g-3">
               <div class="col-12">
-                <div class="stat-card">
-                  <div class="text-muted text-xs mb-1">Attendance</div>
+                <div class="profile-stat">
+                  <div class="text-muted text-xs mb-1">Attendance Rate</div>
                   <div class="h4 mb-0">{{ attendance_rate|floatformat:1 }}%</div>
                 </div>
               </div>
               <div class="col-12">
-                <div class="stat-card">
+                <div class="profile-stat">
                   <div class="text-muted text-xs mb-1">Enrollments</div>
                   <div class="h4 mb-0">{{ enrollments_count }}</div>
                 </div>
               </div>
               <div class="col-12">
-                <div class="stat-card">
+                <div class="profile-stat">
                   <div class="text-muted text-xs mb-1">Pending Fees</div>
                   <div class="h4 mb-0">₵{{ total_pending_fees|floatformat:2 }}</div>
                 </div>
@@ -133,7 +152,7 @@
           </div>
         </div>
 
-        <div class="card detail-card mt-4">
+        <div class="card profile-card mt-4">
           <div class="card-body">
             <div class="section-title mb-3"><i class="fas fa-school"></i> School</div>
             <div class="info-grid">
@@ -155,10 +174,14 @@
       </div>
 
       <div class="col-xl-8 col-lg-7 col-md-12">
-        <div class="card detail-card mb-4">
+        <div class="card profile-card mb-4">
           <div class="card-body">
             <div class="section-title mb-3"><i class="fas fa-id-card"></i> Student Information</div>
             <div class="row info-grid">
+              <div class="col-md-6 mb-3">
+                <div class="label">Admission Number</div>
+                <div class="value">{{ student.admission_number }}</div>
+              </div>
               <div class="col-md-6 mb-3">
                 <div class="label">Date of Birth</div>
                 <div class="value">{{ student.user.date_of_birth|date:"M d, Y"|default:"N/A" }}</div>
@@ -179,15 +202,11 @@
                 <div class="label">Address</div>
                 <div class="value">{{ student.user.address|default:"N/A" }}</div>
               </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Joining Date</div>
-                <div class="value">{{ student.joining_date|date:"M d, Y"|default:"N/A" }}</div>
-              </div>
             </div>
           </div>
         </div>
 
-        <div class="card detail-card mb-4">
+        <div class="card profile-card mb-4">
           <div class="card-body">
             <div class="section-title mb-3"><i class="fas fa-users"></i> Parent/Guardian</div>
             <div class="row info-grid">
@@ -213,28 +232,59 @@
           </div>
         </div>
 
-        <div class="card detail-card">
+        <div class="card profile-card">
           <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-heartbeat"></i> Health</div>
-            <div class="row info-grid">
-              <div class="col-md-6 mb-3">
-                <div class="label">Allergies</div>
-                <div class="value">{{ student.allergies|default:"None" }}</div>
+            <div class="section-title mb-3"><i class="fas fa-wallet"></i> Pending Fees</div>
+            {% if pending_fees %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Amount (GHS)</th>
+                      <th>Due</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for fee in pending_fees %}
+                      <tr>
+                        <td>{{ fee.get_fee_type_display }}</td>
+                        <td>₵{{ fee.net_amount|floatformat:2 }}</td>
+                        <td>{{ fee.due_date|date:"M d, Y" }}</td>
+                        <td>
+                          <span class="fee-status">{{ fee.get_status_display }}</span>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
               </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Medical Conditions</div>
-                <div class="value">{{ student.medical_conditions|default:"None" }}</div>
-              </div>
-              <div class="col-12 mb-0">
-                <div class="label">Notes</div>
-                <div class="value">{{ student.notes|default:"N/A" }}</div>
-              </div>
-            </div>
+              <a href="{% url 'student:fees-list' student.id %}" class="btn btn-sm btn-outline-primary">View All Fees</a>
+            {% else %}
+              <p class="text-muted mb-0">No pending fees.</p>
+            {% endif %}
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = document.querySelector(btn.getAttribute('data-copy'));
+      if (!target) return;
+      const text = target.textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = "Copied";
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1200);
+      });
+    });
+  });
+</script>
 {% endblock %}

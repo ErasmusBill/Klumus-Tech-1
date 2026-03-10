@@ -1,6 +1,6 @@
 <!-- teacher/templates/teacher/bulk_grade_entry.html -->
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Enter Grades: {{ subject.name }}{% endblock %}
 
@@ -157,7 +157,9 @@
                     <div class="d-flex align-items-center">
                       <div class="avatar mr-2">
                         {% if student.user.profile_picture %}
-                          <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                          <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
+                        {% elif student.student_image %}
+                          <img class="avatar-img rounded-circle" src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
                         {% else %}
                           <img class="avatar-img rounded-circle" src="https://ui-avatars.com/api/?name={{ student.user.get_full_name|urlencode }}&background=007bff&color=fff" alt="{{ student.user.get_full_name }}" style="width: 35px; height: 35px;">
                         {% endif %}

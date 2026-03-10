@@ -15,9 +15,11 @@ from django.db import models
 from django.db.models import Q,Avg,Count
 from django.db.models import Count, Q
 from django.http import HttpResponse
+from django.urls import reverse
 import os
 from ai_predictor.models import PredictedPerformance
 from django.http import JsonResponse
+from adminservices.utils import create_bulk_in_app_notifications, create_in_app_notification
 
 
 def teacher_dashboard(request):
@@ -192,6 +194,22 @@ def enter_bulk_grades(request, subject_id):
                     except Exception as email_error:
                         print(f"Email notification error: {email_error}")
                         # Continue even if emails fail
+
+                    # Create in-app notifications for students
+                    for item in results_created:
+                        try:
+                            student = item['student']
+                            result_obj = item['result']
+                            create_in_app_notification(
+                                user=student.user,
+                                title=f"Result posted: {subject.name}",
+                                message=f"Your {subject.name} result for {term} {academic_year} is available.",
+                                notification_type="result",
+                                related_object=result_obj,
+                                link=reverse("student:view-result", args=[student.id]),
+                            )
+                        except Exception:
+                            continue
 
                     # Success message
                     if created_count > 0 or updated_count > 0:
@@ -759,8 +777,21 @@ def add_assignment(request):
                 enrollments__subject=assignment.subject,
                 enrollments__is_active=True
             )
-            
- 
+
+            # Create in-app notifications for enrolled students
+            try:
+                users = [s.user for s in enrolled_students if s.user_id]
+                if users:
+                    create_bulk_in_app_notifications(
+                        users=users,
+                        title=f"New assignment: {assignment.title}",
+                        message=f"{assignment.subject.name} assignment has been posted. Due {assignment.due_date}.",
+                        notification_type="assignment",
+                        related_object=assignment,
+                        link=reverse("student:assignment-detail", args=[assignment.id]),
+                    )
+            except Exception:
+                pass
             
             messages.success(request, "Assignment created successfully.")
             return redirect("teacher:assignment-list")
@@ -957,6 +988,19 @@ def grade_assignment(request, submission_id):
                 submission.status = 'graded'
                 submission.graded_date = timezone.now()
                 submission.save()
+
+                # Notify student about grading
+                try:
+                    create_in_app_notification(
+                        user=submission.student.user,
+                        title=f"Assignment graded: {submission.assignment.title}",
+                        message=f"Your assignment has been graded. Marks: {submission.marks_obtained}/{submission.assignment.total_marks}.",
+                        notification_type="assignment",
+                        related_object=submission,
+                        link=reverse("student:assignment-detail", args=[submission.assignment.id]),
+                    )
+                except Exception:
+                    pass
                 
                 messages.success(request, "Assignment graded successfully!")
                 return redirect('teacher:assignment-submissions', assignment_id=submission.assignment.id)
@@ -1515,4 +1559,3 @@ def get_student_promotion_data(request, student_id):
         return JsonResponse({'error': 'Student not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-

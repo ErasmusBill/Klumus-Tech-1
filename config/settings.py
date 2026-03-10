@@ -18,10 +18,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ========================
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "False") == "True"
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
+DEBUG = os.getenv("DEBUG", "False") == "False"
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
-DOMAIN_URL = os.getenv('*')
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if render_hostname:
+    ALLOWED_HOSTS.append(render_hostname)
+
+DOMAIN_URL = os.getenv("DOMAIN_URL", "")
 
 # ========================
 # APPLICATION DEFINITION
@@ -47,6 +51,47 @@ INSTALLED_APPS = [
     'django_select2',
 ]
 
+# ========================
+# JAZZMIN CONFIGURATION
+# ========================
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Klumus Admin",
+    "site_header": "Klumus",
+    "site_brand": "Klumus",
+    "site_logo": None,
+    "welcome_sign": "Welcome to Klumus Administration",
+    "copyright": "Klumus Tech",
+    "search_model": ["account.CustomUser", "account.School"],
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "account.CustomUser": "fas fa-user-shield",
+        "account.School": "fas fa-school",
+        "account.Subscription": "fas fa-id-card",
+        "account.Package": "fas fa-box",
+    },
+    "order_with_respect_to": ["auth", "account"],
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "flatly",
+    "dark_mode_theme": "darkly",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "sidebar": "sidebar-light-primary",
+    "no_sidebar_border": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -70,6 +115,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'account.context_processors.notifications_context',
             ],
         },
     },
@@ -81,13 +127,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # DATABASE CONFIGURATION
 # ========================
 
-# DATABASE_URL = os.getenv("DATABASE_URL")
-# if DATABASE_URL:
-#     DATABASES = {
-#         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-#     }
-# else:
-DATABASES = {
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=False
+        )
+    }
+else:
+    DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
@@ -121,13 +171,30 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if DEBUG:
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+else:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "account.CustomUser"
+
+# ========================
+# CACHE CONFIGURATION
+# ========================
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "klumus-cache",
+        "TIMEOUT": 300,
+    }
+}
+
+CACHE_DEFAULT_TIMEOUT = 300
 
 # ========================
 # PAYSTACK CONFIGURATION
@@ -151,11 +218,17 @@ PAYSTACK_BASE_URL = "https://api.paystack.co"
 # DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"
 # SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
-EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
-SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-SENDGRID_ECHO_TO_STDOUT = True
+
+# In local development (or when API key is missing), keep email local
+# so user actions like registration don't crash on missing SendGrid backend.
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+    SENDGRID_ECHO_TO_STDOUT = True
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # In settings.py
@@ -197,3 +270,14 @@ CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}"]
 # settings.py - Add these for better performance
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+
+# ========================
+# CELERY CONFIGURATION
+# ========================
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE

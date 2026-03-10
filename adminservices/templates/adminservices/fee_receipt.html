@@ -1,3 +1,4 @@
+{% load static media_tags %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -156,6 +157,11 @@
     <button class="print-btn no-print" onclick="window.print()">🖨️ Print Receipt</button>
     
     <div class="header">
+        {% if school.logo %}
+            <div style="margin-bottom: 10px;">
+                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" style="height: 70px; max-width: 200px; object-fit: contain;">
+            </div>
+        {% endif %}
         <div class="school-name">{{ school.name }}</div>
         <div class="school-address">{{ school.address }}</div>
         <div class="school-address">Phone: {{ school.phone_number }} | Email: {{ school.email }}</div>
@@ -210,7 +216,7 @@
         <thead>
             <tr>
                 <th>Description</th>
-                <th>Amount</th>
+                <th>Amount (GHS)</th>
                 <th>Status</th>
                 <th>Due Date</th>
             </tr>
@@ -218,19 +224,19 @@
         <tbody>
             <tr>
                 <td>{{ fee.get_fee_type_display }}</td>
-                <td>${{ fee.amount }}</td>
+                <td>₵{{ fee.amount }}</td>
                 <td>{{ fee.get_status_display }}</td>
                 <td>{{ fee.due_date }}</td>
             </tr>
             {% if fee.paid_amount %}
             <tr>
-                <td colspan="3" style="text-align: right; font-weight: bold;">Paid Amount:</td>
-                <td style="font-weight: bold;">${{ fee.paid_amount }}</td>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Paid Amount (GHS):</td>
+                <td style="font-weight: bold;">₵{{ fee.paid_amount }}</td>
             </tr>
             <tr>
-                <td colspan="3" style="text-align: right; font-weight: bold;">Balance:</td>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Balance (GHS):</td>
                 <td style="font-weight: bold; color: {% if fee.balance > 0 %}red{% else %}green{% endif %};">
-                    ${{ fee.balance }}
+                    ₵{{ fee.balance }}
                 </td>
             </tr>
             {% endif %}

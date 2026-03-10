@@ -4,6 +4,8 @@ from account.models import Enrollment, ResultSheet, Student, Teacher, Enrollment
 from django.db import models
 from django.db.models import Q,Avg,Count
 from django.utils import timezone
+from django.urls import reverse
+from adminservices.utils import create_in_app_notification
 from django.contrib.auth.decorators import login_required
 from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm,AssignmentSubmissionForm)
 
@@ -130,6 +132,38 @@ def student_dashboard(request):
     }
     
     return render(request, 'student/student_dashboard.html', context)
+
+@login_required
+def student_detail(request):
+    """Student profile detail view"""
+    if request.user.role != "student":
+        messages.error(request, "Access denied")
+        return redirect("account:login")
+
+    try:
+        student = request.user.student_profile
+    except Student.DoesNotExist:
+        messages.error(request, "Student profile not found")
+        return redirect("account:login")
+
+    enrollments_count = Enrollment.objects.filter(student=student, is_active=True).count()
+
+    total_attendance = Attendance.objects.filter(student=student).count()
+    present_count = Attendance.objects.filter(student=student, status='present').count()
+    attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
+
+    pending_fees = Fees.objects.filter(student=student, paid=False).order_by('due_date')
+    total_pending_fees = sum(fee.net_amount() for fee in pending_fees)
+
+    context = {
+        "student": student,
+        "enrollments_count": enrollments_count,
+        "attendance_rate": attendance_rate,
+        "pending_fees": pending_fees[:5],
+        "total_pending_fees": total_pending_fees,
+    }
+
+    return render(request, "student/student_detail.html", context)
 
 def view_result(request, student_id):
     """View student results with proper authorization"""
@@ -337,6 +371,20 @@ def submit_assignment(request, assignment_id):
             submission.status = "submitted" if not assignment.is_overdue() else "late"
             submission.submission_date = timezone.now()
             submission.save()
+
+            # Notify teacher about submission
+            try:
+                create_in_app_notification(
+                    user=assignment.teacher.user,
+                    title=f"Assignment submitted: {assignment.title}",
+                    message=f"{student.user.get_full_name()} submitted the assignment.",
+                    notification_type="assignment",
+                    related_object=submission,
+                    link=reverse("teacher:assignment-submissions", args=[assignment.id]),
+                )
+            except Exception:
+                pass
+
             messages.success(request, "Assignment submitted successfully!")
             return redirect("student:assignment-detail", assignment_id=assignment.id)
         else:

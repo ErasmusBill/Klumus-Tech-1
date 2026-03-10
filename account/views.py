@@ -7,18 +7,29 @@ from django.contrib.auth import login, authenticate,update_session_auth_hash,log
 from django.urls import reverse
 from requests import Request
 from .utils import initialize_paystack_payment, verify_payment, send_subscription_email
-from .models import CustomUser, RequestPasswordReset, School, Subscription, Package
+from .models import CustomUser, RequestPasswordReset, School, Subscription, Package, Notification
 from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordForm,PasswordResetForm
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import json
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 
 
 def home(request):
     subscription = Subscription.objects.all()
     packages = Package.objects.all()
-    return render(request,"account/home.html",{"subscription":subscription,"packages":packages})
+    packages_by_name = {p.name: p for p in packages}
+    return render(
+        request,
+        "account/home.html",
+        {
+            "subscription": subscription,
+            "packages": packages,
+            "packages_by_name": packages_by_name,
+            "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
+        },
+    )
 
 def register_school(request):
     if request.method == "POST":
@@ -57,13 +68,15 @@ def register_school(request):
                 is_trial=True,
             )
 
-            send_subscription_email(
+            email_sent = send_subscription_email(
                 admin_user.email,
                 "Free Trial Activated",
                 f"Hello {admin_user.first_name}, your school '{school.name}' has been registered with a free 30-day trial."
             )
 
             messages.success(request, "School registered successfully! Free trial activated (30 days).")
+            if not email_sent:
+                messages.warning(request, "Registration completed, but the confirmation email could not be sent.")
             return redirect("account:login")
     else:
         form = SchoolRegistrationForm()
@@ -76,7 +89,7 @@ def login_user(request):
 
         if not username or not password:
             messages.error(request, "Please enter both username and password.")
-            return redirect("administration:login")
+            return redirect("account:login")
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
@@ -108,6 +121,19 @@ def logout_user(request):
     messages.success(request, "You have been logged out.")
     return redirect("account:home")
 
+
+@login_required(login_url="account:login")
+def notification_go(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.mark_as_read()
+    return redirect(notification.link or request.META.get("HTTP_REFERER") or "account:home")
+
+
+@login_required(login_url="account:login")
+def notifications_clear(request):
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return redirect(request.GET.get("next") or request.META.get("HTTP_REFERER") or "account:home")
+
 def change_password(request):
     if not request.user.is_authenticated:
         raise PermissionDenied("You are not authorized to perform this action")
@@ -123,7 +149,7 @@ def change_password(request):
             
             if not current_password or not new_password or not confirm_password:
                 messages.error(request,"All fields are required")
-                return redirect(request,"account:change-password")
+                return redirect("account:change-password")
 
            
             if not user.check_password(current_password):
@@ -139,7 +165,7 @@ def change_password(request):
             messages.success(request, "Your password has been changed successfully.")
             
             if request.user.role == "admin":
-                return redirect("administration:admin-dashboard")
+                return redirect("adminservices:admin-dashboard")
             elif request.user.role == "teacher":
                 return redirect("teacher:teacher-dashboard")  
             elif request.user.role == "student":
@@ -236,17 +262,32 @@ def select_package(request):
     return render(request, "account/login.html", {"packages": packages})
 
 
+@login_required(login_url="account:login")
 def initiate_payment(request, package_id):
     package = get_object_or_404(Package, id=package_id)
-    school = request.user.school
+    school = getattr(request.user, "managed_school", None)
+    if not school:
+        messages.error(request, "Your account is not linked to a school.")
+        return redirect("account:register-school")
 
-    callback_url = request.build_absolute_uri(reverse("verify_payment"))
+    callback_url = request.build_absolute_uri(
+        reverse("account:verify-payment", kwargs={"school_id": school.id})
+    )
+
+    metadata = {
+        "school_id": str(school.id),
+        "package_id": str(package.id),
+        "custom_fields": [
+            {"display_name": "School ID", "variable_name": "school_id", "value": str(school.id)},
+            {"display_name": "Package ID", "variable_name": "package_id", "value": str(package.id)},
+        ],
+    }
 
     response = initialize_paystack_payment(
         email=request.user.email,
         amount=package.price,
         callback_url=callback_url,
-        metadata={"school_id": school.id, "package_id": package.id},
+        metadata=metadata,
     )
 
     if response.get("status"):
@@ -255,36 +296,50 @@ def initiate_payment(request, package_id):
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
 
-def verify_payment_view(request,school_id):
+def verify_payment_view(request, school_id):
     # school = School.objects.select_related('admin').get(id=school_id)
+    reference = None
     if request.method == "POST":
         data = json.loads(request.body)
         reference = data.get("reference")
+    else:
+        reference = request.GET.get("reference")
 
-        response = verify_payment(reference)
+    if not reference:
+        messages.error(request, "Payment reference not provided.")
+        return redirect("account:select-package")
 
-        if response.get("status") and response["data"]["status"] == "success": # type: ignore
-            metadata = response["data"]["metadata"]  # type: ignore
+    response = verify_payment(reference)
+
+    if response.get("status") and response["data"]["status"] == "success": # type: ignore
+        metadata = response["data"]["metadata"]  # type: ignore
+        fields = {}
+        if isinstance(metadata, dict) and metadata.get("custom_fields"):
             fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}  # type: ignore
-
-            # school = School.objects.get(id=school_id)
-            school = School.objects.select_related('admin').get(id=school_id)
-            package = Package.objects.get(id=fields["package_id"])
-
-            subscription = Subscription.objects.filter(school=school).first()
-            subscription.package = package
-            subscription.is_active = True
-            subscription.is_trial = False
-            subscription.start_date = timezone.now()
-            subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
-            subscription.save()
-
-            messages.success(request, "Payment verified! Your subscription is now active.")
-            return redirect("account:login")
-
         else:
-            messages.error(request, "Payment verification failed. Try again.")
+            fields = metadata if isinstance(metadata, dict) else {}
+
+        school = School.objects.select_related('admin').get(id=school_id)
+        package_id = fields.get("package_id")
+        if not package_id:
+            messages.error(request, "Payment metadata missing package ID.")
             return redirect("account:select-package")
+        package = Package.objects.get(id=package_id)
+
+        subscription = Subscription.objects.filter(school=school).first()
+        subscription.package = package
+        subscription.is_active = True
+        subscription.is_trial = False
+        subscription.start_date = timezone.now()
+        subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
+        subscription.save()
+
+        messages.success(request, "Payment verified! Your subscription is now active.")
+        return redirect("account:login")
+
+    else:
+        messages.error(request, "Payment verification failed. Try again.")
+        return redirect("account:select-package")
 
 def upgrade_package(request, new_package_id):
     school = request.user.school

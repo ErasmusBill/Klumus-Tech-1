@@ -1,234 +1,206 @@
 {% extends 'teacher/base.html' %}
 {% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} | Kiddo Care{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-xl-8 col-lg-10 col-md-12">
-    <div class="card shadow-lg border-0">
-      <div class="card-header bg-gradient-primary text-white py-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <h4 class="card-title mb-0 text-white">
-            <i class="fas fa-clipboard-check me-2"></i>{{ title }}
-          </h4>
-          <span class="badge bg-light text-primary">Attendance</span>
+<div class="page-wrapper px-4">
+    <div class="content container-fluid">
+
+        <div class="page-header border-0 mb-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title text-2xl font-extrabold text-slate-800">{{ title }}</h3>
+                    <ul class="breadcrumb bg-transparent p-0">
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}" class="text-indigo-600 font-bold">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:attendance-list' %}" class="text-indigo-600 font-bold">Attendance</a></li>
+                        <li class="breadcrumb-item active text-slate-400">Log Entry</li>
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
-      
-      <div class="card-body p-5">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
-              <div class="d-flex align-items-center">
-                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
-                <span>{{ message }}</span>
-              </div>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          {% endfor %}
-        {% endif %}
 
-        <form method="post" class="needs-validation" novalidate>
-          {% csrf_token %}
-          
-          <div class="row g-4">
-            <!-- Left Column -->
-            <div class="col-lg-6">
-              <!-- Attendance Type -->
-              <div class="form-group">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-users me-2 text-primary"></i>{{ form.attendance_type.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-user-tag text-muted"></i>
-                  </span>
-                  {{ form.attendance_type }}
-                </div>
-                {% if form.attendance_type.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.attendance_type.errors }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Student Field with Type-to-Search -->
-              <div class="form-group" id="student-field">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-user-graduate me-2 text-success"></i>Select Student
-                </label>
-                <div class="student-search-container">
-                  <div class="input-group">
-                    <span class="input-group-text bg-light">
-                      <i class="fas fa-search text-muted"></i>
-                    </span>
-                    <input type="text" 
-                           class="form-control" 
-                           id="studentSearchInput" 
-                           placeholder="Type student name to search..."
-                           autocomplete="off">
-                    <input type="hidden" name="student" id="id_student" value="{{ form.student.value|default:'' }}">
-                  </div>
-                  
-                  <!-- Search Results Dropdown -->
-                  <div class="search-results dropdown-menu w-100" id="studentResults" style="display: none;">
-                    <div class="p-2 border-bottom">
-                      <small class="text-muted">Search results</small>
+        <div class="row justify-content-center">
+            <div class="col-xl-10">
+                <div class="card border-0 shadow-sm rounded-[2rem] overflow-hidden">
+                    <div class="card-header bg-indigo-600 text-white py-4 px-4 px-md-5">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white bg-opacity-20 p-3 rounded-2xl me-3">
+                                <i class="fas fa-clipboard-check fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 font-extrabold text-white">Attendance Logger</h5>
+                                <p class="mb-0 text-indigo-100 text-xs opacity-80">Capture real-time presence for students or staff</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="search-results-list" style="max-height: 250px; overflow-y: auto;">
-                      <!-- Results will be populated by JavaScript -->
+
+                    <div class="card-body p-4 p-md-5">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} rounded-2xl border-0 shadow-sm mb-4">
+                                    <i class="fas fa-info-circle me-2"></i> {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <form method="post" id="attendanceForm" class="needs-validation" novalidate>
+                            {% csrf_token %}
+
+                            <div class="row g-5">
+                                <div class="col-lg-6">
+                                    <div class="section-label mb-4">
+                                        <span class="badge bg-indigo-50 text-indigo-600 rounded-pill px-3 py-2 font-bold uppercase tracking-wider text-[10px]">1. Target Information</span>
+                                    </div>
+
+                                    <div class="form-group mb-4">
+                                        <label class="form-label font-bold text-slate-700">Person Type</label>
+                                        <div class="input-group-modern">
+                                            {{ form.attendance_type }}
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-4" id="student-field">
+                                        <label class="form-label font-bold text-slate-700">Find Student</label>
+                                        <div class="position-relative">
+                                            <div class="input-group-modern search-group">
+                                                <i class="fas fa-search search-icon"></i>
+                                                <input type="text" id="studentSearchInput" class="form-control ps-5 rounded-3xl border-2 border-slate-100 py-3" placeholder="Type name or student ID...">
+                                                <input type="hidden" name="student" id="id_student" value="{{ form.student.value|default:'' }}">
+                                            </div>
+
+                                            <div class="search-results-overlay shadow-lg rounded-3xl" id="studentResults" style="display: none;">
+                                                <div class="search-results-list"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="selected-student-card mt-3 bg-emerald-50 border border-emerald-100 rounded-3xl p-3" id="selectedStudent" style="display: none;">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle bg-emerald-600 text-white me-3">
+                                                    <i class="fas fa-user-check"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="font-extrabold text-emerald-900" id="selectedStudentName"></div>
+                                                    <div class="text-[10px] font-medium text-emerald-600 opacity-80" id="selectedStudentInfo"></div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-white rounded-circle shadow-sm" id="clearStudent">
+                                                    <i class="fas fa-times text-danger"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-4" id="teacher-field">
+                                        <label class="form-label font-bold text-slate-700">Select Staff</label>
+                                        {{ form.teacher }}
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label font-bold text-slate-700">Subject / Class Context</label>
+                                        {{ form.class_attendance }}
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="section-label mb-4">
+                                        <span class="badge bg-amber-50 text-amber-600 rounded-pill px-3 py-2 font-bold uppercase tracking-wider text-[10px]">2. Record Details</span>
+                                    </div>
+
+                                    <div class="row g-4">
+                                        <div class="col-md-6">
+                                            <label class="form-label font-bold text-slate-700">Date</label>
+                                            {{ form.date }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label font-bold text-slate-700">Attendance Status</label>
+                                            {{ form.status }}
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label font-bold text-slate-700">Observations / Remarks</label>
+                                            {{ form.remarks }}
+                                            <p class="text-[10px] text-slate-400 mt-2 italic font-medium">Add details like "Arrived late due to rain" or "Left early for medical appointment".</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-column flex-md-row justify-content-end gap-3 mt-5 pt-4 border-top border-slate-50">
+                                <a href="{% url 'teacher:attendance-list' %}" class="btn btn-light rounded-pill px-4 py-3 font-bold text-slate-500 order-2 order-md-1">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-indigo-primary rounded-pill px-5 py-3 font-extrabold shadow-lg order-1 order-md-2" id="submitBtn">
+                                    <i class="fas fa-check-circle me-2"></i> Confirm Record
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                  </div>
-                  
-                  <!-- Selected Student Display -->
-                  <div class="selected-student mt-2 p-3 bg-light rounded" id="selectedStudent" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <strong id="selectedStudentName"></strong>
-                        <br>
-                        <small class="text-muted" id="selectedStudentInfo"></small>
-                      </div>
-                      <button type="button" class="btn btn-sm btn-outline-danger" id="clearStudent">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
                 </div>
-                {% if form.student.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.student.errors }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Teacher Field -->
-              <div class="form-group" id="teacher-field">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-chalkboard-teacher me-2 text-warning"></i>{{ form.teacher.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-user-tie text-muted"></i>
-                  </span>
-                  {{ form.teacher }}
-                </div>
-                {% if form.teacher.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.teacher.errors }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Class Attendance -->
-              <div class="form-group">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-school me-2 text-info"></i>{{ form.class_attendance.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-book text-muted"></i>
-                  </span>
-                  {{ form.class_attendance }}
-                </div>
-                {% if form.class_attendance.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.class_attendance.errors }}
-                  </div>
-                {% endif %}
-              </div>
             </div>
-
-            <!-- Right Column -->
-            <div class="col-lg-6">
-              <!-- Date Field -->
-              <div class="form-group">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-calendar-alt me-2 text-danger"></i>{{ form.date.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-calendar text-muted"></i>
-                  </span>
-                  {{ form.date }}
-                </div>
-                {% if form.date.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.date.errors }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Status Field -->
-              <div class="form-group">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-clipboard-list me-2 text-success"></i>{{ form.status.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-check-circle text-muted"></i>
-                  </span>
-                  {{ form.status }}
-                </div>
-                {% if form.status.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.status.errors }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Remarks Field -->
-              <div class="form-group">
-                <label class="form-label fw-bold text-dark mb-2">
-                  <i class="fas fa-comment-dots me-2 text-secondary"></i>{{ form.remarks.label }}
-                </label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light align-items-start">
-                    <i class="fas fa-sticky-note text-muted mt-1"></i>
-                  </span>
-                  {{ form.remarks }}
-                </div>
-                {% if form.remarks.errors %}
-                  <div class="text-danger small mt-2">
-                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.remarks.errors }}
-                  </div>
-                {% endif %}
-                <div class="form-text">Optional notes about the attendance</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="row mt-5">
-            <div class="col-12">
-              <div class="d-flex justify-content-end gap-3">
-                <a href="{% url 'teacher:attendance-list' %}" class="btn btn-lg btn-outline-secondary px-4">
-                  <i class="fas fa-arrow-left me-2"></i>Cancel
-                </a>
-                <button type="submit" class="btn btn-lg btn-primary px-4 shadow-sm">
-                  <i class="fas fa-save me-2"></i>{{ title }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
+        </div>
     </div>
-  </div>
 </div>
+
+<style>
+    /* Premium Input Styling */
+    .form-control, .form-select {
+        border-radius: 1rem !important;
+        border: 2px solid #f1f5f9 !important;
+        padding: 12px 16px !important;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+    }
+
+    /* Modern Student Search */
+    .search-group { position: relative; }
+    .search-icon {
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        z-index: 10;
+    }
+    .search-results-overlay {
+        position: absolute;
+        width: 100%;
+        background: white;
+        z-index: 1000;
+        margin-top: 10px;
+        border: 1px solid #f1f5f9;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .student-result-item {
+        padding: 12px 20px;
+        border-bottom: 1px solid #f8fafc;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .student-result-item:hover { background: #f1f5f9; }
+
+    /* Buttons */
+    .btn-indigo-primary { background: #4f46e5; color: white; border: none; }
+    .btn-indigo-primary:hover { background: #4338ca; color: white; transform: translateY(-2px); }
+    .avatar-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+    /* Custom spacing */
+    .section-label { border-left: 3px solid #6366f1; padding-left: 10px; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Student data from Django context
+// Mimicking your Django queryset context
 const studentData = [
     {% for student in form.fields.student.queryset %}
     {
         id: "{{ student.id }}",
         name: "{{ student.user.get_full_name|default:student.user.username }}",
-        username: "{{ student.user.username }}",
-        grade: "{{ student.grade|default:'No grade' }}",
-        email: "{{ student.user.email|default:'No email' }}"
+        info: "{{ student.student_id }} • {{ student.get_student_class_display }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ];
@@ -237,283 +209,68 @@ document.addEventListener('DOMContentLoaded', function () {
     const typeSelect = document.getElementById('id_attendance_type');
     const studentField = document.getElementById('student-field');
     const teacherField = document.getElementById('teacher-field');
-    
-    // Student search elements
-    const studentSearchInput = document.getElementById('studentSearchInput');
-    const studentResults = document.getElementById('studentResults');
-    const studentResultsList = studentResults.querySelector('.search-results-list');
-    const selectedStudent = document.getElementById('selectedStudent');
-    const selectedStudentName = document.getElementById('selectedStudentName');
-    const selectedStudentInfo = document.getElementById('selectedStudentInfo');
-    const studentHiddenInput = document.getElementById('id_student');
-    const clearStudentBtn = document.getElementById('clearStudent');
+    const searchInput = document.getElementById('studentSearchInput');
+    const resultsOverlay = document.getElementById('studentResults');
+    const resultsList = resultsOverlay.querySelector('.search-results-list');
+    const hiddenIdInput = document.getElementById('id_student');
+    const selectedDisplay = document.getElementById('selectedStudent');
 
-    // Toggle between student and teacher fields
+    // Toggle logic based on "Person Type"
     function toggleFields() {
         if (typeSelect.value === 'student') {
             studentField.style.display = 'block';
             teacherField.style.display = 'none';
-            document.getElementById('id_teacher').value = '';
         } else {
             studentField.style.display = 'none';
             teacherField.style.display = 'block';
-            clearStudentSelection();
+            clearSelection();
         }
     }
 
-    // Clear student selection
-    function clearStudentSelection() {
-        studentHiddenInput.value = '';
-        selectedStudent.style.display = 'none';
-        studentSearchInput.value = '';
-        hideResults();
+    function clearSelection() {
+        hiddenIdInput.value = '';
+        selectedDisplay.style.display = 'none';
+        searchInput.value = '';
     }
 
-    // Show search results
-    function showResults() {
-        studentResults.style.display = 'block';
-    }
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        if (query.length < 2) { resultsOverlay.style.display = 'none'; return; }
 
-    // Hide search results
-    function hideResults() {
-        studentResults.style.display = 'none';
-    }
+        const filtered = studentData.filter(s => s.name.toLowerCase().includes(query) || s.id.includes(query));
+        renderResults(filtered);
+    });
 
-    // Search students function
-    function searchStudents(query) {
-        if (query.length < 2) {
-            hideResults();
-            return;
-        }
-
-        const searchTerm = query.toLowerCase();
-        const filteredStudents = studentData.filter(student => 
-            student.name.toLowerCase().includes(searchTerm) ||
-            student.username.toLowerCase().includes(searchTerm) ||
-            student.email.toLowerCase().includes(searchTerm)
-        );
-
-        displayResults(filteredStudents);
-    }
-
-    // Display search results
-    function displayResults(students) {
-        studentResultsList.innerHTML = '';
-
-        if (students.length === 0) {
-            studentResultsList.innerHTML = `
-                <div class="p-3 text-center text-muted">
-                    <i class="fas fa-search me-2"></i>No students found
-                </div>
-            `;
-            showResults();
-            return;
-        }
-
-        students.forEach(student => {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'dropdown-item student-result';
-            resultItem.style.cursor = 'pointer';
-            resultItem.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-medium">${student.name}</div>
-                        <div class="small text-muted">
-                            <span class="me-2">${student.username}</span>
-                            <span class="me-2">•</span>
-                            <span>${student.grade}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            resultItem.addEventListener('click', () => {
-                selectStudent(student);
-            });
-
-            studentResultsList.appendChild(resultItem);
+    function renderResults(list) {
+        resultsList.innerHTML = list.length ? '' : '<div class="p-4 text-center text-slate-400 text-sm">No students found</div>';
+        list.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'student-result-item';
+            div.innerHTML = `<div class="font-bold text-slate-800">${s.name}</div><div class="text-[10px] text-slate-400">${s.info}</div>`;
+            div.onclick = () => selectStudent(s);
+            resultsList.appendChild(div);
         });
-
-        showResults();
+        resultsOverlay.style.display = 'block';
     }
 
-    // Select a student
-    function selectStudent(student) {
-        studentHiddenInput.value = student.id;
-        selectedStudentName.textContent = student.name;
-        selectedStudentInfo.textContent = `${student.username} • ${student.grade} • ${student.email}`;
-        selectedStudent.style.display = 'block';
-        studentSearchInput.value = '';
-        hideResults();
+    function selectStudent(s) {
+        hiddenIdInput.value = s.id;
+        document.getElementById('selectedStudentName').textContent = s.name;
+        document.getElementById('selectedStudentInfo').textContent = s.info;
+        selectedDisplay.style.display = 'block';
+        resultsOverlay.style.display = 'none';
+        searchInput.value = '';
     }
 
-    // Event listeners for student search
-    studentSearchInput.addEventListener('input', function(e) {
-        searchStudents(e.target.value);
-    });
+    document.getElementById('clearStudent').onclick = clearSelection;
+    typeSelect.onchange = toggleFields;
+    toggleFields();
 
-    studentSearchInput.addEventListener('focus', function() {
-        if (this.value.length >= 2) {
-            searchStudents(this.value);
-        }
-    });
-
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!studentSearchInput.contains(e.target) && !studentResults.contains(e.target)) {
-            hideResults();
-        }
-    });
-
-    // Clear student selection
-    clearStudentBtn.addEventListener('click', clearStudentSelection);
-
-    // Initialize with existing student value if any
-    function initializeExistingStudent() {
-        if (studentHiddenInput.value) {
-            const existingStudent = studentData.find(student => student.id == studentHiddenInput.value);
-            if (existingStudent) {
-                selectStudent(existingStudent);
-            }
-        }
-    }
-
-    // Initialize fields on load
-    if (typeSelect) {
-        typeSelect.addEventListener('change', toggleFields);
-        toggleFields();
-        initializeExistingStudent();
-    }
-
-    // Form validation
-    const forms = document.querySelector('.needs-validation');
-    if (forms) {
-        forms.addEventListener('submit', function(event) {
-            if (!forms.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            forms.classList.add('was-validated');
-        }, false);
-    }
-
-    // Keyboard navigation for search results
-    studentSearchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            const firstResult = studentResultsList.querySelector('.student-result');
-            if (firstResult) firstResult.focus();
-        }
-    });
+    // Prevent double submit
+    document.getElementById('attendanceForm').onsubmit = () => {
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Recording...';
+        document.getElementById('submitBtn').disabled = true;
+    };
 });
 </script>
-
-<style>
-.card {
-    border: none;
-    border-radius: 15px;
-}
-
-.card-header {
-    border-radius: 15px 15px 0 0 !important;
-    border-bottom: none;
-}
-
-.form-control, .form-select {
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    padding: 12px 15px;
-    transition: all 0.3s ease;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
-}
-
-.input-group-text {
-    border-radius: 10px 0 0 10px;
-    border: 1px solid #e2e8f0;
-    background-color: #f8fafc;
-}
-
-.student-search-container {
-    position: relative;
-}
-
-.search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    background: white;
-}
-
-.student-result {
-    border-radius: 8px;
-    margin: 2px 5px;
-    padding: 10px 15px;
-    transition: all 0.2s ease;
-    border: none;
-}
-
-.student-result:hover, .student-result:focus {
-    background-color: #f1f5f9;
-    outline: none;
-}
-
-.avatar-sm {
-    width: 32px;
-    height: 32px;
-    font-size: 0.8rem;
-}
-
-.selected-student {
-    border-left: 4px solid #28a745;
-}
-
-.btn {
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 12px 30px;
-    transition: all 0.3s ease;
-}
-
-.alert {
-    border-radius: 10px;
-    border: none;
-}
-
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 2rem !important;
-    }
-    
-    .btn-lg {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-    }
-    
-    .search-results {
-        position: fixed;
-        left: 10px;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        max-height: 70vh;
-    }
-}
-</style>
 {% endblock %}

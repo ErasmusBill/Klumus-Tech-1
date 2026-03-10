@@ -1,5 +1,5 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Promotion History - {{ student.user.get_full_name }}{% endblock %}
 
@@ -33,7 +33,10 @@
             <div class="card-body">
                 <div class="text-center mb-3">
                     {% if student.student_image %}
-                        <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" 
+                        <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" 
+                             class="rounded-circle" width="80" height="80">
+                    {% elif student.user.profile_picture %}
+                        <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" 
                              class="rounded-circle" width="80" height="80">
                     {% else %}
                         <div class="avatar-placeholder rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 

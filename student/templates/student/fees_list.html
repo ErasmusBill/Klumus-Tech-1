@@ -41,7 +41,7 @@
                                     <thead>
                                         <tr>
                                             <th>Fee Type</th>
-                                            <th>Amount</th>
+                                            <th>Amount (GHS)</th>
                                             <th>Due Date</th>
                                             <th>Status</th>
                                             <th>Payment Date</th>
@@ -51,7 +51,7 @@
                                         {% for fee in fees %}
                                         <tr>
                                             <td>{{ fee.fee_type|default:"General Fee" }}</td>
-                                            <td>${{ fee.amount|floatformat:2 }}</td>
+                                            <td>₵{{ fee.amount|floatformat:2 }}</td>
                                             <td>{{ fee.due_date|date:"M d, Y" }}</td>
                                             <td>
                                                 {% if fee.paid %}

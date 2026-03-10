@@ -1,5 +1,5 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 {% block title %}Teacher Dashboard - {{ teacher.user.get_full_name }}{% endblock %}
 
 {% block content %}
@@ -180,7 +180,10 @@
             </div>
             <div class="card-body text-center">
                 {% if teacher.user.profile_picture %}
-                    <img src="{{ teacher.user.profile_picture.url }}" alt="{{ teacher.user.get_full_name }}" 
+                    <img src="{{ teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}" 
+                         class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                {% elif teacher.image %}
+                    <img src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}" 
                          class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
                 {% else %}
                     <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Profile" 

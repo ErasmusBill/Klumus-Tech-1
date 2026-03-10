@@ -1,557 +1,170 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0">
-<title>Preskool - Login</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px 15px;
-    }
-    
-    .login-container {
-        width: 100%;
-        max-width: 1100px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        overflow: hidden;
-        display: flex;
-        min-height: 600px;
-    }
-    
-    .left-panel {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 60px 50px;
-        color: white;
-        width: 45%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .left-panel::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: pulse 15s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-    
-    .logo-section {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        margin-bottom: 50px;
-    }
-    
-    .logo-section .icon {
-        font-size: 100px;
-        margin-bottom: 20px;
-        opacity: 0.95;
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    
-    .logo-section h1 {
-        font-size: 42px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        letter-spacing: 1px;
-    }
-    
-    .logo-section p {
-        opacity: 0.9;
-        font-size: 16px;
-        font-weight: 300;
-    }
-    
-    .welcome-text {
-        position: relative;
-        z-index: 1;
-        margin-top: 40px;
-    }
-    
-    .welcome-text h3 {
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 15px;
-    }
-    
-    .welcome-text p {
-        font-size: 15px;
-        opacity: 0.9;
-        line-height: 1.6;
-    }
-    
-    .features {
-        position: relative;
-        z-index: 1;
-        margin-top: 40px;
-    }
-    
-    .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-        padding: 12px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .feature-item i {
-        font-size: 24px;
-        margin-right: 15px;
-    }
-    
-    .feature-item span {
-        font-size: 14px;
-        font-weight: 500;
-    }
-    
-    .right-panel {
-        flex: 1;
-        padding: 60px 70px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    
-    .form-header {
-        margin-bottom: 40px;
-    }
-    
-    .form-header h2 {
-        font-size: 32px;
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 10px;
-    }
-    
-    .form-header p {
-        color: #718096;
-        font-size: 15px;
-    }
-    
-    .alert {
-        padding: 14px 18px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        animation: slideDown 0.3s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .alert-danger {
-        background: #fff5f5;
-        border: 1px solid #feb2b2;
-        color: #c53030;
-    }
-    
-    .alert-success {
-        background: #f0fff4;
-        border: 1px solid #9ae6b4;
-        color: #2f855a;
-    }
-    
-    .alert i {
-        font-size: 20px;
-    }
-    
-    .form-group {
-        margin-bottom: 25px;
-    }
-    
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 10px;
-        font-size: 14px;
-    }
-    
-    .input-group {
-        position: relative;
-    }
-    
-    .input-group i {
-        position: absolute;
-        left: 18px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #a0aec0;
-        font-size: 18px;
-        z-index: 1;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 14px 20px 14px 50px;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        font-size: 15px;
-        transition: all 0.3s;
-        font-family: 'Poppins', sans-serif;
-        background: #fafafa;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        background: white;
-    }
-    
-    .form-control::placeholder {
-        color: #cbd5e0;
-    }
-    
-    .password-toggle {
-        position: absolute;
-        right: 18px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        color: #a0aec0;
-        font-size: 18px;
-        z-index: 2;
-        transition: color 0.3s;
-    }
-    
-    .password-toggle:hover {
-        color: #667eea;
-    }
-    
-    .form-options {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-    }
-    
-    .remember-me {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-    }
-    
-    .remember-me input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: #667eea;
-    }
-    
-    .remember-me label {
-        font-size: 14px;
-        color: #4a5568;
-        cursor: pointer;
-        margin: 0;
-        font-weight: 500;
-    }
-    
-    .forgot-password {
-        color: #667eea;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 600;
-        transition: color 0.3s;
-    }
-    
-    .forgot-password:hover {
-        color: #764ba2;
-        text-decoration: underline;
-    }
-    
-    .btn-login {
-        width: 100%;
-        padding: 16px;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 16px;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 25px;
-    }
-    
-    .btn-login:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-login:active {
-        transform: translateY(0);
-    }
-    
-    .divider {
-        display: flex;
-        align-items: center;
-        margin: 30px 0;
-        color: #a0aec0;
-        font-size: 14px;
-    }
-    
-    .divider::before,
-    .divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #e2e8f0;
-    }
-    
-    .divider span {
-        padding: 0 15px;
-    }
-    
-    .register-link {
-        text-align: center;
-        color: #718096;
-        font-size: 15px;
-    }
-    
-    .register-link a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.3s;
-    }
-    
-    .register-link a:hover {
-        color: #764ba2;
-        text-decoration: underline;
-    }
-    
-    .role-badges {
-        display: flex;
-        gap: 10px;
-        margin-top: 30px;
-        flex-wrap: wrap;
-    }
-    
-    .role-badge {
-        padding: 8px 16px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 20px;
-        font-size: 13px;
-        backdrop-filter: blur(10px);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    @media (max-width: 992px) {
-        .login-container {
-            flex-direction: column;
-        }
-        
-        .left-panel {
-            width: 100%;
-            padding: 40px 30px;
-            min-height: auto;
-        }
-        
-        .welcome-text,
-        .features {
-            display: none;
-        }
-        
-        .right-panel {
-            padding: 40px 30px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .logo-section .icon {
-            font-size: 70px;
-        }
-        
-        .logo-section h1 {
-            font-size: 32px;
-        }
-        
-        .form-header h2 {
-            font-size: 26px;
-        }
-        
-        .form-options {
-            flex-direction: column;
-            gap: 15px;
-            align-items: flex-start;
-        }
-    }
-</style>
-</head>
-<body>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiddoCore | Login</title>
 
-<div class="login-container">
-    <!-- Left Panel -->
-    <div class="left-panel">
-        <div class="logo-section">
-            <div class="icon"><i class="fas fa-graduation-cap"></i></div>
-            <h1>KIDDO CORE</h1>
-            <p>School Management System</p>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'sans': ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            dark: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top right, #e0e7ff 0%, #ffffff 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .input-focus-effect:focus {
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            border-color: #6366f1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+    </style>
+</head>
+<body class="flex items-center justify-center p-6 antialiased text-slate-900">
+
+<div class="w-full max-w-5xl glass-card rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[700px]">
+
+    <div class="md:w-5/12 bg-brand-dark p-12 text-white flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-64 h-64 bg-brand-600 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
+
+        <div class="relative z-10">
+            <div class="flex items-center gap-3 mb-12">
+                <div class="bg-brand-500 p-2 rounded-xl text-white shadow-lg shadow-brand-500/30">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold tracking-tight">KiddoCore</span>
+            </div>
+
+            <h1 class="text-4xl font-extrabold leading-tight mb-6">Empowering the next generation.</h1>
+            <p class="text-slate-400 text-lg leading-relaxed mb-8">Access your personalized dashboard and manage student growth with real-time AI insights.</p>
+
+            <div class="space-y-4">
+                <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center text-brand-500">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <span class="text-sm font-medium">AI Student Analytics</span>
+                </div>
+                <div class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center text-brand-500">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <span class="text-sm font-medium">Automated Fee Collection</span>
+                </div>
+            </div>
         </div>
-        
-        <div class="welcome-text">
-            <h3>Welcome Back!</h3>
-            <p>Login to access your dashboard and manage your school efficiently</p>
-        </div>
-        
-        <div class="features">
-            <div class="feature-item">
-                <i class="fas fa-shield-alt"></i>
-                <span>Secure & Encrypted Login</span>
-            </div>
-            <div class="feature-item">
-                <i class="fas fa-clock"></i>
-                <span>24/7 Access Anywhere</span>
-            </div>
-            <div class="feature-item">
-                <i class="fas fa-users"></i>
-                <span>Multi-Role Support</span>
-            </div>
-        </div>
-        
-        <div class="role-badges">
-            <div class="role-badge">
-                <i class="fas fa-user-shield"></i>
-                <span>Admin</span>
-            </div>
-            <div class="role-badge">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Teacher</span>
-            </div>
-            <div class="role-badge">
-                <i class="fas fa-user-graduate"></i>
-                <span>Student</span>
-            </div>
+
+        <div class="relative z-10 mt-12 flex gap-3">
+             <span class="px-4 py-1 rounded-full bg-white/10 text-xs font-bold uppercase tracking-widest text-slate-300">v2.1 Stable</span>
         </div>
     </div>
-    
-    <!-- Right Panel -->
-    <div class="right-panel">
-        <div class="form-header">
-            <h2>Sign In</h2>
-            <p>Enter your credentials to access your account</p>
+
+    <div class="flex-1 p-12 lg:p-20 bg-white flex flex-col justify-center">
+        <div class="mb-10 text-center md:text-left">
+            <h2 class="text-3xl font-extrabold text-brand-dark mb-2">Welcome Back</h2>
+            <p class="text-slate-500 font-medium">Sign in to your account to continue.</p>
         </div>
-        
-        <!-- Django Messages - FIXED -->
+
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {% if message.tags == 'error' %}
-                        <i class="fas fa-exclamation-circle"></i>
-                    {% else %}
-                        <i class="fas fa-check-circle"></i>
-                    {% endif %}
-                    <span>{{ message }}</span>
+                <div class="mb-6 p-4 rounded-2xl flex items-center gap-3 {% if message.tags == 'error' %}bg-red-50 text-red-600 border border-red-100{% else %}bg-green-50 text-green-600 border border-green-100{% endif %}">
+                    <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                    <span class="text-sm font-bold">{{ message }}</span>
                 </div>
             {% endfor %}
         {% endif %}
-        
-        <form method="post" action="{% url 'account:login' %}">
+
+        <form method="post" action="{% url 'account:login' %}" class="space-y-6">
             {% csrf_token %}
-            
-            <div class="form-group">
-                <label for="username">Username</label>
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" 
-                           class="form-control" 
-                           id="username" 
-                           name="username" 
-                           placeholder="Enter your username"
-                           required
-                           autofocus>
+
+            <div class="space-y-2">
+                <label class="text-sm font-bold text-slate-700 ml-1">Username</label>
+                <div class="relative group">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                        <i class="fas fa-user"></i>
+                    </span>
+                    <input type="text" name="username" required
+                           class="w-full pl-14 pr-6 py-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white outline-none transition-all input-focus-effect"
+                           placeholder="Enter your username">
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" 
-                           class="form-control" 
-                           id="password" 
-                           name="password" 
-                           placeholder="Enter your password"
-                           required>
-                    <i class="fas fa-eye password-toggle" 
-                       onclick="togglePassword()"
-                       id="toggleIcon"></i>
+
+            <div class="space-y-2">
+                <label class="text-sm font-bold text-slate-700 ml-1">Password</label>
+                <div class="relative group">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <input type="password" id="password" name="password" required
+                           class="w-full pl-14 pr-14 py-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white outline-none transition-all input-focus-effect"
+                           placeholder="••••••••">
+                    <button type="button" onclick="togglePassword()" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-500 transition-colors">
+                        <i class="fas fa-eye" id="toggleIcon"></i>
+                    </button>
                 </div>
             </div>
-            
-            <div class="form-options">
-                <div class="remember-me">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember">Remember me</label>
-                </div>
-                <a href="{% url 'account:forgot-password' %}" class="forgot-password">Forgot Password?</a>
+
+            <div class="flex items-center justify-between px-1">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" name="remember" class="w-5 h-5 rounded-md border-slate-300 text-brand-500 focus:ring-brand-500 transition-all">
+                    <span class="text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Remember me</span>
+                </label>
+                <a href="{% url 'account:forgot-password' %}" class="text-sm font-bold text-brand-500 hover:text-brand-600 transition-colors">Forgot Password?</a>
             </div>
-            
-            <button type="submit" class="btn-login">
+
+            <button type="submit" class="w-full bg-brand-500 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-brand-500/20 hover:bg-brand-600 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3">
                 <span>Sign In</span>
-                <i class="fas fa-arrow-right"></i>
+                <i class="fas fa-arrow-right-long"></i>
             </button>
         </form>
-        
-        <div class="divider">
-            <span>OR</span>
+
+        <div class="mt-10 flex items-center gap-4 text-slate-300">
+            <div class="flex-1 h-px bg-slate-200"></div>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">New School?</span>
+            <div class="flex-1 h-px bg-slate-200"></div>
         </div>
-        
-        <div class="register-link">
-            Don't have an account? <a href="{% url 'account:register-school' %}">Register your school</a>
+
+        <div class="mt-8 text-center">
+            <a href="{% url 'account:register-school' %}" class="inline-flex items-center gap-2 font-bold text-slate-700 hover:text-brand-500 transition-all">
+                <span>Create a school account</span>
+                <i class="fas fa-plus text-xs"></i>
+            </a>
         </div>
     </div>
 </div>
@@ -560,28 +173,14 @@
 function togglePassword() {
     const passwordInput = document.getElementById('password');
     const toggleIcon = document.getElementById('toggleIcon');
-    
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        toggleIcon.classList.remove('fa-eye');
-        toggleIcon.classList.add('fa-eye-slash');
+        toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
     } else {
         passwordInput.type = 'password';
-        toggleIcon.classList.remove('fa-eye-slash');
-        toggleIcon.classList.add('fa-eye');
+        toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
     }
 }
-
-// Auto-hide alerts after 5 seconds
-document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            alert.style.animation = 'slideDown 0.3s ease-out reverse';
-            setTimeout(() => alert.remove(), 300);
-        }, 5000);
-    });
-});
 </script>
 
 </body>

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.core.cache import cache
@@ -27,6 +27,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+import csv
 from django.template.loader import render_to_string
 from django.utils import timezone
 try:
@@ -85,6 +86,17 @@ def admin_dashboard(request):
     teachers_count = Teacher.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
 
+    # Student distribution by class
+    class_map = dict(Student.CLASS_CHOICES)
+    class_counts = (
+        Student.objects.filter(school=school)
+        .values("student_class")
+        .annotate(total=Count("id"))
+    )
+    class_counts_map = {row["student_class"]: row["total"] for row in class_counts}
+    distribution_labels = [class_map[key] for key in class_map.keys() if class_counts_map.get(key)]
+    distribution_data = [class_counts_map[key] for key in class_map.keys() if class_counts_map.get(key)]
+
     # Handle student search
     students = Student.objects.filter(school=school).select_related('user')
     search_query = None
@@ -108,12 +120,87 @@ def admin_dashboard(request):
         "departments_count": departments_count,
         "teachers_count": teachers_count,
         "students": students,
-        "search_query": search_query
+        "search_query": search_query,
+        "distribution_labels": distribution_labels,
+        "distribution_data": distribution_data,
     }
 
     response = render(request, 'adminservices/admin_dashboard.html', context)
     if request.method != "POST" and should_cache(request):
         cache.set(cache_key, response, 300)
+    return response
+
+
+@login_required(login_url='account:login')
+def download_admin_report(request):
+    if request.user.role != "admin":
+        messages.error(request, "Unauthorized.")
+        return redirect("account:login")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "No school assigned.")
+        return redirect("adminservices:admin-dashboard")
+
+    students = Student.objects.filter(school=school).select_related("user")
+    teachers = Teacher.objects.filter(school=school).select_related("user")
+    departments = Department.objects.filter(school=school)
+    subjects = Subject.objects.filter(school=school)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="admin_report_{school.slug or "school"}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(["Report", "Admin Dashboard Export"])
+    writer.writerow(["School", school.name])
+    writer.writerow(["Generated At", timezone.now().isoformat()])
+    writer.writerow([])
+
+    writer.writerow(["Summary"])
+    writer.writerow(["Students", students.count()])
+    writer.writerow(["Teachers", teachers.count()])
+    writer.writerow(["Departments", departments.count()])
+    writer.writerow(["Subjects", subjects.count()])
+    writer.writerow([])
+
+    writer.writerow(["Students"])
+    writer.writerow(["Full Name", "Student ID", "Admission Number", "Class", "Email"])
+    for s in students:
+        writer.writerow([
+            s.user.get_full_name(),
+            s.student_id,
+            s.admission_number,
+            s.get_student_class_display(),
+            s.user.email,
+        ])
+    writer.writerow([])
+
+    writer.writerow(["Teachers"])
+    writer.writerow(["Full Name", "Department", "Email"])
+    for t in teachers:
+        writer.writerow([
+            t.user.get_full_name(),
+            t.department.name if t.department else "",
+            t.user.email,
+        ])
+    writer.writerow([])
+
+    writer.writerow(["Departments"])
+    writer.writerow(["Name", "Code", "Head"])
+    for d in departments:
+        writer.writerow([d.name, d.code, d.head_of_department])
+    writer.writerow([])
+
+    writer.writerow(["Subjects"])
+    writer.writerow(["Name", "Department", "Teacher", "Class"])
+    for sub in subjects:
+        writer.writerow([
+            sub.name,
+            sub.department.name if sub.department else "",
+            sub.teacher.user.get_full_name() if sub.teacher else "",
+            sub.get_subject_class_display(),
+        ])
+
     return response
 
 @never_cache

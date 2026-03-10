@@ -1,0 +1,98 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+{% if wrap_in_page %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+{% endif %}
+<div class="container-fluid mt-4 px-0">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <h3 class="mb-1">Notifications</h3>
+            <div class="text-muted small">
+                Total: {{ total_count }} · Unread: {{ unread_count }} · Read: {{ read_count }}
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-primary {% if filter_key == 'all' %}active{% endif %}" href="{% url 'account:notifications-list' %}?filter=all">All</a>
+            <a class="btn btn-sm btn-outline-primary {% if filter_key == 'unread' %}active{% endif %}" href="{% url 'account:notifications-list' %}?filter=unread">Unread</a>
+            <a class="btn btn-sm btn-outline-primary {% if filter_key == 'read' %}active{% endif %}" href="{% url 'account:notifications-list' %}?filter=read">Read</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom p-3 gap-2">
+                <div class="text-muted small">Manage your notifications</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-success" href="{% url 'account:notifications-clear' %}?next={{ request.get_full_path|urlencode }}">Mark all read</a>
+                    <form method="post" action="{% url 'account:notifications-delete-all' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Delete all</button>
+                    </form>
+                </div>
+            </div>
+
+            {% if notifications %}
+                <ul class="list-group list-group-flush">
+                    {% for n in notifications %}
+                        <li class="list-group-item d-flex flex-wrap align-items-start justify-content-between gap-3">
+                            <div class="d-flex gap-3">
+                                <span class="avatar avatar-sm">
+                                    <i class="fas fa-bell text-primary"></i>
+                                </span>
+                                <div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                        <strong>{{ n.title }}</strong>
+                                        {% if n.is_read %}
+                                            <span class="badge bg-secondary">Read</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Unread</span>
+                                        {% endif %}
+                                        <span class="text-muted small">{{ n.created_at|timesince }} ago</span>
+                                    </div>
+                                    <div class="text-muted">{{ n.message }}</div>
+                                    {% if n.link %}
+                                        <div class="mt-1">
+                                            <a href="{% url 'account:notification-go' n.id %}" class="text-decoration-none">Open</a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if n.is_read %}
+                                    <form method="post" action="{% url 'account:notification-mark-unread' n.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="btn btn-sm btn-outline-primary" type="submit">Mark unread</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'account:notification-mark-read' n.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="btn btn-sm btn-outline-success" type="submit">Mark read</button>
+                                    </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'account:notification-delete' n.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="p-4 text-center text-muted">No notifications found.</div>
+            {% endif %}
+        </div>
+    </div>
+{% if wrap_in_page %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

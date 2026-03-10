@@ -28,8 +28,12 @@ console_command = "python manage.py shell"
   celery = "celery -A config worker --loglevel=INFO"
 
 [[statics]]
-  guest_path = "/code/static"
+  guest_path = "/app/staticfiles"
   url_prefix = "/static/"
+
+[[statics]]
+  guest_path = "/app/media"
+  url_prefix = "/media/"
 
 [[vm]]
   cpu_kind = "shared"

@@ -10,6 +10,7 @@ console_command = "python manage.py shell"
 
 [env]
   PORT = "8080"
+  APP_ENV = "production"
   # You MUST set this in your Fly Secrets or here if you have a URL
   # Example: REDIS_URL = "redis://default:password@your-redis-url.upstash.io:6379"
 

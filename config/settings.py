@@ -132,6 +132,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ========================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+APP_ENV = os.getenv("APP_ENV", "development")
+FLY_APP_NAME = os.getenv("FLY_APP_NAME")
+
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
@@ -141,6 +144,8 @@ if DATABASE_URL:
         )
     }
 else:
+    if APP_ENV == "production" or FLY_APP_NAME:
+        raise RuntimeError("DATABASE_URL must be set in production (Fly) to avoid ephemeral SQLite.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

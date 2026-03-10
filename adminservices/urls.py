@@ -7,6 +7,7 @@ app_name="adminservices"
 
 urlpatterns = [
     path('admin-dashboard',views.admin_dashboard,name='admin-dashboard'),
+    path('admin-dashboard/report/', views.download_admin_report, name='admin-dashboard-report'),
     path("add-teacher",views.add_teacher, name="add-teacher"),
     path("list-teachers",views.list_teachers, name="list-teachers"),
     path("add-department",views.add_department, name="add-department"),

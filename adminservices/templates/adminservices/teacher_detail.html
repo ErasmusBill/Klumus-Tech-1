@@ -1,5 +1,5 @@
 {% extends 'adminservices/base.html' %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}Teacher Details{% endblock %}
 
@@ -22,7 +22,7 @@
                 </div>
 
                 <div class="image-section mt-4 mt-md-0">
-                    <img src="{% static 'adminservices/img/teacher.png' %}" 
+                    <img src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" 
                          alt="{{ teacher.user.first_name }}" 
                          class="rounded-circle border border-3 border-light shadow" 
                          style="width: 180px; height: 180px; object-fit: cover;">

@@ -14,6 +14,7 @@ from django.core.exceptions import PermissionDenied
 import json
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 
 
 def home(request):
@@ -133,6 +134,73 @@ def notification_go(request, notification_id):
 def notifications_clear(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return redirect(request.GET.get("next") or request.META.get("HTTP_REFERER") or "account:home")
+
+
+@login_required(login_url="account:login")
+def notifications_list(request):
+    filter_key = request.GET.get("filter", "all")
+    qs = Notification.objects.filter(user=request.user).order_by("-created_at")
+    if filter_key == "unread":
+        qs = qs.filter(is_read=False)
+    elif filter_key == "read":
+        qs = qs.filter(is_read=True)
+
+    base_template = "student/base.html"
+    wrap_in_page = True
+    if request.user.role == "admin":
+        base_template = "adminservices/base.html"
+        wrap_in_page = True
+    elif request.user.role == "teacher":
+        base_template = "teacher/base.html"
+        wrap_in_page = False
+
+    return render(
+        request,
+        "account/notifications.html",
+        {
+            "notifications": qs,
+            "filter_key": filter_key,
+            "base_template": base_template,
+            "wrap_in_page": wrap_in_page,
+            "total_count": request.user.notifications.count(),
+            "unread_count": request.user.notifications.filter(is_read=False).count(),
+            "read_count": request.user.notifications.filter(is_read=True).count(),
+        },
+    )
+
+
+@login_required(login_url="account:login")
+@require_POST
+def notification_mark_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.mark_as_read()
+    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+
+
+@login_required(login_url="account:login")
+@require_POST
+def notification_mark_unread(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    if notification.is_read:
+        notification.is_read = False
+        notification.read_at = None
+        notification.save(update_fields=["is_read", "read_at"])
+    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+
+
+@login_required(login_url="account:login")
+@require_POST
+def notification_delete(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.delete()
+    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+
+
+@login_required(login_url="account:login")
+@require_POST
+def notifications_delete_all(request):
+    Notification.objects.filter(user=request.user).delete()
+    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
 
 def change_password(request):
     if not request.user.is_authenticated:

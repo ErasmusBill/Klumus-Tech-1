@@ -32,6 +32,9 @@ makemigrations:
 superuser:
 	$(APP) python manage.py createsuperuser
 
+collectstatic:
+	$(APP) python manage.py collectstatic
+
 shell:
 	$(APP) python manage.py shell
 

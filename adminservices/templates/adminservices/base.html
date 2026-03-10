@@ -98,6 +98,9 @@
                                 {% endfor %}
                             </ul>
                         </div>
+                        <div class="topnav-dropdown-footer px-3 py-2 border-top">
+                            <a href="{% url 'account:notifications-list' %}" class="text-sm">View all Notifications</a>
+                        </div>
                     </div>
                 </li>
 
@@ -131,7 +134,7 @@
                     <ul>
                         <li class="menu-title"><span>Main Panel</span></li>
                         <li >
-                            <a href="#"><i class="fas fa-th-large"></i> <span>Dashboard</span></a>
+                            <a href="{% url 'adminservices:admin-dashboard' %}"><i class="fas fa-th-large"></i> <span>Dashboard</span></a>
                         </li>
 
                         <li class="menu-title"><span>Academic Resources</span></li>

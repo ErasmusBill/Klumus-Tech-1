@@ -7,6 +7,21 @@ from .models import PredictedPerformance
 from django.db.models import Count
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.core.cache import cache
+from account.cache_utils import make_cache_key, should_cache
+
+
+def _get_user_school(user):
+    if user.role == "admin":
+        return getattr(user, "managed_school", None)
+    if user.role == "teacher":
+        teacher = getattr(user, "teacher_profile", None)
+        return teacher.school if teacher else None
+    if user.role == "student":
+        student = getattr(user, "student_profile", None)
+        return student.school if student else None
+    return None
 
 # Lazy load model to prevent startup crashes
 _model = None
@@ -23,7 +38,23 @@ def predict_student_performance(request, student_id):
     Predict a student's performance using their features.
     student_id refers to Student.student_id (e.g., STU-NXSANR)
     """
-    student = get_object_or_404(Student, student_id=student_id)
+    if request.user.role not in {"admin", "teacher", "student"}:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    school = _get_user_school(request.user)
+    if not school:
+        return JsonResponse({"error": "Profile not configured for school access"}, status=403)
+
+    student = get_object_or_404(Student, student_id=student_id, school=school)
+    if request.user.role == "student" and request.user.student_profile.id != student.id:
+        return JsonResponse({"error": "You can only view your own prediction."}, status=403)
+
+    cache_key = make_cache_key("ai_predictions", school.id, f"predict:{student_id}:{request.user.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     result = ResultSheet.objects.filter(student=student).last()
 
     if not result:
@@ -44,7 +75,10 @@ def predict_student_performance(request, student_id):
         average_score = float(result.total_marks or 0)
 
     # Homework completion proxy (submissions / assignments for class)
-    assignments_count = Assignment.objects.filter(student_class=student.student_class).count()
+    assignments_count = Assignment.objects.filter(
+        student_class=student.student_class,
+        subject__school=school
+    ).count()
     submissions_count = AssignmentSubmission.objects.filter(student=student).count()
     homework_completion = (submissions_count / assignments_count * 100) if assignments_count else 0
 
@@ -87,29 +121,51 @@ def predict_student_performance(request, student_id):
         }
     )
 
-    return JsonResponse({
+    payload = {
         "student": student.user.get_full_name(),
         "student_id": student.student_id,
         "predicted_grade": predicted_grade,
         "risk_level": risk,
         "message": f"{student.user.get_full_name()} ({student.student_id}) is at {risk} risk of underperforming."
-    })
+    }
+    response = JsonResponse(payload)
+    if should_cache(request):
+        cache.set(cache_key, response, 120)
+    return response
 
 @login_required
 def dashboard(request):
     """
     Show AI prediction summary and risk analysis.
     """
-    data = PredictedPerformance.objects.select_related("student", "student__user").all()
+    if request.user.role not in {"admin", "teacher", "student"}:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    school = _get_user_school(request.user)
+    if not school:
+        return JsonResponse({"error": "Profile not configured for school access"}, status=403)
+
+    cache_key = make_cache_key("ai_predictions", school.id, f"dashboard:{request.user.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
+    data = PredictedPerformance.objects.select_related("student", "student__user").filter(student__school=school)
+    if request.user.role == "student":
+        data = data.filter(student=request.user.student_profile)
 
     # Count students by risk level
     risk_summary = (
-        PredictedPerformance.objects
+        data
         .values("risk_level")
         .annotate(count=Count("id"))
     )
 
-    return render(request, "ai_predictor/dashboard.html", {
+    response = render(request, "ai_predictor/dashboard.html", {
         "data": data,
         "risk_summary": risk_summary,
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response

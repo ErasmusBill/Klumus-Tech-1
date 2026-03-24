@@ -5,23 +5,30 @@ from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import login, authenticate,update_session_auth_hash,logout
 from django.urls import reverse
-from requests import Request
 from .utils import initialize_paystack_payment, verify_payment, send_subscription_email
 from .models import CustomUser, RequestPasswordReset, School, Subscription, Package, Notification
 from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordForm,PasswordResetForm
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import json
-from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.core.cache import cache
+from .cache_utils import make_cache_key, make_user_cache_key, should_cache, bump_user_cache_version
 
 
 def home(request):
+    cache_key = make_cache_key("home", "public", "landing")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     subscription = Subscription.objects.all()
     packages = Package.objects.all()
     packages_by_name = {p.name: p for p in packages}
-    return render(
+    response = render(
         request,
         "account/home.html",
         {
@@ -31,6 +38,9 @@ def home(request):
             "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
         },
     )
+    if should_cache(request):
+        cache.set(cache_key, response, 300)
+    return response
 
 def register_school(request):
     if request.method == "POST":
@@ -96,7 +106,15 @@ def login_user(request):
         if user is not None:
             login(request, user)
 
-            school = getattr(user, "school", None)
+            school = None
+            if user.role == "admin":
+                school = getattr(user, "managed_school", None)
+            elif user.role == "teacher":
+                teacher_profile = getattr(user, "teacher_profile", None)
+                school = teacher_profile.school if teacher_profile else None
+            elif user.role == "student":
+                student_profile = getattr(user, "student_profile", None)
+                school = student_profile.school if student_profile else None
             if school:
                 subscription = Subscription.objects.filter(school=school).first()
                 if subscription and subscription.end_date < timezone.now(): # type: ignore
@@ -127,17 +145,27 @@ def logout_user(request):
 def notification_go(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.mark_as_read()
-    return redirect(notification.link or request.META.get("HTTP_REFERER") or "account:home")
+    target = notification.link or request.META.get("HTTP_REFERER")
+    if target and url_has_allowed_host_and_scheme(target, {request.get_host()}):
+        return redirect(target)
+    return redirect("account:home")
 
 
 @login_required(login_url="account:login")
 def notifications_clear(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    bump_user_cache_version(request.user.id, "notifications")
     return redirect(request.GET.get("next") or request.META.get("HTTP_REFERER") or "account:home")
 
 
 @login_required(login_url="account:login")
 def notifications_list(request):
+    cache_key = make_user_cache_key("notifications", request.user.id, request.GET.urlencode())
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     filter_key = request.GET.get("filter", "all")
     qs = Notification.objects.filter(user=request.user).order_by("-created_at")
     if filter_key == "unread":
@@ -154,7 +182,7 @@ def notifications_list(request):
         base_template = "teacher/base.html"
         wrap_in_page = False
 
-    return render(
+    response = render(
         request,
         "account/notifications.html",
         {
@@ -167,6 +195,9 @@ def notifications_list(request):
             "read_count": request.user.notifications.filter(is_read=True).count(),
         },
     )
+    if should_cache(request):
+        cache.set(cache_key, response, 90)
+    return response
 
 
 @login_required(login_url="account:login")
@@ -174,6 +205,7 @@ def notifications_list(request):
 def notification_mark_read(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.mark_as_read()
+    bump_user_cache_version(request.user.id, "notifications")
     return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
 
 
@@ -185,6 +217,7 @@ def notification_mark_unread(request, notification_id):
         notification.is_read = False
         notification.read_at = None
         notification.save(update_fields=["is_read", "read_at"])
+    bump_user_cache_version(request.user.id, "notifications")
     return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
 
 
@@ -193,6 +226,7 @@ def notification_mark_unread(request, notification_id):
 def notification_delete(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.delete()
+    bump_user_cache_version(request.user.id, "notifications")
     return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
 
 
@@ -200,8 +234,10 @@ def notification_delete(request, notification_id):
 @require_POST
 def notifications_delete_all(request):
     Notification.objects.filter(user=request.user).delete()
+    bump_user_cache_version(request.user.id, "notifications")
     return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
 
+@login_required(login_url="account:login")
 def change_password(request):
     if not request.user.is_authenticated:
         raise PermissionDenied("You are not authorized to perform this action")
@@ -250,19 +286,14 @@ def request_for_password_reset(request):
         if form.is_valid():  
             email = form.cleaned_data.get("email")
 
-            if not CustomUser.objects.filter(email__iexact=email).exists():
-                messages.error(request, "This email is not associated with any account")
-                return redirect("account:forgot-password")
-
-            user = CustomUser.objects.get(email__iexact=email)
-
-            password_reset = RequestPasswordReset.objects.create(
-                user=user,
-                email=email
-            )
-            password_reset.send_reset_email(domain=settings.DOMAIN_URL)
-
-            messages.success(request, "A password reset link has been sent to your email.")
+            user = CustomUser.objects.filter(email__iexact=email).first()
+            if user:
+                password_reset = RequestPasswordReset.objects.create(
+                    user=user,
+                    email=email
+                )
+                password_reset.send_reset_email(domain=settings.DOMAIN_URL)
+            messages.success(request, "If the email exists, a password reset link has been sent.")
             return redirect("account:login")
     else:
         form = PasswordRequestForm()
@@ -277,7 +308,7 @@ def verify_reset_token(request, token):
         return redirect("account:forgot-password")
 
     # Check if token expired (1-hour validity)
-    if reset_token.created_at < timezone.now() - timezone.timedelta(hours=1):
+    if not reset_token.is_valid():
         messages.error(request, "This reset link has expired.")
         return redirect("account:forgot-password")
 
@@ -309,13 +340,21 @@ def verify_reset_token(request, token):
 
 
 
+@login_required(login_url="account:login")
 def select_package(request):
+    if request.user.role != "admin":
+        messages.error(request, "Only school admins can manage subscriptions.")
+        return redirect("account:home")
+
+    school = getattr(request.user, "managed_school", None)
+    if not school:
+        messages.error(request, "Your account is not linked to a school.")
+        return redirect("account:register-school")
+
     packages = Package.objects.all()
     if request.method == "POST":
         package_id = request.POST.get("package_id")
         package = get_object_or_404(Package, id=package_id)
-
-        school = request.user.school  
 
         subscription, _ = Subscription.objects.get_or_create(school=school)
         subscription.package = package
@@ -325,13 +364,27 @@ def select_package(request):
         subscription.is_trial = False
         subscription.save()
 
-        return redirect("initiate-payment", package_id=package.id)
+        return redirect("account:initiate-package", package_id=package.id)
 
-    return render(request, "account/login.html", {"packages": packages})
+    packages_by_name = {p.name: p for p in packages}
+    return render(
+        request,
+        "account/home.html",
+        {
+            "subscription": Subscription.objects.all(),
+            "packages": packages,
+            "packages_by_name": packages_by_name,
+            "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
+        },
+    )
 
 
 @login_required(login_url="account:login")
 def initiate_payment(request, package_id):
+    if request.user.role != "admin":
+        messages.error(request, "Only school admins can initiate package payment.")
+        return redirect("account:home")
+
     package = get_object_or_404(Package, id=package_id)
     school = getattr(request.user, "managed_school", None)
     if not school:
@@ -364,11 +417,23 @@ def initiate_payment(request, package_id):
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
 
+@login_required(login_url="account:login")
 def verify_payment_view(request, school_id):
-    # school = School.objects.select_related('admin').get(id=school_id)
+    if request.user.role != "admin":
+        messages.error(request, "Only school admins can verify subscription payments.")
+        return redirect("account:home")
+
+    managed_school = getattr(request.user, "managed_school", None)
+    if not managed_school or managed_school.id != school_id:
+        messages.error(request, "You are not allowed to verify payment for this school.")
+        return redirect("account:home")
+
     reference = None
     if request.method == "POST":
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body or "{}")
+        except json.JSONDecodeError:
+            data = {}
         reference = data.get("reference")
     else:
         reference = request.GET.get("reference")
@@ -379,22 +444,42 @@ def verify_payment_view(request, school_id):
 
     response = verify_payment(reference)
 
-    if response.get("status") and response["data"]["status"] == "success": # type: ignore
-        metadata = response["data"]["metadata"]  # type: ignore
+    data = response.get("data") if isinstance(response, dict) else None
+    if response.get("status") and isinstance(data, dict) and data.get("status") == "success":
+        metadata = data.get("metadata") or {}
         fields = {}
         if isinstance(metadata, dict) and metadata.get("custom_fields"):
-            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}  # type: ignore
+            fields = {
+                f.get("variable_name"): f.get("value")
+                for f in metadata.get("custom_fields", [])
+                if isinstance(f, dict)
+            }
         else:
             fields = metadata if isinstance(metadata, dict) else {}
 
-        school = School.objects.select_related('admin').get(id=school_id)
+        metadata_school_id = fields.get("school_id")
+        if str(metadata_school_id) != str(school_id):
+            messages.error(request, "Payment metadata does not match school.")
+            return redirect("account:select-package")
+
+        school = get_object_or_404(School.objects.select_related('admin'), id=school_id)
         package_id = fields.get("package_id")
         if not package_id:
             messages.error(request, "Payment metadata missing package ID.")
             return redirect("account:select-package")
-        package = Package.objects.get(id=package_id)
+        package = get_object_or_404(Package, id=package_id)
 
-        subscription = Subscription.objects.filter(school=school).first()
+        expected_amount_pesewas = int(package.price * 100)
+        paid_amount = data.get("amount")
+        if paid_amount != expected_amount_pesewas:
+            messages.error(request, "Payment amount does not match package amount.")
+            return redirect("account:select-package")
+
+        if data.get("currency") and data.get("currency") != "GHS":
+            messages.error(request, "Invalid payment currency.")
+            return redirect("account:select-package")
+
+        subscription, _ = Subscription.objects.get_or_create(school=school)
         subscription.package = package
         subscription.is_active = True
         subscription.is_trial = False
@@ -405,12 +490,20 @@ def verify_payment_view(request, school_id):
         messages.success(request, "Payment verified! Your subscription is now active.")
         return redirect("account:login")
 
-    else:
-        messages.error(request, "Payment verification failed. Try again.")
-        return redirect("account:select-package")
+    messages.error(request, "Payment verification failed. Try again.")
+    return redirect("account:select-package")
 
+
+@login_required(login_url="account:login")
 def upgrade_package(request, new_package_id):
-    school = request.user.school
+    if request.user.role != "admin":
+        messages.error(request, "Only school admins can upgrade subscriptions.")
+        return redirect("account:home")
+
+    school = getattr(request.user, "managed_school", None)
+    if not school:
+        messages.error(request, "Your account is not linked to a school.")
+        return redirect("account:select-package")
     new_package = get_object_or_404(Package, id=new_package_id)
 
     subscription = Subscription.objects.filter(school=school).first()
@@ -436,11 +529,19 @@ def upgrade_package(request, new_package_id):
         f"You are upgrading to '{new_package.name}'. Please complete payment to activate."
     )
 
-    return redirect("account:initiate-payment", package_id=new_package.id)
+    return redirect("account:initiate-package", package_id=new_package.id)
 
 
+@login_required(login_url="account:login")
 def downgrade_package(request, new_package_id):
-    school = request.user.school
+    if request.user.role != "admin":
+        messages.error(request, "Only school admins can downgrade subscriptions.")
+        return redirect("account:home")
+
+    school = getattr(request.user, "managed_school", None)
+    if not school:
+        messages.error(request, "Your account is not linked to a school.")
+        return redirect("account:select-package")
     new_package = get_object_or_404(Package, id=new_package_id)
 
     subscription = Subscription.objects.filter(school=school).first()
@@ -466,7 +567,7 @@ def downgrade_package(request, new_package_id):
         f"You are downgrading to '{new_package.name}'. Please complete payment to activate."
     )
 
-    return redirect("account:initiate-payment", package_id=new_package.id)
+    return redirect("account:initiate-package", package_id=new_package.id)
 
 
 

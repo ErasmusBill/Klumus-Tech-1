@@ -2,6 +2,7 @@ from django import forms
 from django.forms import ModelForm
 from .models import *
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 
 
 
@@ -49,6 +50,8 @@ class SchoolRegistrationForm(forms.Form):
         
         if password and confirm_password and password != confirm_password:
             self.add_error("confirm_password", "Passwords do not match.")
+        if password:
+            validate_password(password)
         
         return cleaned_data
 
@@ -89,6 +92,8 @@ class ChangePasswordForm(forms.Form):
             raise forms.ValidationError("Passwords do not match.")
         if new_password and len(new_password) < 8:
             raise forms.ValidationError("Password must be at least 8 characters long.")
+        if new_password:
+            validate_password(new_password)
         return cleaned_data
     
 
@@ -124,4 +129,6 @@ class PasswordResetForm(forms.Form):
 
         if new_password and confirm_password and new_password != confirm_password:
             raise forms.ValidationError("Passwords do not match.")
+        if new_password:
+            validate_password(new_password)
         return cleaned_data

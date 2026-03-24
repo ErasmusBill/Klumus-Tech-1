@@ -1,6 +1,8 @@
 
 import logging
 import asyncio
+import secrets
+import string
 from typing import List, Dict, Any, Optional, Tuple
 from django.conf import settings
 from django.core.mail import send_mail
@@ -32,8 +34,12 @@ logger = logging.getLogger(__name__)
 # ===== PASSWORD GENERATION =====
 
 def generate_default_password() -> str:
-    """Default password for new teacher/student registrations."""
-    return "Abc@12345"
+    """Generate a random strong password for new teacher/student registrations."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    while True:
+        password = "".join(secrets.choice(alphabet) for _ in range(14))
+        if any(c.islower() for c in password) and any(c.isupper() for c in password) and any(c.isdigit() for c in password):
+            return password
 
 # ===== CONFIGURATION CHECK =====
 

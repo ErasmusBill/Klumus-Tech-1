@@ -5,6 +5,7 @@ Updated for Render Deployment with SendGrid & Twilio Integration
 
 from pathlib import Path
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 import dj_database_url # pyright: ignore[reportMissingImports]
 
@@ -18,11 +19,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ========================
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "False")
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
+DEBUG = os.getenv("DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+if os.getenv("ALLOWED_HOSTS"):
+    ALLOWED_HOSTS.extend([h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()])
+ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
-DOMAIN_URL = os.getenv('*')
+DOMAIN_URL = os.getenv("DOMAIN_URL", "").strip()
+if not DOMAIN_URL and RENDER_EXTERNAL_HOSTNAME:
+    DOMAIN_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+elif not DOMAIN_URL and os.getenv("FLY_APP_NAME"):
+    DOMAIN_URL = f"https://{os.getenv('FLY_APP_NAME')}.fly.dev"
 
 # ========================
 # APPLICATION DEFINITION
@@ -127,17 +137,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv("DATABASE_URL")
 APP_ENV = os.getenv("APP_ENV", "development")
 FLY_APP_NAME = os.getenv("FLY_APP_NAME")
+IS_PRODUCTION = APP_ENV == "production" or bool(FLY_APP_NAME)
 
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=False
+            ssl_require=IS_PRODUCTION
         )
     }
 else:
-    if APP_ENV == "production" or FLY_APP_NAME:
+    if IS_PRODUCTION:
         raise RuntimeError("DATABASE_URL must be set in production (Fly) to avoid ephemeral SQLite.")
     DATABASES = {
         'default': {
@@ -270,6 +281,21 @@ if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 if FLY_APP_NAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{FLY_APP_NAME}.fly.dev")
+if DOMAIN_URL:
+    parsed = urlparse(DOMAIN_URL)
+    if parsed.scheme and parsed.netloc:
+        CSRF_TRUSTED_ORIGINS.append(f"{parsed.scheme}://{parsed.netloc}")
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
+
+if IS_PRODUCTION:
+    if SECRET_KEY == "fallback-secret-key":
+        raise RuntimeError("SECRET_KEY must be set in production.")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 
 

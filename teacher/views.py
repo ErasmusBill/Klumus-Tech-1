@@ -16,10 +16,12 @@ from django.db.models import Q,Avg,Count
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.urls import reverse
+from django.core.cache import cache
 import os
 from ai_predictor.models import PredictedPerformance
 from django.http import JsonResponse
 from adminservices.utils import create_bulk_in_app_notifications, create_in_app_notification
+from account.cache_utils import make_cache_key, should_cache
 
 
 def teacher_dashboard(request):
@@ -33,6 +35,12 @@ def teacher_dashboard(request):
     except Teacher.DoesNotExist:
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
+
+    cache_key = make_cache_key("teacher_portal", school.id, f"dashboard:{teacher.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
 
     # Get teacher's subjects
     subjects = Subject.objects.filter(teacher=teacher, school=school)
@@ -71,7 +79,10 @@ def teacher_dashboard(request):
         "teacher_classes": [],  # Empty for now to avoid errors
     }
     
-    return render(request, "teacher/teacher_dashboard.html", context)
+    response = render(request, "teacher/teacher_dashboard.html", context)
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 def my_subjects(request):
     """View that shows teacher's assigned subjects"""
@@ -85,6 +96,12 @@ def my_subjects(request):
     except Teacher.DoesNotExist:
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
+
+    cache_key = make_cache_key("teacher_portal", school.id, f"my-subjects:{teacher.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
     
     # Get subjects with student counts
     subjects = Subject.objects.filter(
@@ -92,10 +109,13 @@ def my_subjects(request):
         school=school
     ).select_related('department').prefetch_related('enrollments')
     
-    return render(request, "teacher/my_subjects.html", {
+    response = render(request, "teacher/my_subjects.html", {
         "subjects": subjects,
         "title": "My Subjects"
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 @login_required
 def enter_bulk_grades(request, subject_id):
@@ -393,6 +413,12 @@ def list_result(request):
         messages.error(request, "Teacher profile not found")
         return redirect("account:login")
     
+    cache_key = make_cache_key("teacher_portal", school.id, f"results:{teacher.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     # Filter results through the student's school and teacher's subjects
     results = ResultSheet.objects.filter(
         student__school=school,  # Filter by student's school
@@ -403,7 +429,10 @@ def list_result(request):
         'subject__department'
     ).order_by('-exam_date', 'student__user__last_name')
     
-    return render(request, "teacher/list-result.html", {"results": results})
+    response = render(request, "teacher/list-result.html", {"results": results})
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 
 def delete_result(request, result_id):
@@ -456,7 +485,7 @@ def mark_attendance(request):
             # Safety: ensure student/teacher belongs to school
             if attendance.student and attendance.student.school != school:
                 messages.error(request, "Selected student does not belong to your school.")
-                return render(request, 'attendance/attendance_form.html', {'form': form, 'title': 'Add Attendance'})
+                return render(request, 'teacher/add_attendance.html', {'form': form, 'title': 'Add Attendance'})
             if attendance.teacher and attendance.teacher.school != school:
                 messages.error(request, "Selected teacher does not belong to your school.")
                 return render(request, 'teacher/add_attendance.html', {'form': form, 'title': 'Add Attendance'})
@@ -464,7 +493,7 @@ def mark_attendance(request):
             try:
                 attendance.save()
                 messages.success(request, "Attendance record created successfully.")
-                return redirect('attendance:attendance_list')
+                return redirect('teacher:attendance-list')
             except Exception as e:
                 messages.error(request, f"Error saving attendance: {e}")
         else:
@@ -573,7 +602,16 @@ def attendance_list(request):
         return redirect("account:dashboard")
 
     attendances = attendances.select_related('student__user', 'teacher__user', 'marked_by').order_by('-date')
-
+    if user.role in {"admin", "teacher"} and school:  # type: ignore[name-defined]
+        cache_key = make_cache_key("teacher_portal", school.id, f"attendance:{user.id}")
+        if should_cache(request):
+            cached_response = cache.get(cache_key)
+            if cached_response:
+                return cached_response
+        response = render(request, 'teacher/attendance_list.html', {'attendances': attendances})
+        if should_cache(request):
+            cache.set(cache_key, response, 120)
+        return response
     return render(request, 'teacher/attendance_list.html', {'attendances': attendances})
 
 
@@ -857,9 +895,17 @@ def list_assignment(request):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
-    assignments = Assignment.objects.filter(teacher=teacher,subject__school=school).select_related('subject').order_by('-created_at')
+    cache_key = make_cache_key("teacher_portal", school.id, f"assignments:{teacher.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
 
-    return render(request, 'teacher/assignment_list.html', {'assignments': assignments})
+    assignments = Assignment.objects.filter(teacher=teacher,subject__school=school).select_related('subject').order_by('-created_at')
+    response = render(request, 'teacher/assignment_list.html', {'assignments': assignments})
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 
 def delete_assignment(request, assignment_id):
@@ -1062,18 +1108,42 @@ def dashboard(request):
     """
     Show AI prediction summary and risk analysis.
     """
-    data = PredictedPerformance.objects.select_related("student", "student__user").all()
+    if request.user.role not in {"teacher", "admin"}:
+        messages.error(request, "You are not authorized to view AI insights.")
+        return redirect("account:login")
+
+    school = None
+    if request.user.role == "teacher":
+        teacher_profile = getattr(request.user, "teacher_profile", None)
+        school = teacher_profile.school if teacher_profile else None
+    else:
+        school = getattr(request.user, "managed_school", None)
+
+    if not school:
+        messages.error(request, "School profile not found.")
+        return redirect("account:login")
+
+    cache_key = make_cache_key("ai_predictions", school.id, f"teacher-ai:{request.user.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
+    data = PredictedPerformance.objects.select_related("student", "student__user").filter(student__school=school)
 
     risk_summary = (
-        PredictedPerformance.objects
+        data
         .values("risk_level")
         .annotate(count=Count("id"))
     )
 
-    return render(request, "teacher/dashboard.html", {
+    response = render(request, "teacher/dashboard.html", {
         "data": data,
         "risk_summary": risk_summary,
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
     
 @login_required
 def promotion_dashboard(request):

@@ -7,6 +7,8 @@ from django.utils import timezone
 from django.urls import reverse
 from adminservices.utils import create_in_app_notification
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from account.cache_utils import make_cache_key, should_cache, bump_cache_version
 from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm,AssignmentSubmissionForm)
 
 
@@ -25,6 +27,12 @@ def student_dashboard(request):
     except Student.DoesNotExist:
         messages.error(request, "Student profile not found")
         return redirect("account:login")
+
+    cache_key = make_cache_key("student_portal", school.id, f"dashboard:{student.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
     
     today = timezone.now().date()
     current_day = timezone.now().strftime('%A').lower()
@@ -131,7 +139,10 @@ def student_dashboard(request):
         'upcoming_events': upcoming_events,
     }
     
-    return render(request, 'student/student_dashboard.html', context)
+    response = render(request, 'student/student_dashboard.html', context)
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 @login_required
 def student_detail(request):
@@ -145,6 +156,12 @@ def student_detail(request):
     except Student.DoesNotExist:
         messages.error(request, "Student profile not found")
         return redirect("account:login")
+
+    cache_key = make_cache_key("student_portal", student.school_id, f"detail:{student.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
 
     enrollments_count = Enrollment.objects.filter(student=student, is_active=True).count()
 
@@ -163,7 +180,10 @@ def student_detail(request):
         "total_pending_fees": total_pending_fees,
     }
 
-    return render(request, "student/student_detail.html", context)
+    response = render(request, "student/student_detail.html", context)
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 def view_result(request, student_id):
     """View student results with proper authorization"""
@@ -209,12 +229,21 @@ def view_result(request, student_id):
             return redirect("adminservices:admin-dashboard")
     
 
+    cache_key = make_cache_key("student_portal", school.id, f"results:{student.id}:{request.user.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+
     results = ResultSheet.objects.filter(student=student).select_related('subject', 'subject__department').order_by('-academic_year', '-term', 'subject__name')
     
     # Calculate summary statistics
     result_summary = {'total_subjects': results.count(),'average_percentage': results.aggregate(avg=models.Avg('percentage'))['avg'] or 0,}
     
-    return render(request, "student/view_result.html", {"results": results,"student": student,"result_summary": result_summary,})
+    response = render(request, "student/view_result.html", {"results": results,"student": student,"result_summary": result_summary,})
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 
 
@@ -230,6 +259,12 @@ def student_enrolled_courses(request):
     except Student.DoesNotExist:
         messages.error(request, "Student profile not found")
         return redirect("account:login")
+
+    cache_key = make_cache_key("student_portal", student.school_id, f"courses:{student.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
     
     # Get active enrollments
     enrollments = Enrollment.objects.filter(student=student,is_active=True).select_related('subject__teacher__user','subject__department').order_by('subject__name')
@@ -245,7 +280,10 @@ def student_enrolled_courses(request):
         'subjects_by_department': subjects_by_department,
     }
     
-    return render(request, 'student/enrolled_courses.html', context)
+    response = render(request, 'student/enrolled_courses.html', context)
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
 
 
 
@@ -276,8 +314,8 @@ def list_fees_related(request, student_id):
             return redirect("adminservices:admin-dashboard")
 
     fees = Fees.objects.filter(student=student, school=school).order_by('-due_date')
-    
-    return render(request, "student/fees_list.html", {"fees": fees, "student": student})
+    response = render(request, "student/fees_list.html", {"fees": fees, "student": student})
+    return response
 
 
 
@@ -293,14 +331,21 @@ def view_all_assignment(request):
     except Student.DoesNotExist:    
         messages.error(request, "Student profile not found.")
         return redirect("account:login")
-
+    cache_key = make_cache_key("student_portal", school.id, f"assignments:{student.id}")
+    if should_cache(request):
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
 
     assignments = Assignment.objects.filter(subject__enrollments__student=student,subject__school=school,student_class=student_class,status="published").select_related('subject', 'teacher').order_by('-due_date')
 
-    return render(request, 'student/assignments.html', {
+    response = render(request, 'student/assignments.html', {
         'assignments': assignments,
         'student': student
     })
+    if should_cache(request):
+        cache.set(cache_key, response, 180)
+    return response
     
 def view_assignment(request, assignment_id):
     if not request.user.is_authenticated or request.user.role != "student":
@@ -386,6 +431,8 @@ def submit_assignment(request, assignment_id):
                 pass
 
             messages.success(request, "Assignment submitted successfully!")
+            bump_cache_version(school.id, "student_portal")
+            bump_cache_version(school.id, "teacher_portal")
             return redirect("student:assignment-detail", assignment_id=assignment.id)
         else:
             messages.error(request, "Please correct the errors below.")

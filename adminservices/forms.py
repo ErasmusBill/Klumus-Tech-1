@@ -458,10 +458,12 @@ class AddStudentForm(forms.ModelForm):
 
         # Handle password
         password = self.cleaned_data.get('password')
+        generated_password = None
         if password and is_update:
             user.set_password(password)
         elif not is_update:
-            user.set_password(generate_default_password())
+            generated_password = password or generate_default_password()
+            user.set_password(generated_password)
 
         # Keep legacy/new student image fields synchronized.
         profile_picture = self.files.get("profile_picture")
@@ -509,6 +511,8 @@ class AddStudentForm(forms.ModelForm):
                     is_active=True
                 )
 
+        if not is_update:
+            student.generated_password = generated_password  # type: ignore[attr-defined]
         return student   # type: ignore
 
 

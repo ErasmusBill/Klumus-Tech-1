@@ -651,7 +651,7 @@ def add_student(request):
             try:
                 with transaction.atomic():
                     student = form.save()
-                    password = generate_default_password()
+                    password = getattr(student, "generated_password", None) or "Please reset on first login"
                     
                     # Send enrollment notifications
                     try:

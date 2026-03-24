@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.conf import settings
 import uuid
 from datetime import timedelta
-from django.db import models
+from django.db import IntegrityError, models
 from django.contrib.auth.models import AbstractUser
 from django.forms import CharField
 from django.utils.crypto import get_random_string
@@ -88,8 +88,10 @@ class RequestPasswordReset(models.Model):
         """Check if token is still valid"""
         return not self.is_used and self.expires_at > timezone.now()
 
-    def send_reset_email(self, domain=settings.DOMAIN_URL):
+    def send_reset_email(self, domain=None):
         """Send password reset email with token link"""
+        if not domain:
+            domain = settings.DOMAIN_URL
         reset_link = f"{domain}/reset-password/{self.token}/"
         subject = "Password Reset Request"
         message = f"""
@@ -500,16 +502,33 @@ class Student(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        if not self.student_id:
-            self.student_id = f"STU-{get_random_string(6).upper()}"
-        if not self.admission_number:
-            year = timezone.now().year
-            count = Student.objects.filter(school=self.school).count() + 1
-            self.admission_number = f"{year}-{count:04d}"
-        if not self.slug:
-            base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
-            self.slug = base[:100]
-        super().save(*args, **kwargs)
+        if self.pk:
+            if not self.slug:
+                base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
+                self.slug = base[:100]
+            super().save(*args, **kwargs)
+            return
+
+        for _ in range(10):
+            if not self.student_id:
+                self.student_id = f"STU-{get_random_string(6).upper()}"
+            if not self.admission_number:
+                year = timezone.now().year
+                count = Student.objects.filter(school=self.school).count() + 1
+                self.admission_number = f"{year}-{count:04d}"
+            if not self.slug:
+                base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
+                self.slug = base[:100]
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError:
+                # Retry on rare collisions from concurrent student creation.
+                self.student_id = ""
+                self.admission_number = ""
+                self.slug = ""
+                continue
+        raise IntegrityError("Could not generate unique student identifiers after multiple retries.")
 
     def promote_to_next_class(self):
         """Promote student to the next class"""

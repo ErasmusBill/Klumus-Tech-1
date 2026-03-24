@@ -236,6 +236,61 @@
     </div>
   </section>
 
+  <footer id="contact" class="bg-brand-dark text-white pt-20 pb-10">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div>
+          <div class="flex items-center gap-2 mb-5">
+            <div class="bg-brand-500 p-2 rounded-xl text-white shadow-lg shadow-brand-500/30">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+            </div>
+            <span class="text-xl font-bold tracking-tight">KiddoCore</span>
+          </div>
+          <p class="text-brand-100/80 leading-relaxed">
+            Modern preschool management for attendance, fees, and parent communication in one place.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-5">Quick Links</h3>
+          <ul class="space-y-3 text-brand-100/80 font-medium">
+            <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+            <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+            <li><a href="{% url 'account:login' %}" class="hover:text-white transition-colors">Log In</a></li>
+            <li><a href="{% url 'account:register-school' %}" class="hover:text-white transition-colors">Register School</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-5">Contact</h3>
+          <ul class="space-y-3 text-brand-100/80 font-medium">
+            <li>Email: <a href="mailto:support@kiddocore.com" class="hover:text-white transition-colors">support@kiddocore.com</a></li>
+            <li>Phone: <a href="tel:+233200000000" class="hover:text-white transition-colors">+233 20 950 1103</a></li>
+            <li>Location: Accra, Ghana</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-5">Send Us an Email</h3>
+          <form action="mailto:support@kiddocore.com" method="post" enctype="text/plain" class="space-y-3">
+            <input type="text" name="Name" placeholder="Your name" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
+            <input type="email" name="Email" placeholder="Your email" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
+            <textarea name="Message" rows="3" placeholder="Your message" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none"></textarea>
+            <button type="submit" class="w-full rounded-xl bg-brand-500 py-3 font-bold text-white hover:bg-brand-600 transition-all">Send Message</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="mt-14 border-t border-white/15 pt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between text-sm text-brand-100/70">
+        <p>&copy; <span id="currentYear"></span> KiddoCore. All rights reserved.</p>
+        <div class="flex items-center gap-5">
+          <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-white transition-colors">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
   <!-- Plan Selection Modal -->
   <div id="planModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 px-6">
     <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
@@ -337,6 +392,11 @@
         planModal.classList.remove('flex');
       }
     });
+
+    const currentYear = document.getElementById('currentYear');
+    if (currentYear) {
+      currentYear.textContent = new Date().getFullYear();
+    }
   </script>
 </body>
 </html>

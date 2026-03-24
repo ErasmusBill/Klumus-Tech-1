@@ -77,9 +77,12 @@
                         <a href="{% url 'adminservices:edit-teacher' teacher.id %}" class="btn btn-sm bg-success-light mr-2">
                           <i class="fas fa-pen"></i>
                         </a>
-                        <a href="{% url 'adminservices:delete-teacher' teacher.id %}" class="btn btn-sm bg-danger-light" onclick="return confirm('Delete this teacher?')">
-                          <i class="fas fa-trash"></i>
-                        </a>
+                        <form method="post" action="{% url 'adminservices:delete-teacher' teacher.id %}" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('Delete this teacher?')">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </form>
                       </div>
                     </td>
                   </tr>

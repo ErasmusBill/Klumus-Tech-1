@@ -78,7 +78,11 @@
                     <div class="dropdown-menu notifications">
                         <div class="topnav-dropdown-header">
                             <span class="notification-title">Notifications</span>
-                            <a href="{% url 'account:notifications-clear' %}?next={{ request.path }}" class="clear-noti"> Clear All </a>
+                            <form method="post" action="{% url 'account:notifications-clear' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="clear-noti border-0 bg-transparent p-0"> Clear All </button>
+                            </form>
                         </div>
                         <div class="noti-content">
                             <ul class="notification-list">
@@ -140,7 +144,10 @@
                         </div>
                         <a class="dropdown-item" href="#">My Profile</a>
                         <a class="dropdown-item" href="{% url 'account:change-password' %}">Change Password</a>
-                        <a class="dropdown-item" href="{% url 'account:logout' %}">Logout</a>
+                        <form method="post" action="{% url 'account:logout' %}">
+                            {% csrf_token %}
+                            <button class="dropdown-item border-0 bg-transparent w-100 text-start" type="submit">Logout</button>
+                        </form>
                     </div>
                 </li>
             </ul>

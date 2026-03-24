@@ -191,9 +191,12 @@
 
         <!-- Logout -->
         <li>
-          <a href="{% url 'account:logout' %}">
-            <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-          </a>
+          <form method="post" action="{% url 'account:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="border-0 bg-transparent p-0 text-start">
+              <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+            </button>
+          </form>
         </li>
       </ul>
     </div>

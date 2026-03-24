@@ -11,11 +11,19 @@ from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordFor
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.cache import cache
+from django.db import transaction
 from .cache_utils import make_cache_key, make_user_cache_key, should_cache, bump_user_cache_version
+
+logger = logging.getLogger(__name__)
+
+PASSWORD_RESET_COOLDOWN_SECONDS = 60
+PASSWORD_RESET_MAX_REQUESTS_PER_HOUR = 5
 
 
 def home(request):
@@ -135,6 +143,7 @@ def login_user(request):
 
     return render(request, "account/login.html")
 
+@require_POST
 def logout_user(request):
     logout(request)
     messages.success(request, "You have been logged out.")
@@ -152,10 +161,11 @@ def notification_go(request, notification_id):
 
 
 @login_required(login_url="account:login")
+@require_POST
 def notifications_clear(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.GET.get("next") or request.META.get("HTTP_REFERER") or "account:home")
+    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:home")
 
 
 @login_required(login_url="account:login")
@@ -280,6 +290,7 @@ def change_password(request):
     return render(request, "account/change_password.html", {"form": form})
 
 
+@require_http_methods(["GET", "POST"])
 def request_for_password_reset(request):
     if request.method == "POST":
         form = PasswordRequestForm(request.POST)
@@ -288,11 +299,30 @@ def request_for_password_reset(request):
 
             user = CustomUser.objects.filter(email__iexact=email).first()
             if user:
-                password_reset = RequestPasswordReset.objects.create(
+                now = timezone.now()
+                one_hour_ago = now - timedelta(hours=1)
+                cooldown_window = now - timedelta(seconds=PASSWORD_RESET_COOLDOWN_SECONDS)
+                recent_resets = RequestPasswordReset.objects.filter(
                     user=user,
-                    email=email
+                    created_at__gte=one_hour_ago,
                 )
-                password_reset.send_reset_email(domain=settings.DOMAIN_URL)
+
+                if recent_resets.count() >= PASSWORD_RESET_MAX_REQUESTS_PER_HOUR:
+                    logger.warning("Password reset rate limit reached for user=%s", user.id)
+                elif recent_resets.filter(created_at__gte=cooldown_window).exists():
+                    logger.info("Password reset cooldown active for user=%s", user.id)
+                else:
+                    with transaction.atomic():
+                        RequestPasswordReset.objects.filter(
+                            user=user,
+                            is_used=False,
+                            expires_at__gt=now,
+                        ).update(is_used=True)
+                        password_reset = RequestPasswordReset.objects.create(
+                            user=user,
+                            email=email
+                        )
+                    password_reset.send_reset_email(domain=settings.DOMAIN_URL)
             messages.success(request, "If the email exists, a password reset link has been sent.")
             return redirect("account:login")
     else:
@@ -325,11 +355,11 @@ def verify_reset_token(request, token):
             # Reset password
             user = reset_token.user
             user.password = make_password(new_password)
-            user.save()
+            user.save(update_fields=["password"])
 
             # Mark token as used
             reset_token.is_used = True
-            reset_token.save()
+            reset_token.save(update_fields=["is_used"])
 
             messages.success(request, "Your password has been reset. You can now log in.")
             return redirect("account:login")
@@ -371,7 +401,7 @@ def select_package(request):
         request,
         "account/home.html",
         {
-            "subscription": Subscription.objects.all(),
+            "subscription": Subscription.objects.filter(school=school),
             "packages": packages,
             "packages_by_name": packages_by_name,
             "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
@@ -495,6 +525,7 @@ def verify_payment_view(request, school_id):
 
 
 @login_required(login_url="account:login")
+@require_POST
 def upgrade_package(request, new_package_id):
     if request.user.role != "admin":
         messages.error(request, "Only school admins can upgrade subscriptions.")
@@ -533,6 +564,7 @@ def upgrade_package(request, new_package_id):
 
 
 @login_required(login_url="account:login")
+@require_POST
 def downgrade_package(request, new_package_id):
     if request.user.role != "admin":
         messages.error(request, "Only school admins can downgrade subscriptions.")

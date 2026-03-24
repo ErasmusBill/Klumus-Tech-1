@@ -70,7 +70,7 @@ class RequestPasswordReset(models.Model):
     """Model to handle password reset requests"""
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="password_resets")
     email = models.EmailField()
-    token = models.CharField(max_length=50, default=generate_generalized_integer)
+    token = models.CharField(max_length=50, default=generate_generalized_integer, unique=True, db_index=True)
     is_used = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(blank=True, null=True)

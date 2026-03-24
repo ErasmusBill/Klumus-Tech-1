@@ -455,6 +455,10 @@ def delete_result(request, result_id):
         subject__teacher=teacher  # Ensure the result is for teacher's subject
     )
     
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("teacher:list-result")
+
     result.delete()
     messages.success(request, "You have successfully deleted the result")
     return redirect("teacher:list-result")
@@ -922,14 +926,14 @@ def delete_assignment(request, assignment_id):
 
     assignment = get_object_or_404(Assignment,id=assignment_id,teacher=teacher,subject__school=school  )
 
-    if request.method == 'POST':
-        assignment.delete()
-        messages.success(request, "Assignment deleted successfully.")
-        return redirect('teacher:assignment-list')
+    if request.method != 'POST':
+        return render(request, 'teacher/assignment_confirm_delete.html', {
+            'assignment': assignment
+        })
 
-    return render(request, 'teacher/assignment_confirm_delete.html', {
-        'assignment': assignment
-    })
+    assignment.delete()
+    messages.success(request, "Assignment deleted successfully.")
+    return redirect('teacher:assignment-list')
 
 
 

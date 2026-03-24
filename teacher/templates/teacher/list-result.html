@@ -142,9 +142,12 @@
                                         <a href="{% url 'teacher:edit-result' result.id %}" class="btn btn-primary btn-sm" title="Edit Result">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{% url 'teacher:delete-result' result.id %}" class="btn btn-danger btn-sm" title="Delete Result" onclick="return confirm('Are you sure you want to delete this result? This action cannot be undone.')">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <form method="post" action="{% url 'teacher:delete-result' result.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete Result" onclick="return confirm('Are you sure you want to delete this result? This action cannot be undone.')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

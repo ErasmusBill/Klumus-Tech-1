@@ -75,7 +75,11 @@
                     <div class="dropdown-menu notifications shadow-lg border-0 rounded-4">
                         <div class="topnav-dropdown-header px-3 py-2 border-bottom">
                             <span class="notification-title font-bold">Notifications</span>
-                            <a href="{% url 'account:notifications-clear' %}?next={{ request.path }}" class="clear-noti text-xs"> Clear All </a>
+                            <form method="post" action="{% url 'account:notifications-clear' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="clear-noti text-xs border-0 bg-transparent p-0"> Clear All </button>
+                            </form>
                         </div>
                         <div class="noti-content">
                             <ul class="notification-list">
@@ -122,7 +126,10 @@
                             <p class="text-muted text-xs font-bold uppercase mb-0">Administrator</p>
                         </div>
                         <a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a>
-                        <a class="dropdown-item rounded-2 py-2 text-danger" href="{% url 'account:logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                        <form method="post" action="{% url 'account:logout' %}">
+                            {% csrf_token %}
+                            <button class="dropdown-item rounded-2 py-2 text-danger border-0 bg-transparent w-100 text-start" type="submit"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
+                        </form>
                     </div>
                 </li>
             </ul>
@@ -196,7 +203,10 @@
                             <a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a>
                         </li>
                         <li>
-                            <a href="{% url 'account:logout' %}" class="text-danger"><i class="fas fa-power-off"></i> <span>Sign Out</span></a>
+                            <form method="post" action="{% url 'account:logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-danger border-0 bg-transparent p-0"><i class="fas fa-power-off"></i> <span>Sign Out</span></button>
+                            </form>
                         </li>
                     </ul>
                 </div>

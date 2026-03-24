@@ -5,6 +5,7 @@ Updated for Render Deployment with SendGrid & Twilio Integration
 
 from pathlib import Path
 import os
+import logging
 from urllib.parse import urlparse
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 import dj_database_url # pyright: ignore[reportMissingImports]
@@ -199,13 +200,23 @@ AUTH_USER_MODEL = "account.CustomUser"
 # CACHE CONFIGURATION
 # ========================
 
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "klumus-cache",
-        "TIMEOUT": 300,
+REDIS_URL = os.getenv("REDIS_URL")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 300,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "klumus-cache",
+            "TIMEOUT": 300,
+        }
+    }
 
 CACHE_DEFAULT_TIMEOUT = 300
 
@@ -261,15 +272,9 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 
-# Debug: Check if environment variables are loaded
-print("=== ENVIRONMENT VARIABLE DEBUG ===")
-print(f"TWILIO_ACCOUNT_SID: {'SET' if TWILIO_ACCOUNT_SID else 'NOT SET'}")
-print(f"TWILIO_AUTH_TOKEN: {'SET' if TWILIO_AUTH_TOKEN else 'NOT SET'}")
-print(f"TWILIO_PHONE_NUMBER: {'SET' if TWILIO_PHONE_NUMBER else 'NOT SET'}")
-print("===================================")
-
+logger = logging.getLogger(__name__)
 if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
-    print("⚠️  Twilio credentials not properly set in environment variables")
+    logger.warning("Twilio credentials are not fully configured.")
 
 # ========================
 # RENDER DEPLOYMENT SETTINGS
@@ -307,7 +312,6 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # CELERY CONFIGURATION
 # ========================
 
-REDIS_URL = os.getenv("REDIS_URL")
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL") or REDIS_URL or "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or CELERY_BROKER_URL
 CELERY_ACCEPT_CONTENT = ["json"]

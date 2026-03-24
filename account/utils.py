@@ -1,13 +1,14 @@
 import requests
 from django.conf import settings
 from django.core.mail import send_mail
-import json
-from django.http import JsonResponse
 
 PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
 PAYSTACK_BASE_URL = "https://api.paystack.co"
+PAYSTACK_TIMEOUT_SECONDS = 10
 
 def initialize_paystack_payment(email, amount, callback_url, metadata=None, phone_number=None):
+    if not PAYSTACK_SECRET_KEY:
+        return {"status": False, "message": "PAYSTACK_SECRET_KEY is not configured."}
     headers = {
         "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
@@ -20,21 +21,37 @@ def initialize_paystack_payment(email, amount, callback_url, metadata=None, phon
         "metadata": metadata or {},
     }
 
-    response = requests.post(f"{PAYSTACK_BASE_URL}/transaction/initialize", json=data, headers=headers)
-    return response.json()
+    try:
+        response = requests.post(
+            f"{PAYSTACK_BASE_URL}/transaction/initialize",
+            json=data,
+            headers=headers,
+            timeout=PAYSTACK_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as exc:
+        return {"status": False, "message": f"Payment initialization failed: {exc}"}
+    except ValueError:
+        return {"status": False, "message": "Invalid response from payment gateway."}
 
 def verify_payment(reference):
+    if not PAYSTACK_SECRET_KEY:
+        return {"status": False, "message": "PAYSTACK_SECRET_KEY is not configured."}
     headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
 
-    response = requests.get(
-        f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
-        headers=headers
-    )
-
-    if response.status_code != 200:
-        return {"status": "error", "message": "Failed to verify payment."}
-
-    return response.json()
+    try:
+        response = requests.get(
+            f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
+            headers=headers,
+            timeout=PAYSTACK_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as exc:
+        return {"status": False, "message": f"Failed to verify payment: {exc}"}
+    except ValueError:
+        return {"status": False, "message": "Invalid response from payment gateway."}
 
 
 

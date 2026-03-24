@@ -479,9 +479,13 @@ def delete_teacher(request, teacher_id):
     school = request.user.managed_school
     teacher = get_object_or_404(Teacher, id=teacher_id, school=school)
     
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminservices:list-teachers")
+
     teacher_name = teacher.user.get_full_name()
     teacher.delete()
-    
+
     bump_cache_version(school.id, "teachers")
     bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Teacher '{teacher_name}' deleted successfully")
@@ -612,9 +616,13 @@ def delete_department(request, department_id):
     school = request.user.managed_school
     department = get_object_or_404(Department, id=department_id, school=school)
     
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminservices:list-departments")
+
     department_name = department.name
     department.delete()
-    
+
     bump_cache_version(school.id, "departments")
     bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Department '{department_name}' deleted successfully")
@@ -791,6 +799,9 @@ def list_students(request):
 @login_required(login_url='account:login') 
 def student_detail(request, student_id):
     """View student details"""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
     student = get_object_or_404(Student, id=student_id, school=request.user.managed_school)
     return render(request, "adminservices/student_detail.html", {"student": student})
 
@@ -836,9 +847,13 @@ def delete_student(request, student_id):
     school = request.user.managed_school
     student = get_object_or_404(Student, id=student_id, school=school)
     
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminservices:list-students")
+
     student_name = student.user.get_full_name()
     student.delete()
-    
+
     bump_cache_version(school.id, "students")
     bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Student '{student_name}' deleted successfully")
@@ -1111,9 +1126,13 @@ def delete_subject(request, subject_id):
     school = getattr(request.user, 'managed_school', None)
     subject = get_object_or_404(Subject, id=subject_id, school=school)
 
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminservices:list-subjects")
+
     name = subject.name
     subject.delete()
-    
+
     bump_cache_version(school.id, "subjects")
     bump_cache_version(school.id, "admin_dashboard")
     messages.success(request, f"Subject '{name}' deleted successfully.")
@@ -1275,9 +1294,13 @@ def announcement_delete(request, announcement_id):
     school = request.user.managed_school
     announcement = get_object_or_404(Announcement, id=announcement_id, school=school)
     
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("adminservices:announcement_list")
+
     announcement_title = announcement.title
     announcement.delete()
-    
+
     bump_cache_version(school.id, "announcements")
     messages.success(request, f"Announcement '{announcement_title}' successfully deleted")
     return redirect("adminservices:announcement_list")

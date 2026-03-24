@@ -132,12 +132,15 @@
                              title="Edit">
                             <i class="fas fa-pen"></i>
                           </a>
-                          <a href="{% url 'adminservices:delete-student' student.id %}"
-                             class="btn btn-sm bg-danger-light"
-                             onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');"
-                             title="Delete">
-                            <i class="fas fa-trash"></i>
-                          </a>
+                          <form method="post" action="{% url 'adminservices:delete-student' student.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-sm bg-danger-light"
+                                    onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');"
+                                    title="Delete">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          </form>
                         </div>
                       </td>
                     </tr>

@@ -28,7 +28,11 @@
             <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom p-3 gap-2">
                 <div class="text-muted small">Manage your notifications</div>
                 <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-outline-success" href="{% url 'account:notifications-clear' %}?next={{ request.get_full_path|urlencode }}">Mark all read</a>
+                    <form method="post" action="{% url 'account:notifications-clear' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="btn btn-sm btn-outline-success" type="submit">Mark all read</button>
+                    </form>
                     <form method="post" action="{% url 'account:notifications-delete-all' %}">
                         {% csrf_token %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">

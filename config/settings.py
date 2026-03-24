@@ -18,18 +18,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ========================
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "True").strip().lower() in {"1", "true", "yes", "on"}
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+DEBUG = os.getenv("DEBUG", "False")
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", os.getenv("RENDER_EXTERNAL_HOSTNAME")]
 
-render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-if render_hostname:
-    ALLOWED_HOSTS.append(render_hostname)
-
-fly_app_name = os.getenv("FLY_APP_NAME")
-if fly_app_name:
-    ALLOWED_HOSTS.append(f"{fly_app_name}.fly.dev")
-
-DOMAIN_URL = os.getenv("DOMAIN_URL", "")
+DOMAIN_URL = os.getenv('*')
 
 # ========================
 # APPLICATION DEFINITION

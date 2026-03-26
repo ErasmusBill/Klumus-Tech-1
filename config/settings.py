@@ -5,8 +5,6 @@ Updated for Render Deployment with SendGrid & Twilio Integration
 
 from pathlib import Path
 import os
-import logging
-from urllib.parse import urlparse
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 import dj_database_url # pyright: ignore[reportMissingImports]
 
@@ -20,20 +18,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ========================
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
-RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-if os.getenv("ALLOWED_HOSTS"):
-    ALLOWED_HOSTS.extend([h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()])
-ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
+DEBUG = os.getenv("DEBUG", "True").strip().lower() in {"1", "true", "yes", "on"}
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
-DOMAIN_URL = os.getenv("DOMAIN_URL", "").strip()
-if not DOMAIN_URL and RENDER_EXTERNAL_HOSTNAME:
-    DOMAIN_URL = f"https://{RENDER_EXTERNAL_HOSTNAME}"
-elif not DOMAIN_URL and os.getenv("FLY_APP_NAME"):
-    DOMAIN_URL = f"https://{os.getenv('FLY_APP_NAME')}.fly.dev"
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if render_hostname:
+    ALLOWED_HOSTS.append(render_hostname)
+
+fly_app_name = os.getenv("FLY_APP_NAME")
+if fly_app_name:
+    ALLOWED_HOSTS.append(f"{fly_app_name}.fly.dev")
+
+DOMAIN_URL = os.getenv("DOMAIN_URL", "")
 
 # ========================
 # APPLICATION DEFINITION
@@ -138,18 +134,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv("DATABASE_URL")
 APP_ENV = os.getenv("APP_ENV", "development")
 FLY_APP_NAME = os.getenv("FLY_APP_NAME")
-IS_PRODUCTION = APP_ENV == "production" or bool(FLY_APP_NAME)
 
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=IS_PRODUCTION
+            ssl_require=False
         )
     }
 else:
-    if IS_PRODUCTION:
+    if APP_ENV == "production" or FLY_APP_NAME:
         raise RuntimeError("DATABASE_URL must be set in production (Fly) to avoid ephemeral SQLite.")
     DATABASES = {
         'default': {
@@ -200,23 +195,13 @@ AUTH_USER_MODEL = "account.CustomUser"
 # CACHE CONFIGURATION
 # ========================
 
-REDIS_URL = os.getenv("REDIS_URL")
-if REDIS_URL:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-            "TIMEOUT": 300,
-        }
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "klumus-cache",
+        "TIMEOUT": 300,
     }
-else:
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "klumus-cache",
-            "TIMEOUT": 300,
-        }
-    }
+}
 
 CACHE_DEFAULT_TIMEOUT = 300
 
@@ -272,9 +257,15 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 
-logger = logging.getLogger(__name__)
+# Debug: Check if environment variables are loaded
+print("=== ENVIRONMENT VARIABLE DEBUG ===")
+print(f"TWILIO_ACCOUNT_SID: {'SET' if TWILIO_ACCOUNT_SID else 'NOT SET'}")
+print(f"TWILIO_AUTH_TOKEN: {'SET' if TWILIO_AUTH_TOKEN else 'NOT SET'}")
+print(f"TWILIO_PHONE_NUMBER: {'SET' if TWILIO_PHONE_NUMBER else 'NOT SET'}")
+print("===================================")
+
 if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
-    logger.warning("Twilio credentials are not fully configured.")
+    print("⚠️  Twilio credentials not properly set in environment variables")
 
 # ========================
 # RENDER DEPLOYMENT SETTINGS
@@ -282,25 +273,10 @@ if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = []
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
-if FLY_APP_NAME:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{FLY_APP_NAME}.fly.dev")
-if DOMAIN_URL:
-    parsed = urlparse(DOMAIN_URL)
-    if parsed.scheme and parsed.netloc:
-        CSRF_TRUSTED_ORIGINS.append(f"{parsed.scheme}://{parsed.netloc}")
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
-
-if IS_PRODUCTION:
-    if SECRET_KEY == "fallback-secret-key":
-        raise RuntimeError("SECRET_KEY must be set in production.")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+if render_hostname:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{render_hostname}")
+if fly_app_name:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{fly_app_name}.fly.dev")
 
 
 
@@ -312,6 +288,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # CELERY CONFIGURATION
 # ========================
 
+REDIS_URL = os.getenv("REDIS_URL")
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL") or REDIS_URL or "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or CELERY_BROKER_URL
 CELERY_ACCEPT_CONTENT = ["json"]

@@ -135,12 +135,22 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 APP_ENV = os.getenv("APP_ENV", "development")
 FLY_APP_NAME = os.getenv("FLY_APP_NAME")
 
+def _db_ssl_required(app_env: str, render_host: str | None, fly_app: str | None) -> bool:
+    explicit = os.getenv("DB_SSL_REQUIRE")
+    if explicit is not None:
+        return explicit.strip().lower() in {"1", "true", "yes", "on"}
+    if app_env.strip().lower() == "production":
+        return True
+    if render_host or fly_app:
+        return True
+    return False
+
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=False
+            ssl_require=_db_ssl_required(APP_ENV, render_hostname, FLY_APP_NAME),
         )
     }
 else:

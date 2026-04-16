@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 import dj_database_url # pyright: ignore[reportMissingImports]
 
@@ -14,17 +13,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ========================
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "True").strip().lower() in {"1", "true", "yes", "on"}
-
+DEBUG = os.getenv("DEBUG", "False").strip().lower() in {"1", "true", "yes", "on"}
 
 def _csv_env(name: str, default: str = "") -> list[str]:
     raw_value = os.getenv(name, default)
+    # This splits by comma and cleans up any stray spaces
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
+# Updated: Ensure your school subdomain is recognized
+ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "school.fruitfulyouth.org,fruitfulyouth.org,localhost,127.0.0.1,0.0.0.0")
 
-ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0")
-
-DOMAIN_URL = os.getenv("DOMAIN_URL", "")
+DOMAIN_URL = os.getenv("DOMAIN_URL", "https://school.fruitfulyouth.org")
 APPEND_SLASH = True
 
 # ========================
@@ -130,7 +129,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv("DATABASE_URL")
 APP_ENV = os.getenv("APP_ENV", "development")
 
-
 def _db_ssl_required(app_env: str) -> bool:
     explicit = os.getenv("DB_SSL_REQUIRE")
     if explicit is not None:
@@ -184,6 +182,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 if DEBUG:
     STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 else:
@@ -207,35 +206,17 @@ CACHES = {
     }
 }
 
-CACHE_DEFAULT_TIMEOUT = 300
-
 # ========================
-# PAYSTACK CONFIGURATION
+# THIRD-PARTY CONFIGS
 # ========================
 
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY")
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
-# ========================
-# SENDGRID EMAIL CONFIGURATION
-# ========================
-
-
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"
-
-
-# EMAIL_BACKEND = 'sendgrid_backend.SendgridBackend'
-# SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-# DEFAULT_FROM_EMAIL = "eramuscharway77@gmail.com"
-# SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
 
-# In local development (or when API key is missing), keep email local
-# so user actions like registration don't crash on missing SendGrid backend.
 if SENDGRID_API_KEY:
     EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
@@ -243,59 +224,28 @@ if SENDGRID_API_KEY:
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-
-# In settings.py
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.sendgrid.net"
-# EMAIL_PORT = 587 # Changed from  2525 
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "apikey"
-# EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
-# DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
-# ========================
-# SMS CONFIGURATION
-# ========================
-
 MNOTIFY_API_KEY = os.getenv("MNOTIFY_API_KEY")
 MNOTIFY_SENDER_ID = os.getenv("MNOTIFY_SENDER_ID")
-MNOTIFY_SENDER_ID_PURPOSE = os.getenv(
-    "MNOTIFY_SENDER_ID_PURPOSE",
-    "Transactional school notifications",
-)
 MNOTIFY_BASE_URL = os.getenv("MNOTIFY_BASE_URL", "https://api.mnotify.com/api")
 
+# ========================
+# PRODUCTION SECURITY
+# ========================
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-csrf_trusted_origins = _csv_env("CSRF_TRUSTED_ORIGINS")
-if not csrf_trusted_origins and DOMAIN_URL:
-    csrf_trusted_origins = [DOMAIN_URL]
-CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
+# Robust CSRF setup
+csrf_origins = _csv_env("CSRF_TRUSTED_ORIGINS")
+if not csrf_origins and DOMAIN_URL:
+    csrf_origins = [DOMAIN_URL]
+CSRF_TRUSTED_ORIGINS = csrf_origins
 
-SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False").strip().lower() in {"1", "true", "yes", "on"}
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true", "yes", "on"}
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true", "yes", "on"}
 
-
-
-# settings.py - Add these for better performance
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 

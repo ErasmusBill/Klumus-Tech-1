@@ -54,7 +54,8 @@ services:
       - static_data:/app/staticfiles
       - media_data:/app/media
     ports:
-      - "127.0.0.1:${APP_PORT:-8000}:8000"
+      # Changed from 8000 to 8051 to avoid collision with your other apps
+      - "0.0.0.0:8051:8000"
 
   worker:
     build:

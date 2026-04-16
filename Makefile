@@ -1,80 +1,64 @@
-# Makefile
+DC = docker compose
+RUN_APP = $(DC) run --rm -e RUN_MIGRATIONS=0 -e COLLECTSTATIC=0 app
 
-# Variables
-DC = docker compose --profile dev
-APP = $(DC) run --rm web
+.PHONY: build up up-with-docker-nginx down restart logs ps app-logs worker-logs nginx-logs shell dbshell migrate makemigrations createsuperuser collectstatic check check-mnotify test clean
 
-.PHONY: build up down logs shell migrate makemigrations test install restart format clean superuser fullseed seed
-
-# --- Docker Control ---
 build:
 	$(DC) build
 
 up:
-	$(DC) up
+	$(DC) up -d
+
+up-with-docker-nginx:
+	$(DC) --profile docker-nginx up -d
 
 down:
 	$(DC) down
 
+restart:
+	$(DC) restart app worker
+
 logs:
 	$(DC) logs -f
 
-restart:
-	$(DC) restart web
+ps:
+	$(DC) ps
 
-# --- Django Commands ---
-migrate:
-	$(APP) python manage.py migrate
+app-logs:
+	$(DC) logs -f app
 
-makemigrations:
-	$(APP) python manage.py makemigrations
+worker-logs:
+	$(DC) logs -f worker
 
-superuser:
-	$(APP) python manage.py createsuperuser
-
-collectstatic:
-	$(APP) python manage.py collectstatic
+nginx-logs:
+	$(DC) --profile docker-nginx logs -f nginx
 
 shell:
-	$(APP) python manage.py shell
+	$(RUN_APP) python manage.py shell
 
-# --- Code Quality ---
-format:
-	$(APP) black .
+dbshell:
+	$(RUN_APP) python manage.py dbshell
 
-# --- Package Management ---
-# Usage: make install package=stripe
-install:
-	$(APP) poetry add $(package)
-	$(DC) build
+migrate:
+	$(RUN_APP) python manage.py migrate --noinput
 
-# --- Testing ---
+makemigrations:
+	$(RUN_APP) python manage.py makemigrations
+
+createsuperuser:
+	$(RUN_APP) python manage.py createsuperuser
+
+collectstatic:
+	$(RUN_APP) python manage.py collectstatic --noinput
+
+check:
+	$(RUN_APP) python manage.py check
+
+check-mnotify:
+	$(RUN_APP) python manage.py check_mnotify
+
 test:
-	$(APP) pytest
+	$(RUN_APP) python manage.py test
 
-# --- Maintenance ---
 clean:
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-
-## --- Seeding ---
-#fullseed:
-#	echo "Making migrations..."
-#	$(APP) python manage.py makemigrations
-#	echo "Migrating database..."
-#	$(APP) python manage.py migrate
-#	echo "Seeding data..."
-#	$(APP) python manage.py setup_roles
-#	$(APP) python manage.py seed_vehicles
-#	$(APP) python manage.py seed_ghana_locations
-#	$(APP) python manage.py seed_rentals_config
-#	$(APP) python manage.py seed_rental_products
-#	$(APP) python manage.py seed_rental_tags
-#	$(APP) python manage.py seed_compliance
-#	$(APP) python manage.py seed_support
-#	echo "Seeding complete!"
-
-# --- Custom Seeding Command ---
-seed:
-	$(APP) python manage.py $(filter-out seed,$(MAKECMDGOALS))
-%:
-	@:
+	$(DC) down -v

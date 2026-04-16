@@ -4,6 +4,8 @@ import asyncio
 import secrets
 import string
 from typing import List, Dict, Any, Optional, Tuple
+
+import requests
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -21,15 +23,8 @@ except ImportError:
     SENDGRID_AVAILABLE = False
     logging.warning("SendGrid not available. Install with: pip install sendgrid")
 
-try:
-    from twilio.rest import Client
-    from twilio.base.exceptions import TwilioRestException
-    TWILIO_AVAILABLE = True
-except ImportError:
-    TWILIO_AVAILABLE = False
-    logging.warning("Twilio not available. Install with: pip install twilio")
-
 logger = logging.getLogger(__name__)
+MNOTIFY_TIMEOUT_SECONDS = 15
 
 # ===== PASSWORD GENERATION =====
 
@@ -68,15 +63,12 @@ def check_email_config():
 
 def check_sms_config():
     """Check if SMS configuration is available"""
-    if not TWILIO_AVAILABLE:
-        return False, "Twilio not installed"
-    
-    required_settings = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
+    required_settings = ["MNOTIFY_API_KEY", "MNOTIFY_SENDER_ID"]
     for setting in required_settings:
         if not hasattr(settings, setting) or not getattr(settings, setting):
             return False, f"{setting} not configured"
-    
-    return True, "SMS configuration OK"
+
+    return True, "MNotify SMS configuration OK"
 
 # ===== CONTACT INFORMATION GATHERING =====
 
@@ -373,6 +365,105 @@ def send_email_sync(to_emails: List[str], subject: str, message: str, html_messa
 
 # ===== SMS FUNCTIONS =====
 
+
+def _normalize_phone_number(phone: str) -> str:
+    digits = "".join(char for char in str(phone) if char.isdigit())
+    if not digits:
+        raise ValueError("Phone number is empty")
+
+    if digits.startswith("233") and len(digits) == 12:
+        return digits
+    if digits.startswith("0") and len(digits) == 10:
+        return f"233{digits[1:]}"
+    if len(digits) == 9:
+        return f"233{digits}"
+
+    raise ValueError(
+        f"Unsupported phone number format: {phone}. Expected Ghana-format mobile number."
+    )
+
+
+def _get_mnotify_url(path: str) -> str:
+    base_url = getattr(settings, "MNOTIFY_BASE_URL", "https://api.mnotify.com/api").rstrip("/")
+    return f"{base_url}{path}"
+
+
+def _parse_mnotify_response(response: requests.Response) -> Dict[str, Any]:
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise ValueError(f"Invalid JSON response from MNotify: {response.text[:200]}") from exc
+
+    if response.ok:
+        return payload
+
+    message = payload.get("message") or payload.get("error") or response.text
+    raise RuntimeError(f"MNotify API error {response.status_code}: {message}")
+
+
+def _send_sms_via_mnotify(to_phones: List[str], message: str) -> Dict[str, Any]:
+    result = {"success": False, "message_id": None, "error": None}
+
+    config_ok, config_message = check_sms_config()
+    if not config_ok:
+        result["error"] = config_message
+        return result
+
+    recipients = []
+    invalid_numbers = []
+    for phone in to_phones:
+        try:
+            recipients.append(_normalize_phone_number(phone))
+        except ValueError as exc:
+            invalid_numbers.append(str(exc))
+
+    if not recipients:
+        result["error"] = "; ".join(invalid_numbers) or "No valid recipient phone numbers provided"
+        return result
+
+    payload = {
+        "recipient": sorted(set(recipients)),
+        "sender": settings.MNOTIFY_SENDER_ID,
+        "message": message,
+        "is_schedule": False,
+        "schedule_date": "",
+    }
+
+    try:
+        response = requests.post(
+            f"{_get_mnotify_url('/sms/quick')}?key={settings.MNOTIFY_API_KEY}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=MNOTIFY_TIMEOUT_SECONDS,
+        )
+        data = _parse_mnotify_response(response)
+        summary = data.get("summary") or {}
+
+        result["success"] = str(data.get("status", "")).lower() == "success"
+        result["message_id"] = summary.get("_id")
+
+        error_parts = invalid_numbers[:]
+        if not result["success"]:
+            error_parts.append(data.get("message") or "MNotify rejected the SMS request")
+        if error_parts:
+            result["error"] = "; ".join(error_parts)
+
+        logger.info(
+            "MNotify SMS response: success=%s campaign_id=%s recipients=%s",
+            result["success"],
+            result["message_id"],
+            len(payload["recipient"]),
+        )
+        return result
+    except requests.RequestException as exc:
+        result["error"] = f"Failed to reach MNotify: {exc}"
+        logger.error(result["error"], exc_info=True)
+        return result
+    except Exception as exc:
+        result["error"] = f"Failed to send SMS with MNotify: {exc}"
+        logger.error(result["error"], exc_info=True)
+        return result
+
 def send_sms_mock(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     Mock SMS function for development - logs instead of sending real SMS
@@ -393,151 +484,21 @@ def send_sms_mock(to_phones: List[str], message: str) -> Dict[str, Any]:
 
 async def send_sms_async(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
-    Send SMS asynchronously using Twilio
-    Returns: {'success': bool, 'message_sid': str, 'error': str}
+    Send SMS asynchronously using MNotify.
     """
-    result = {'success': False, 'message_sid': None, 'error': None}
-    
     if not to_phones:
-        result['error'] = "No recipient phone numbers provided"
-        return result
-    
-    # Check if Twilio is available
-    if not TWILIO_AVAILABLE:
-        result['error'] = "Twilio not available"
-        return result
-    
-    # Check if Twilio settings are configured
-    if not all([hasattr(settings, 'TWILIO_ACCOUNT_SID'), 
-                hasattr(settings, 'TWILIO_AUTH_TOKEN'),
-                hasattr(settings, 'TWILIO_PHONE_NUMBER')]):
-        result['error'] = "Twilio configuration missing in settings"
-        return result
-    
-    if not all([settings.TWILIO_ACCOUNT_SID, 
-                settings.TWILIO_AUTH_TOKEN, 
-                settings.TWILIO_PHONE_NUMBER]):
-        result['error'] = "Twilio credentials not set in environment variables"
-        return result
-    
-    try:
-        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)  # type: ignore
-        
-        successful_sends = 0
-        errors = []
-        
-        for phone in to_phones:
-            try:
-                # Format phone number for GHANA (+233 country code)
-                formatted_phone = phone
-                if not phone.startswith('+'):
-                    # Remove leading 0 and add +233 for Ghana
-                    if phone.startswith('0'):
-                        formatted_phone = f"+233{phone[1:]}"
-                    else:
-                        formatted_phone = f"+233{phone}"
-                elif phone.startswith('+1'):
-                    # Convert from wrong US format to Ghana format
-                    # +10540501163 → +233540501163
-                    formatted_phone = f"+233{phone[3:]}"
-                
-                logger.info(f"📱 Sending SMS to {formatted_phone} (original: {phone})")
-                
-                # Send SMS
-                twilio_message = await sync_to_async(client.messages.create)(
-                    body=message,
-                    from_=settings.TWILIO_PHONE_NUMBER,
-                    to=formatted_phone
-                )
-                
-                if twilio_message.sid:
-                    successful_sends += 1
-                    result['message_sid'] = twilio_message.sid
-                    logger.info(f"SMS sent successfully to {formatted_phone}. SID: {twilio_message.sid}")
-                else:
-                    errors.append(f"Twilio returned no SID for {formatted_phone}")
-                    
-            except TwilioRestException as e:  # type: ignore
-                if e.code == 21211:  # Invalid phone number
-                    error_msg = f"Invalid phone number format: {formatted_phone}. Ghana numbers should start with +233"  # type: ignore
-                elif e.code == 21608:  # Phone number not verified (for trial accounts)
-                    error_msg = f"Phone number {formatted_phone} not verified in Twilio trial account"  # type: ignore
-                elif e.code == 20003:  # Authentication error
-                    error_msg = f"Twilio authentication failed: Invalid Account SID or Auth Token"  # type: ignore
-                else:
-                    error_msg = f"Twilio error for {formatted_phone}: {e.msg} (Code: {e.code})"  # type: ignore
-                
-                errors.append(error_msg)
-                logger.error(error_msg)
-            except Exception as e:
-                error_msg = f"Unexpected error sending to {formatted_phone}: {str(e)}"  # type: ignore
-                errors.append(error_msg)
-                logger.error(error_msg)
-        
-        result['success'] = successful_sends > 0
-        if errors:
-            result['error'] = "; ".join(errors)
-            
-    except Exception as e:
-        error_msg = f"Failed to send SMS: {str(e)}"
-        result['error'] = error_msg
-        logger.error(error_msg, exc_info=True)
-    
-    return result
+        return {"success": False, "message_id": None, "error": "No recipient phone numbers provided"}
+
+    return await sync_to_async(_send_sms_via_mnotify)(to_phones, message)
 
 def send_sms_sync(to_phones: List[str], message: str) -> Dict[str, Any]:
     """
     Synchronous SMS sending (no asyncio).
     """
-    result = {'success': False, 'message_sid': None, 'error': None}
-
     if not to_phones:
-        result['error'] = "No recipient phone numbers provided"
-        return result
+        return {"success": False, "message_id": None, "error": "No recipient phone numbers provided"}
 
-    if not TWILIO_AVAILABLE:
-        result['error'] = "Twilio not available"
-        return result
-
-    if not all([getattr(settings, "TWILIO_ACCOUNT_SID", None),
-                getattr(settings, "TWILIO_AUTH_TOKEN", None),
-                getattr(settings, "TWILIO_PHONE_NUMBER", None)]):
-        result['error'] = "Twilio credentials not set in environment variables"
-        return result
-
-    try:
-        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)  # type: ignore
-        successful_sends = 0
-        errors = []
-
-        for phone in to_phones:
-            try:
-                formatted_phone = phone
-                if not phone.startswith('+'):
-                    if phone.startswith('0'):
-                        formatted_phone = f"+233{phone[1:]}"
-                    else:
-                        formatted_phone = f"+233{phone}"
-                message_obj = client.messages.create(
-                    body=message,
-                    from_=settings.TWILIO_PHONE_NUMBER,  # type: ignore
-                    to=formatted_phone
-                )
-                result['message_sid'] = message_obj.sid
-                successful_sends += 1
-            except Exception as e:
-                errors.append(str(e))
-
-        result['success'] = successful_sends > 0
-        if errors:
-            result['error'] = "; ".join(errors)
-        return result
-
-    except Exception as e:
-        error_msg = f"Failed to send SMS: {str(e)}"
-        result['error'] = error_msg
-        logger.error(error_msg, exc_info=True)
-        return result
+    return _send_sms_via_mnotify(to_phones, message)
 
 # ===== NOTIFICATION MANAGEMENT =====
 

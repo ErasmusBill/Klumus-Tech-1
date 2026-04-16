@@ -1,3 +1,13 @@
-fly.toml
 .git/
+.gitignore
+.idea/
+.venv/
+.venv_py313_backup/
+.venv_py39_backup/
+.env
+__pycache__/
+*.pyc
 *.sqlite3
+postgres_data/
+redis_data/
+staticfiles/

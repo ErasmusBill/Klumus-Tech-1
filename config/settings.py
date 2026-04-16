@@ -1,10 +1,6 @@
-"""
-Django settings for config project.
-Updated for Render Deployment with SendGrid & Twilio Integration
-"""
-
-from pathlib import Path
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 import dj_database_url # pyright: ignore[reportMissingImports]
 
@@ -19,17 +15,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "True").strip().lower() in {"1", "true", "yes", "on"}
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
-render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-if render_hostname:
-    ALLOWED_HOSTS.append(render_hostname)
 
-fly_app_name = os.getenv("FLY_APP_NAME")
-if fly_app_name:
-    ALLOWED_HOSTS.append(f"{fly_app_name}.fly.dev")
+def _csv_env(name: str, default: str = "") -> list[str]:
+    raw_value = os.getenv(name, default)
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0")
 
 DOMAIN_URL = os.getenv("DOMAIN_URL", "")
+APPEND_SLASH = True
 
 # ========================
 # APPLICATION DEFINITION
@@ -133,15 +129,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 APP_ENV = os.getenv("APP_ENV", "development")
-FLY_APP_NAME = os.getenv("FLY_APP_NAME")
 
-def _db_ssl_required(app_env: str, render_host: str | None, fly_app: str | None) -> bool:
+
+def _db_ssl_required(app_env: str) -> bool:
     explicit = os.getenv("DB_SSL_REQUIRE")
     if explicit is not None:
         return explicit.strip().lower() in {"1", "true", "yes", "on"}
     if app_env.strip().lower() == "production":
-        return True
-    if render_host or fly_app:
         return True
     return False
 
@@ -150,12 +144,12 @@ if DATABASE_URL:
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=_db_ssl_required(APP_ENV, render_hostname, FLY_APP_NAME),
+            ssl_require=_db_ssl_required(APP_ENV),
         )
     }
 else:
-    if APP_ENV == "production" or FLY_APP_NAME:
-        raise RuntimeError("DATABASE_URL must be set in production (Fly) to avoid ephemeral SQLite.")
+    if APP_ENV == "production":
+        raise RuntimeError("DATABASE_URL must be set in production.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -259,34 +253,45 @@ else:
 # EMAIL_HOST_PASSWORD = os.getenv("SENDGRID_API_KEY")
 # DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
 # ========================
-# TWILIO CONFIGURATION
+# SMS CONFIGURATION
 # ========================
 
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+MNOTIFY_API_KEY = os.getenv("MNOTIFY_API_KEY")
+MNOTIFY_SENDER_ID = os.getenv("MNOTIFY_SENDER_ID")
+MNOTIFY_SENDER_ID_PURPOSE = os.getenv(
+    "MNOTIFY_SENDER_ID_PURPOSE",
+    "Transactional school notifications",
+)
+MNOTIFY_BASE_URL = os.getenv("MNOTIFY_BASE_URL", "https://api.mnotify.com/api")
 
-
-# Debug: Check if environment variables are loaded
-print("=== ENVIRONMENT VARIABLE DEBUG ===")
-print(f"TWILIO_ACCOUNT_SID: {'SET' if TWILIO_ACCOUNT_SID else 'NOT SET'}")
-print(f"TWILIO_AUTH_TOKEN: {'SET' if TWILIO_AUTH_TOKEN else 'NOT SET'}")
-print(f"TWILIO_PHONE_NUMBER: {'SET' if TWILIO_PHONE_NUMBER else 'NOT SET'}")
-print("===================================")
-
-if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
-    print("⚠️  Twilio credentials not properly set in environment variables")
-
-# ========================
-# RENDER DEPLOYMENT SETTINGS
-# ========================
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = []
-if render_hostname:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{render_hostname}")
-if fly_app_name:
-    CSRF_TRUSTED_ORIGINS.append(f"https://{fly_app_name}.fly.dev")
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+csrf_trusted_origins = _csv_env("CSRF_TRUSTED_ORIGINS")
+if not csrf_trusted_origins and DOMAIN_URL:
+    csrf_trusted_origins = [DOMAIN_URL]
+CSRF_TRUSTED_ORIGINS = csrf_trusted_origins
+
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 

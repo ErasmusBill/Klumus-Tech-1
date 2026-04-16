@@ -48,7 +48,6 @@ sqlparse==0.5.3
 threadpoolctl==3.6.0
 tinycss2==1.4.0
 tinyhtml5==2.0.0
-twilio==9.8.4
 typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0

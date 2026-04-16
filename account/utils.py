@@ -57,7 +57,10 @@ def verify_payment(reference):
 
 
 def send_subscription_sms(phone_number,message):
-    pass    
+    from adminservices.utils import send_sms_sync
+
+    result = send_sms_sync([phone_number], message)
+    return result.get("success", False)
 
 
 def send_subscription_email(user_email, subject, message):

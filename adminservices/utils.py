@@ -29,12 +29,8 @@ MNOTIFY_TIMEOUT_SECONDS = 15
 # ===== PASSWORD GENERATION =====
 
 def generate_default_password() -> str:
-    """Generate a random strong password for new teacher/student registrations."""
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-    while True:
-        password = "".join(secrets.choice(alphabet) for _ in range(14))
-        if any(c.islower() for c in password) and any(c.isupper() for c in password) and any(c.isdigit() for c in password):
-            return password
+    """Return the standard default password for new teacher/student registrations."""
+    return "Abc@12345"
 
 # ===== CONFIGURATION CHECK =====
 

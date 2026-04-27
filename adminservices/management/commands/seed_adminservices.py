@@ -66,7 +66,7 @@ class Command(BaseCommand):
             },
         )
         if created:
-            user.set_password("admin12345")
+            user.set_password("Abc@12345")
             user.save(update_fields=["password"])
         return user, created
 
@@ -129,7 +129,7 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                user.set_password("teacher12345")
+                user.set_password("Abc@12345")
                 user.save(update_fields=["password"])
             teacher, _ = Teacher.objects.get_or_create(
                 user=user,
@@ -182,7 +182,7 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                user.set_password("student12345")
+                user.set_password("Abc@12345")
                 user.save(update_fields=["password"])
 
             if Student.objects.filter(user=user).exists():

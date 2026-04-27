@@ -51,8 +51,8 @@ class SchoolProvisionForm(forms.Form):
     admin_full_name = forms.CharField(max_length=150, label="Admin Full Name")
     admin_email = forms.EmailField(label="Admin Email")
     admin_phone = forms.CharField(max_length=20, label="Admin Phone Number")
-    password = forms.CharField(widget=forms.PasswordInput, label="Temporary Password")
-    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
+    password = forms.CharField(widget=forms.PasswordInput, label="Temporary Password", initial="Abc@12345")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password", initial="Abc@12345")
 
     def __init__(self, *args, inquiry=None, **kwargs):
         super().__init__(*args, **kwargs)

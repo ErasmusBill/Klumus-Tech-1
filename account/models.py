@@ -86,13 +86,32 @@ class RequestPasswordReset(models.Model):
 
     def is_valid(self):
         """Check if token is still valid"""
+    """Model to handle password reset requests"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="password_resets")
+    email = models.EmailField()
+    token = models.CharField(max_length=50, default=generate_generalized_integer, unique=True, db_index=True)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Password Reset for {self.user.username} ({'Used' if self.is_used else 'Pending'})"
+
+    def save(self, *args, **kwargs):
+        """Automatically set expiry time if not already set"""
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(hours=1) 
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        """Check if token is still valid"""
         return not self.is_used and self.expires_at > timezone.now()
 
     def send_reset_email(self, domain=None):
         """Send password reset email with token link"""
         if not domain:
             domain = settings.DOMAIN_URL
-        reset_link = f"{domain}/reset-password/{self.token}/"
+        reset_link = f"{domain.rstrip('/')}/reset-password/{self.token}/"
         subject = "Password Reset Request"
         message = f"""
         Hello {self.user.get_full_name() or self.user.username},
@@ -104,14 +123,112 @@ class RequestPasswordReset(models.Model):
 
         If you did not request this, please ignore this email.
         """
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,  
-            [self.email],
-            fail_silently=False,
-        )
-        return True
+        
+        html_message = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background-color: #2563eb; color: #ffffff; padding: 20px; text-align: center; }}
+                .header h2 {{ margin: 0; font-size: 24px; }}
+                .content {{ padding: 30px; text-align: center; }}
+                .content p {{ font-size: 16px; line-height: 1.5; color: #555; }}
+                .btn {{ display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }}
+                .footer {{ background-color: #f8fafc; padding: 15px; text-align: center; font-size: 14px; color: #888; border-top: 1px solid #eee; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>Password Reset Request</h2>
+                </div>
+                <div class="content">
+                    <p>Hello <strong>{self.user.get_full_name() or self.user.username}</strong>,</p>
+                    <p>We received a request to reset the password for your Klumus account. Click the button below to set a new password:</p>
+                    <a href="{reset_link}" class="btn">Reset Password</a>
+                    <p style="margin-top: 30px; font-size: 14px;">This link is valid for 1 hour.</p>
+                    <p style="font-size: 14px;">If you did not request a password reset, please safely ignore this email.</p>
+                </div>
+                <div class="footer">
+                    <p>&copy; Klumus Tech. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,  
+                [self.email],
+                fail_silently=False,
+                html_message=html_message
+            )
+            return True
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending password reset email: {e}")
+            return False
+
+
+class SchoolOnboardingRequest(models.Model):
+    STATUS_CHOICES = [
+        ("new", "New"),
+        ("contacted", "Contacted"),
+        ("qualified", "Qualified"),
+        ("provisioned", "Provisioned"),
+        ("declined", "Declined"),
+    ]
+
+    SCHOOL_SIZE_CHOICES = [
+        ("1-100", "1-100 students"),
+        ("101-300", "101-300 students"),
+        ("301-700", "301-700 students"),
+        ("700+", "700+ students"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school_name = models.CharField(max_length=255)
+    contact_full_name = models.CharField(max_length=150)
+    contact_role = models.CharField(max_length=120, blank=True)
+    contact_email = models.EmailField()
+    contact_phone = models.CharField(max_length=20)
+    location = models.CharField(max_length=255)
+    address = models.TextField(blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+    website = models.URLField(blank=True)
+    school_size = models.CharField(max_length=20, choices=SCHOOL_SIZE_CHOICES, blank=True)
+    preferred_package = models.ForeignKey(
+        "Package",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="onboarding_requests",
+    )
+    message = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
+    provisioned_school = models.OneToOneField(
+        "School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="onboarding_request",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "School Onboarding Request"
+        verbose_name_plural = "School Onboarding Requests"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.school_name} - {self.contact_full_name}"
 
 class Parent(models.Model):
     """Parent information model"""
@@ -222,6 +339,17 @@ class School(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def formatted_features(self):
+        if not self.features:
+            return []
+        if isinstance(self.features, dict):
+            return [k.replace('_', ' ').title() for k, v in self.features.items() if v]
+        elif isinstance(self.features, list):
+            return [str(f).title() for f in self.features]
+        return []
+
 
 
 class Package(models.Model):

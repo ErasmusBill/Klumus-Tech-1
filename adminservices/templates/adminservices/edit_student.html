@@ -10,10 +10,10 @@
         <div class="page-header">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title">Add Student</h3>
+                    <h3 class="page-title">Edit Student</h3>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{% url 'adminservices:list-students' %}">Students</a></li>
-                        <li class="breadcrumb-item active">Add Student</li>
+                        <li class="breadcrumb-item active">Edit Student</li>
                     </ul>
                 </div>
             </div>
@@ -182,18 +182,18 @@
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                         <label>Father's Email</label>
-                                        {{ form.fathers_email }}
-                                        {% if form.fathers_email.errors %}
-                                            <div class="text-danger mt-1">{{ form.fathers_email.errors }}</div>
+                                        {{ form.father_email }}
+                                        {% if form.father_email.errors %}
+                                            <div class="text-danger mt-1">{{ form.father_email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                         <label>Father's Mobile</label>
-                                        {{ form.fathers_number }}
-                                        {% if form.fathers_number.errors %}
-                                            <div class="text-danger mt-1">{{ form.fathers_number.errors }}</div>
+                                        {{ form.father_phone }}
+                                        {% if form.father_phone.errors %}
+                                            <div class="text-danger mt-1">{{ form.father_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -202,7 +202,7 @@
                                         <label>Mother's Name</label>
                                         {{ form.mother_name }}
                                         {% if form.mother_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_first_name.errors }}</div>
+                                            <div class="text-danger mt-1">{{ form.mother_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -218,18 +218,18 @@
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                         <label>Mother's Email</label>
-                                        {{ form.mothers_email }}
-                                        {% if form.mothers_email.errors %}
-                                            <div class="text-danger mt-1">{{ form.mothers_email.errors }}</div>
+                                        {{ form.mother_email }}
+                                        {% if form.mother_email.errors %}
+                                            <div class="text-danger mt-1">{{ form.mother_email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                         <label>Mother's Mobile</label>
-                                        {{ form.mother_phone_number }}
-                                        {% if form.mother_phone_number.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_phone_number.errors }}</div>
+                                        {{ form.mother_phone }}
+                                        {% if form.mother_phone.errors %}
+                                            <div class="text-danger mt-1">{{ form.mother_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -259,7 +259,7 @@
 
                                 <!-- Submit Button -->
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                    <button type="submit" class="btn btn-primary">Update Student</button>
                                     <a href="{% url 'adminservices:list-students' %}" class="btn btn-secondary ml-2">Cancel</a>
                                 </div>
                             </div>

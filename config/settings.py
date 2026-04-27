@@ -215,6 +215,17 @@ CACHES = {
     }
 }
 
+REDIS_URL_FOR_CACHE = os.getenv("REDIS_URL")
+if REDIS_URL_FOR_CACHE or os.getenv("APP_ENV") == "production":
+    _redis_url = REDIS_URL_FOR_CACHE or "redis://redis:6379/0"
+    CACHES["default"] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": _redis_url,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+
 # ========================
 # THIRD-PARTY CONFIGS
 # ========================
@@ -224,12 +235,21 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-DEFAULT_FROM_EMAIL = "erasmuscharway77@gmail.com"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "erasmuscharway77@gmail.com")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").strip().lower() in {"1", "true", "yes", "on"}
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
 
 if SENDGRID_API_KEY:
     EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
     SENDGRID_ECHO_TO_STDOUT = True
+elif EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
@@ -271,3 +291,62 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False").lower() in ("true", "1", "yes")
+
+
+# ========================
+# LOGGING CONFIGURATION
+# ========================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} [{name}:{lineno}] {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'account': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'adminservices': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'teacher': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'student': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

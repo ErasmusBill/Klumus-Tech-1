@@ -106,6 +106,14 @@ class AddTeacherForm(forms.ModelForm):
             # Editing existing teacher
             self.fields['password'].required = False
             self.fields['password'].help_text = "Leave blank to keep current password."
+            for field_name in [
+                'first_name', 'last_name', 'email', 'username', 'gender',
+                'date_of_birth', 'address', 'phone_number', 'qualification',
+                'specialization', 'experience_years', 'hire_date', 'department',
+                'employment_type', 'salary', 'bio', 'image', 'profile_picture',
+            ]:
+                if field_name in self.fields:
+                    self.fields[field_name].required = False
             
             # Populate initial values from linked user
             user = self.instance.user
@@ -137,7 +145,7 @@ class AddTeacherForm(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if not email:
-            raise forms.ValidationError("Email is required.")
+            return self.instance.user.email if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user else email
         
         # Exclude current user's email during update
         query = CustomUser.objects.filter(email=email)
@@ -151,7 +159,7 @@ class AddTeacherForm(forms.ModelForm):
     def clean_username(self):
         username = self.cleaned_data.get('username')
         if not username:
-            raise forms.ValidationError("Username is required.")
+            return self.instance.user.username if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user else username
 
         # Exclude current user during update
         query = CustomUser.objects.filter(username=username)
@@ -194,14 +202,14 @@ class AddTeacherForm(forms.ModelForm):
             user = CustomUser(role='teacher')
         
         # Update user fields
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.email = self.cleaned_data['email']
-        user.username = self.cleaned_data['username']
-        user.phone_number = self.cleaned_data.get('phone_number', '')
-        user.address = self.cleaned_data['address']
-        user.gender = self.cleaned_data['gender']
-        user.date_of_birth = self.cleaned_data['date_of_birth']
+        user.first_name = self.cleaned_data.get('first_name') or user.first_name
+        user.last_name = self.cleaned_data.get('last_name') or user.last_name
+        user.email = self.cleaned_data.get('email') or user.email
+        user.username = self.cleaned_data.get('username') or user.username
+        user.phone_number = self.cleaned_data.get('phone_number', user.phone_number or '')
+        user.address = self.cleaned_data.get('address') or user.address
+        user.gender = self.cleaned_data.get('gender') or user.gender
+        user.date_of_birth = self.cleaned_data.get('date_of_birth') or user.date_of_birth
 
         # Handle password
         password = self.cleaned_data.get('password')
@@ -249,7 +257,10 @@ class AddDepartmentForm(forms.ModelForm):
 
     def clean_name(self):
         name = self.cleaned_data['name']
-        if self.school and Department.objects.filter(school=self.school, name=name).exists():
+        query = Department.objects.filter(school=self.school, name=name) if self.school else Department.objects.none()
+        if self.instance and self.instance.pk:
+            query = query.exclude(pk=self.instance.pk)
+        if query.exists():
             raise forms.ValidationError(f"A department named '{name}' already exists in your school.")
         return name
     
@@ -371,6 +382,16 @@ class AddStudentForm(forms.ModelForm):
         if self.instance.pk and hasattr(self.instance, 'user'):
             try:
                 user = self.instance.user
+                for field_name in [
+                    'first_name', 'last_name', 'email', 'username', 'password', 'gender',
+                    'date_of_birth', 'address', 'phone_number', 'profile_picture',
+                    'father_name', 'mother_name', 'father_occupation', 'mother_occupation',
+                    'father_email', 'mother_email', 'father_phone', 'mother_phone',
+                    'student_class', 'joining_date', 'allergies', 'medical_conditions',
+                    'notes', 'is_active',
+                ]:
+                    if field_name in self.fields:
+                        self.fields[field_name].required = False
                 
                 # Populate user fields
                 self.fields['first_name'].initial = user.first_name
@@ -409,6 +430,8 @@ class AddStudentForm(forms.ModelForm):
             
     def clean_email(self):
         email = self.cleaned_data.get('email')
+        if not email and self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
+            return self.instance.user.email
         exclude_kwargs = {}
         if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
             exclude_kwargs['id'] = self.instance.user.id
@@ -418,6 +441,8 @@ class AddStudentForm(forms.ModelForm):
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
+        if not username and self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
+            return self.instance.user.username
         exclude_kwargs = {}
         if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
             exclude_kwargs['id'] = self.instance.user.id
@@ -447,14 +472,14 @@ class AddStudentForm(forms.ModelForm):
             parent.school = self.school
 
         # Update user fields
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.email = self.cleaned_data['email']
-        user.username = self.cleaned_data['username']
-        user.phone_number = self.cleaned_data.get('phone_number', '')
-        user.address = self.cleaned_data['address']
-        user.gender = self.cleaned_data['gender']
-        user.date_of_birth = self.cleaned_data['date_of_birth']
+        user.first_name = self.cleaned_data.get('first_name') or user.first_name
+        user.last_name = self.cleaned_data.get('last_name') or user.last_name
+        user.email = self.cleaned_data.get('email') or user.email
+        user.username = self.cleaned_data.get('username') or user.username
+        user.phone_number = self.cleaned_data.get('phone_number', user.phone_number or '')
+        user.address = self.cleaned_data.get('address') or user.address
+        user.gender = self.cleaned_data.get('gender') or user.gender
+        user.date_of_birth = self.cleaned_data.get('date_of_birth') or user.date_of_birth
 
         # Handle password
         password = self.cleaned_data.get('password')
@@ -475,23 +500,25 @@ class AddStudentForm(forms.ModelForm):
             user.save()
             
             # Update and save parent
-            parent.father_name = self.cleaned_data['father_name']
-            parent.mother_name = self.cleaned_data['mother_name']
-            parent.father_occupation = self.cleaned_data['father_occupation']
-            parent.mother_occupation = self.cleaned_data['mother_occupation']
-            parent.father_email = self.cleaned_data['father_email']
-            parent.mother_email = self.cleaned_data['mother_email']
-            parent.father_phone = self.cleaned_data.get('father_phone', '')
-            parent.mother_phone = self.cleaned_data.get('mother_phone', '')
+            parent.father_name = self.cleaned_data.get('father_name') or parent.father_name
+            parent.mother_name = self.cleaned_data.get('mother_name') or parent.mother_name
+            parent.father_occupation = self.cleaned_data.get('father_occupation') or parent.father_occupation
+            parent.mother_occupation = self.cleaned_data.get('mother_occupation') or parent.mother_occupation
+            parent.father_email = self.cleaned_data.get('father_email') or parent.father_email
+            parent.mother_email = self.cleaned_data.get('mother_email') or parent.mother_email
+            parent.father_phone = self.cleaned_data.get('father_phone', parent.father_phone or '')
+            parent.mother_phone = self.cleaned_data.get('mother_phone', parent.mother_phone or '')
             parent.save()
 
             if is_update:
                 # Update existing student
-                student.student_class = self.cleaned_data.get('student_class')   # type: ignore
-                student.joining_date = self.cleaned_data.get('joining_date')   # type: ignore
-                student.allergies = self.cleaned_data.get('allergies', '')   # type: ignore
-                student.medical_conditions = self.cleaned_data.get('medical_conditions', '')   # type: ignore
-                student.notes = self.cleaned_data.get('notes', '')   # type: ignore
+                student.student_class = self.cleaned_data.get('student_class') or student.student_class  # type: ignore
+                student.joining_date = self.cleaned_data.get('joining_date') or student.joining_date  # type: ignore
+                student.allergies = self.cleaned_data.get('allergies', student.allergies or '')  # type: ignore
+                student.medical_conditions = self.cleaned_data.get('medical_conditions', student.medical_conditions or '')  # type: ignore
+                student.notes = self.cleaned_data.get('notes', student.notes or '')  # type: ignore
+                student.is_active = self.cleaned_data.get('is_active', student.is_active)  # type: ignore
+                student.mobile_number = self.cleaned_data.get('phone_number', student.mobile_number or '')  # type: ignore
                 if profile_picture:
                     student.student_image = profile_picture  # type: ignore
                 student.save()   # type: ignore

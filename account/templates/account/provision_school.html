@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provision School | Klumus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-900">
+    <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Internal onboarding</p>
+                <h1 class="mt-2 text-3xl font-extrabold">Provision school workspace</h1>
+            </div>
+            <a href="/admin/account/schoolonboardingrequest/{{ inquiry.id }}/change/" class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">
+                Back to admin record
+            </a>
+        </div>
+
+        {% if messages %}
+            <div class="mb-6 space-y-3">
+                {% for message in messages %}
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
+            <aside class="rounded-[1.75rem] bg-slate-900 p-6 text-white shadow-xl">
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Incoming request</p>
+                <h2 class="mt-3 text-2xl font-bold">{{ inquiry.school_name }}</h2>
+                <dl class="mt-6 space-y-4 text-sm">
+                    <div><dt class="text-slate-400">Contact</dt><dd class="font-semibold">{{ inquiry.contact_full_name }}</dd></div>
+                    <div><dt class="text-slate-400">Email</dt><dd class="font-semibold">{{ inquiry.contact_email }}</dd></div>
+                    <div><dt class="text-slate-400">Phone</dt><dd class="font-semibold">{{ inquiry.contact_phone }}</dd></div>
+                    <div><dt class="text-slate-400">Location</dt><dd class="font-semibold">{{ inquiry.location }}</dd></div>
+                    <div><dt class="text-slate-400">Preferred package</dt><dd class="font-semibold">{{ preferred_package_name }}</dd></div>
+                    <div><dt class="text-slate-400">Notes</dt><dd class="font-semibold">{{ inquiry.message|default:"No additional notes." }}</dd></div>
+                </dl>
+            </aside>
+
+            <section class="rounded-[1.75rem] bg-white p-6 shadow-xl sm:p-8">
+                <form method="post" enctype="multipart/form-data" class="space-y-8">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <h3 class="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400">School workspace</h3>
+                        <div class="mt-4 grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.school_name.label }}</label>
+                                {{ form.school_name }}
+                                {% if form.school_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.school_name.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.school_logo.label }}</label>
+                                {{ form.school_logo }}
+                                {% if form.school_logo.errors %}<p class="mt-1 text-xs text-red-600">{{ form.school_logo.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.location.label }}</label>
+                                {{ form.location }}
+                                {% if form.location.errors %}<p class="mt-1 text-xs text-red-600">{{ form.location.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.phone_number.label }}</label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}<p class="mt-1 text-xs text-red-600">{{ form.phone_number.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.address.label }}</label>
+                                {{ form.address }}
+                                {% if form.address.errors %}<p class="mt-1 text-xs text-red-600">{{ form.address.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.postal_code.label }}</label>
+                                {{ form.postal_code }}
+                                {% if form.postal_code.errors %}<p class="mt-1 text-xs text-red-600">{{ form.postal_code.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.email.label }}</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ form.email.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.website.label }}</label>
+                                {{ form.website }}
+                                {% if form.website.errors %}<p class="mt-1 text-xs text-red-600">{{ form.website.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.trial_days.label }}</label>
+                                {{ form.trial_days }}
+                                {% if form.trial_days.errors %}<p class="mt-1 text-xs text-red-600">{{ form.trial_days.errors|striptags }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400">School admin account</h3>
+                        <div class="mt-4 grid gap-5 sm:grid-cols-2">
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.admin_full_name.label }}</label>
+                                {{ form.admin_full_name }}
+                                {% if form.admin_full_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.admin_full_name.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.admin_username.label }}</label>
+                                {{ form.admin_username }}
+                                {% if form.admin_username.errors %}<p class="mt-1 text-xs text-red-600">{{ form.admin_username.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.admin_email.label }}</label>
+                                {{ form.admin_email }}
+                                {% if form.admin_email.errors %}<p class="mt-1 text-xs text-red-600">{{ form.admin_email.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.admin_phone.label }}</label>
+                                {{ form.admin_phone }}
+                                {% if form.admin_phone.errors %}<p class="mt-1 text-xs text-red-600">{{ form.admin_phone.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.password.label }}</label>
+                                {{ form.password }}
+                                {% if form.password.errors %}<p class="mt-1 text-xs text-red-600">{{ form.password.errors|striptags }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-semibold text-slate-700">{{ form.confirm_password.label }}</label>
+                                {{ form.confirm_password }}
+                                {% if form.confirm_password.errors %}<p class="mt-1 text-xs text-red-600">{{ form.confirm_password.errors|striptags }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-6">
+                        <p class="max-w-xl text-sm text-slate-500">
+                            Provisioning creates the school, the admin user, and an active trial subscription, then emails login credentials to the contact.
+                        </p>
+                        <button type="submit" class="rounded-2xl bg-slate-900 px-6 py-4 text-sm font-bold text-white hover:bg-slate-700">
+                            Provision school
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('input, select, textarea').forEach((field) => {
+            field.classList.add('w-full', 'rounded-2xl', 'border', 'border-slate-200', 'bg-slate-50', 'px-4', 'py-3', 'text-sm', 'outline-none', 'transition', 'focus:border-slate-900', 'focus:bg-white', 'focus:ring-4', 'focus:ring-slate-900/5');
+        });
+    </script>
+</body>
+</html>

@@ -5,9 +5,14 @@ from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import login, authenticate,update_session_auth_hash,logout
 from django.urls import reverse
-from .utils import initialize_paystack_payment, verify_payment, send_subscription_email
-from .models import CustomUser, RequestPasswordReset, School, Subscription, Package, Notification
-from .forms import PasswordRequestForm, SchoolRegistrationForm,ChangePasswordForm,PasswordResetForm
+from .utils import (
+    initialize_paystack_payment,
+    verify_payment,
+    send_subscription_email,
+    send_school_interest_email,
+)
+from .models import CustomUser, RequestPasswordReset, School, Subscription, Package, Notification, SchoolOnboardingRequest
+from .forms import PasswordRequestForm, SchoolInterestForm, SchoolProvisionForm, ChangePasswordForm, PasswordResetForm
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import json
@@ -19,12 +24,13 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.core.cache import cache
 from django.db import transaction
 from .cache_utils import make_cache_key, make_user_cache_key, should_cache, bump_user_cache_version
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
 PASSWORD_RESET_COOLDOWN_SECONDS = 60
 PASSWORD_RESET_MAX_REQUESTS_PER_HOUR = 5
-
 
 def home(request):
     cache_key = make_cache_key("home", "public", "landing")
@@ -34,7 +40,7 @@ def home(request):
             return cached_response
 
     subscription = Subscription.objects.all()
-    packages = Package.objects.all()
+    packages = Package.objects.filter(is_active=True).order_by("price")
     packages_by_name = {p.name: p for p in packages}
     response = render(
         request,
@@ -52,54 +58,127 @@ def home(request):
 
 def register_school(request):
     if request.method == "POST":
-        form = SchoolRegistrationForm(request.POST, request.FILES)
+        form = SchoolInterestForm(request.POST)
         if form.is_valid():
-         
-            admin_user = CustomUser.objects.create(
-                username=form.cleaned_data["admin_username"],
-                first_name=form.cleaned_data["admin_full_name"].split(" ")[0],
-                last_name=" ".join(form.cleaned_data["admin_full_name"].split(" ")[1:]),
-                email=form.cleaned_data["admin_email"],
-                phone_number=form.cleaned_data["admin_phone"],
-                role="admin",
-                password=make_password(form.cleaned_data["password"]),
+            onboarding_request = form.save()
+            email_sent = send_school_interest_email(onboarding_request)
+            messages.success(
+                request,
+                "Your request has been submitted. Our onboarding team will review it and contact you shortly."
             )
+            if not email_sent:
+                logger.warning("School onboarding request email failed for request=%s", onboarding_request.id)
+                messages.warning(
+                    request,
+                    "Your request was saved, but the internal email alert could not be delivered. Please follow up from the admin panel."
+                )
+            return redirect("account:register-school")
+    else:
+        initial = {}
+        plan_name = request.GET.get("plan", "").strip().lower()
+        if plan_name:
+            package = Package.objects.filter(name__iexact=plan_name).first()
+            if package:
+                initial["preferred_package"] = package
+        form = SchoolInterestForm(initial=initial)
+    return render(request, "account/register_school.html", {"form": form})
 
-        
-            school = School.objects.create(
-                name=form.cleaned_data["school_name"],
-                logo=form.cleaned_data.get("school_logo"),
-                location=form.cleaned_data["location"],
-                phone_number=form.cleaned_data["phone_number"],
-                address = form.cleaned_data["address"],
-                postal_code = form.cleaned_data["postal_code"],
-                email = form.cleaned_data["email"],
-                admin=admin_user,
-            )
 
-         
-            Subscription.objects.create(
-                school=school,
-                package=None,
-                start_date=timezone.now(),
-                end_date=timezone.now() + timedelta(days=30),
-                is_active=True,
-                is_trial=True,
-            )
+@login_required(login_url="account:login")
+def provision_school(request, inquiry_id):
+    if not request.user.is_staff:
+        raise PermissionDenied("Only staff can provision schools.")
 
+    inquiry = get_object_or_404(SchoolOnboardingRequest.objects.select_related("preferred_package"), id=inquiry_id)
+    if inquiry.provisioned_school_id:
+        messages.info(request, "This onboarding request has already been provisioned.")
+        return redirect("admin:index")
+
+    if request.method == "POST":
+        form = SchoolProvisionForm(request.POST, request.FILES, inquiry=inquiry)
+        if form.is_valid():
+            with transaction.atomic():
+                full_name = form.cleaned_data["admin_full_name"].split()
+                first_name = full_name[0]
+                last_name = " ".join(full_name[1:])
+                admin_user = CustomUser.objects.create(
+                    username=form.cleaned_data["admin_username"],
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=form.cleaned_data["admin_email"],
+                    phone_number=form.cleaned_data["admin_phone"],
+                    role="admin",
+                    password=make_password(form.cleaned_data["password"]),
+                )
+
+                school = School.objects.create(
+                    name=form.cleaned_data["school_name"],
+                    logo=form.cleaned_data.get("school_logo"),
+                    location=form.cleaned_data["location"],
+                    phone_number=form.cleaned_data["phone_number"],
+                    address=form.cleaned_data["address"],
+                    postal_code=form.cleaned_data["postal_code"],
+                    email=form.cleaned_data["email"],
+                    website=form.cleaned_data["website"],
+                    admin=admin_user,
+                )
+
+                Subscription.objects.create(
+                    school=school,
+                    package=None,
+                    start_date=timezone.now(),
+                    end_date=timezone.now() + timedelta(days=form.cleaned_data["trial_days"]),
+                    is_active=True,
+                    is_trial=True,
+                )
+
+                inquiry.status = "provisioned"
+                inquiry.provisioned_school = school
+                inquiry.reviewed_at = timezone.now()
+                inquiry.save(update_fields=["status", "provisioned_school", "reviewed_at", "updated_at"])
+
+            login_url = request.build_absolute_uri(reverse("account:login"))
             email_sent = send_subscription_email(
                 admin_user.email,
-                "Free Trial Activated",
-                f"Hello {admin_user.first_name}, your school '{school.name}' has been registered with a free 30-day trial."
+                "Your Klumus school workspace is ready",
+                (
+                    f"Hello {admin_user.first_name or inquiry.contact_full_name},\n\n"
+                    f"Your school workspace for '{school.name}' has been created.\n"
+                    f"Login URL: {login_url}\n"
+                    f"Username: {admin_user.username}\n"
+                    f"Temporary password: {form.cleaned_data['password']}\n\n"
+                    f"Please sign in and change your password immediately.\n"
+                ),
             )
-
-            messages.success(request, "School registered successfully! Free trial activated (30 days).")
+            messages.success(request, f"{school.name} has been provisioned successfully.")
             if not email_sent:
-                messages.warning(request, "Registration completed, but the confirmation email could not be sent.")
-            return redirect("account:login")
+                messages.warning(request, "Provisioning succeeded, but the access email could not be sent.")
+            return redirect("admin:index")
     else:
-        form = SchoolRegistrationForm()
-    return render(request, "account/register_school.html", {"form": form})
+        seed_name = "".join(ch for ch in inquiry.school_name.lower() if ch.isalnum())[:12] or "schooladmin"
+        form = SchoolProvisionForm(
+            inquiry=inquiry,
+            initial={
+                "school_name": inquiry.school_name,
+                "location": inquiry.location,
+                "phone_number": inquiry.contact_phone,
+                "address": inquiry.address,
+                "postal_code": inquiry.postal_code,
+                "email": inquiry.contact_email,
+                "website": inquiry.website,
+                "admin_full_name": inquiry.contact_full_name,
+                "admin_email": inquiry.contact_email,
+                "admin_phone": inquiry.contact_phone,
+                "admin_username": seed_name,
+            },
+        )
+
+    preferred_package_name = inquiry.preferred_package.get_name_display() if inquiry.preferred_package else "Not selected"
+    return render(
+        request,
+        "account/provision_school.html",
+        {"form": form, "inquiry": inquiry, "preferred_package_name": preferred_package_name},
+    )
 
 def login_user(request):
     if request.method == "POST":
@@ -125,6 +204,12 @@ def login_user(request):
                 school = student_profile.school if student_profile else None
             if school:
                 subscription = Subscription.objects.filter(school=school).first()
+                
+                # Force package selection on first login after onboarding
+                if not subscription or not subscription.package:
+                    messages.info(request, "Welcome! Please select a package to complete your school's setup and activate your account.")
+                    return redirect("account:select-package")
+                
                 if subscription and subscription.end_date < timezone.now(): # type: ignore
                     subscription.is_active = False
                     subscription.save()
@@ -322,7 +407,12 @@ def request_for_password_reset(request):
                             user=user,
                             email=email
                         )
-                    password_reset.send_reset_email(domain=settings.DOMAIN_URL)
+                    
+                    domain = request.build_absolute_uri('/').rstrip('/')
+                    email_sent = password_reset.send_reset_email(domain=domain)
+                    if not email_sent:
+                        logger.error("Failed to send password reset email to %s", email)
+                        
             messages.success(request, "If the email exists, a password reset link has been sent.")
             return redirect("account:login")
     else:
@@ -352,9 +442,16 @@ def verify_reset_token(request, token):
                 messages.error(request, "Passwords do not match.")
                 return redirect("account:verify-reset-token", token=token)
 
-            # Reset password
             user = reset_token.user
-            user.password = make_password(new_password)
+            try:
+                validate_password(new_password, user=user)
+            except ValidationError as e:
+                for error in e.messages:
+                    messages.error(request, error)
+                return redirect("account:verify-reset-token", token=token)
+
+            # Reset password
+            user.set_password(new_password)
             user.save(update_fields=["password"])
 
             # Mark token as used
@@ -369,7 +466,6 @@ def verify_reset_token(request, token):
     return render(request, "account/verify_reset_token.html", {"form": form})
 
 
-
 @login_required(login_url="account:login")
 def select_package(request):
     if request.user.role != "admin":
@@ -381,7 +477,7 @@ def select_package(request):
         messages.error(request, "Your account is not linked to a school.")
         return redirect("account:register-school")
 
-    packages = Package.objects.all()
+    packages = Package.objects.filter(is_active=True).order_by("price")
     if request.method == "POST":
         package_id = request.POST.get("package_id")
         package = get_object_or_404(Package, id=package_id)
@@ -399,7 +495,7 @@ def select_package(request):
     packages_by_name = {p.name: p for p in packages}
     return render(
         request,
-        "account/home.html",
+        "account/select_package.html",
         {
             "subscription": Subscription.objects.filter(school=school),
             "packages": packages,
@@ -600,7 +696,3 @@ def downgrade_package(request, new_package_id):
     )
 
     return redirect("account:initiate-package", package_id=new_package.id)
-
-
-
-    

@@ -32,12 +32,31 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 try:
     from weasyprint import HTML
-except ImportError:
+except Exception:
+    # On Windows, WeasyPrint can fail with OSError if GTK/Pango libraries are missing.
     HTML = None
 
 logger = logging.getLogger(__name__)
 
 # ===== CACHE HELPERS =====
+
+
+def _build_partial_bound_form(form_class, request, *, instance=None, **form_kwargs):
+    seed_form = form_class(instance=instance, **form_kwargs)
+    data = request.POST.copy()
+
+    for field_name in seed_form.fields:
+        if field_name in data:
+            continue
+        value = seed_form[field_name].value()
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple)):
+            data.setlist(field_name, [str(item) for item in value if item is not None])
+        else:
+            data[field_name] = str(value)
+
+    return form_class(data, request.FILES, instance=instance, **form_kwargs)
 
 def _cache_version_key(school_id, section: str) -> str:
     return f"cache_version:{section}:{school_id}"
@@ -386,7 +405,7 @@ def update_teacher(request, teacher_id):
     user = teacher.user
 
     if request.method == "POST":
-        form = AddTeacherForm(request.POST, request.FILES, school=school, instance=teacher)
+        form = _build_partial_bound_form(AddTeacherForm, request, school=school, instance=teacher)
         form.fields['password'].required = False
 
         if form.is_valid():
@@ -589,7 +608,7 @@ def edit_department(request, department_id):
     department = get_object_or_404(Department, id=department_id, school=school)
     
     if request.method == "POST":
-        form = AddDepartmentForm(request.POST, instance=department, school=school)
+        form = _build_partial_bound_form(AddDepartmentForm, request, school=school, instance=department)
         if form.is_valid():
             department = form.save(commit=False)
             department.school = school
@@ -820,7 +839,7 @@ def edit_student(request, student_id):
     )
     
     if request.method == "POST":
-        form = AddStudentForm(request.POST, request.FILES, instance=student, school=school)
+        form = _build_partial_bound_form(AddStudentForm, request, school=school, instance=student)
         if form.is_valid():
             form.save()
             bump_cache_version(school.id, "students")
@@ -962,7 +981,7 @@ def edit_fees(request, fee_id):
     fee = get_object_or_404(Fees, id=fee_id, student__school=school)
 
     if request.method == "POST":
-        form = AddFeesForm(request.POST, instance=fee, school=school)
+        form = _build_partial_bound_form(AddFeesForm, request, school=school, instance=fee)
         if form.is_valid():
             form.save()
             bump_cache_version(school.id, "fees")
@@ -1099,7 +1118,7 @@ def edit_subject(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id, school=school)
 
     if request.method == "POST":
-        form = AddSubjectForm(request.POST, instance=subject, school=school)
+        form = _build_partial_bound_form(AddSubjectForm, request, school=school, instance=subject)
         if form.is_valid():
             form.save()
             bump_cache_version(school.id, "subjects")
@@ -1159,7 +1178,7 @@ def manage_announcement(request, pk=None):
         announcement = Announcement(school=school, author=request.user)
 
     if request.method == "POST":
-        form = AnnouncementForm(request.POST, request.FILES, instance=announcement, school=school)
+        form = _build_partial_bound_form(AnnouncementForm, request, school=school, instance=announcement)
         if form.is_valid():
             announcement = form.save(commit=False)
             announcement.school = school

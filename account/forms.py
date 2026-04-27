@@ -8,28 +8,64 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-class SchoolRegistrationForm(forms.Form):
+
+class SchoolInterestForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["preferred_package"].queryset = Package.objects.filter(is_active=True).order_by("price")
+
+    class Meta:
+        model = SchoolOnboardingRequest
+        fields = [
+            "school_name",
+            "contact_full_name",
+            "contact_role",
+            "contact_email",
+            "contact_phone",
+            "location",
+            "address",
+            "postal_code",
+            "website",
+            "school_size",
+            "preferred_package",
+            "message",
+        ]
+        widgets = {
+            "message": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    
+
+class SchoolProvisionForm(forms.Form):
     school_name = forms.CharField(max_length=255, label="School Name")
     school_logo = forms.ImageField(required=False, label="School Logo")
     location = forms.CharField(max_length=255, label="Location / Address")
     phone_number = forms.CharField(max_length=20, label="School Phone")
-    address = forms.CharField(max_length=20, label="address")
-    postal_code = forms.CharField(max_length=20,label="Postal code")
-    email = forms.EmailField()
-
+    address = forms.CharField(max_length=255, label="Address")
+    postal_code = forms.CharField(max_length=20, label="Postal code", required=False)
+    email = forms.EmailField(label="School Email")
+    website = forms.URLField(required=False, label="School Website")
+    trial_days = forms.IntegerField(min_value=1, max_value=90, initial=14, label="Trial Days")
 
     admin_username = forms.CharField(max_length=150, label="Admin Username")
     admin_full_name = forms.CharField(max_length=150, label="Admin Full Name")
     admin_email = forms.EmailField(label="Admin Email")
     admin_phone = forms.CharField(max_length=20, label="Admin Phone Number")
-    password = forms.CharField(widget=forms.PasswordInput, label="Password")
+    password = forms.CharField(widget=forms.PasswordInput, label="Temporary Password")
     confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
 
-    def clean_school_name(self):
-        school_name = self.cleaned_data.get("school_name")
-        if School.objects.filter(name__iexact=school_name).exists():
-            raise forms.ValidationError("A school with this name already exists.")
-        return school_name
+    def __init__(self, *args, inquiry=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.inquiry = inquiry
+
+    # def clean_school_name(self):
+    #     school_name = self.cleaned_data.get("school_name")
+    #     existing = School.objects.filter(name__iexact=school_name)
+    #     if self.inquiry and self.inquiry.provisioned_school_id:
+    #         existing = existing.exclude(id=self.inquiry.provisioned_school_id)
+    #     if existing.exists():
+    #         raise forms.ValidationError("A school with this name already exists.")
+    #     return school_name
 
     def clean_admin_username(self):
         username = self.cleaned_data.get("admin_username")
@@ -47,12 +83,12 @@ class SchoolRegistrationForm(forms.Form):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
-        
+
         if password and confirm_password and password != confirm_password:
             self.add_error("confirm_password", "Passwords do not match.")
         if password:
             validate_password(password)
-        
+
         return cleaned_data
 
 

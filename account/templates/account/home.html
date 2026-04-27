@@ -175,64 +175,48 @@
         </div>
       </div>
 
-      {% with starter=packages_by_name.bronze pro=packages_by_name.silver enterprise=packages_by_name.gold %}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-          <h3 class="text-xl font-bold mb-2">Starter</h3>
-          <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-black text-brand-dark">₵{{ starter.price|default:"150"|floatformat:0 }}</span>
-            <span class="text-slate-500">/month</span>
-          </div>
-          <ul class="space-y-4 mb-10">
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Up to 50 Students</li>
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Basic Attendance</li>
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Email Support</li>
-          </ul>
-          {% if request.user.is_authenticated and starter %}
-            <a href="{% url 'account:initiate-package' starter.id %}" class="block text-center w-full py-4 rounded-2xl border-2 border-brand-500 text-brand-500 font-bold hover:bg-brand-500 hover:text-white transition-all">Get Started</a>
-          {% else %}
-            <button data-package-name="Starter" data-package-url="{% if starter %}{% url 'account:initiate-package' starter.id %}{% endif %}" class="open-plan-modal w-full py-4 rounded-2xl border-2 border-brand-500 text-brand-500 font-bold hover:bg-brand-500 hover:text-white transition-all">
-              Get Started
-            </button>
-          {% endif %}
-        </div>
-
-        <div class="bg-brand-dark p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden transform lg:-translate-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {% for package in packages %}
+        <div class="{% if forloop.counter == 2 %}bg-brand-dark p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden transform lg:-translate-y-4 text-white{% else %}bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group text-slate-900{% endif %}">
+          
+          {% if forloop.counter == 2 %}
           <div class="absolute top-6 right-6 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Most Popular</div>
-          <h3 class="text-xl font-bold text-white mb-2">Professional</h3>
-          <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-black text-white">₵{{ pro.price|default:"450"|floatformat:0 }}</span>
-            <span class="text-brand-100/60">/month</span>
-          </div>
-          <ul class="space-y-4 mb-10">
-            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Unlimited Students</li>
-            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> SMS Notifications</li>
-            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Finance Dashboard</li>
-            <li class="flex items-center gap-3 font-medium text-white"><span class="text-brand-500">✓</span> Priority Support</li>
-          </ul>
-          {% if request.user.is_authenticated and pro %}
-            <a href="{% url 'account:initiate-package' pro.id %}" class="block text-center w-full py-4 rounded-2xl bg-brand-500 text-white font-bold shadow-xl shadow-brand-500/20 hover:bg-brand-600 transition-all">Select Pro</a>
-          {% else %}
-            <button data-package-name="Professional" data-package-url="{% if pro %}{% url 'account:initiate-package' pro.id %}{% endif %}" class="open-plan-modal w-full py-4 rounded-2xl bg-brand-500 text-white font-bold shadow-xl shadow-brand-500/20 hover:bg-brand-600 transition-all">
-              Select Pro
-            </button>
           {% endif %}
-        </div>
-
-        <div class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <h3 class="text-xl font-bold mb-2">Enterprise</h3>
+          
+          <h3 class="text-xl font-bold mb-2">{{ package.name|title }}</h3>
+          
           <div class="flex items-baseline gap-1 mb-6">
-            <span class="text-4xl font-black text-brand-dark">Custom</span>
+            <span class="text-4xl font-black {% if forloop.counter == 2 %}text-white{% else %}text-brand-dark{% endif %}">₵{{ package.price|floatformat:0 }}</span>
+            <span class="{% if forloop.counter == 2 %}text-brand-100/60{% else %}text-slate-500{% endif %}">/month</span>
           </div>
+          
           <ul class="space-y-4 mb-10">
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Multiple Campuses</li>
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> API Access</li>
-            <li class="flex items-center gap-3 font-medium text-slate-600"><span class="text-brand-500">✓</span> Dedicated Manager</li>
+            {% for feature in package.formatted_features %}
+            <li class="flex items-center gap-3 font-medium {% if forloop.parentloop.counter == 2 %}text-white{% else %}text-slate-600{% endif %}">
+              <span class="text-brand-500">✓</span> {{ feature }}
+            </li>
+            {% endfor %}
           </ul>
-          <button class="w-full py-4 rounded-2xl border-2 border-slate-800 text-slate-800 font-bold hover:bg-slate-800 hover:text-white transition-all">Contact Sales</button>
+          
+          {% if package.name|lower == 'gold' or package.name|lower == 'enterprise' %}
+            <a href="{% url 'account:register-school' %}?plan={{ package.name|lower }}" class="block w-full rounded-2xl border-2 {% if forloop.counter == 2 %}border-white text-white hover:bg-white hover:text-brand-dark{% else %}border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white{% endif %} py-4 text-center font-bold transition-all">Contact Sales</a>
+          {% else %}
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'account:initiate-package' package.id %}" class="block text-center w-full py-4 rounded-2xl {% if forloop.counter == 2 %}bg-brand-500 text-white shadow-xl shadow-brand-500/20 hover:bg-brand-600{% else %}border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white{% endif %} font-bold transition-all">Get Started</a>
+            {% else %}
+              <button data-package-name="{{ package.name|title }}" data-plan-key="{{ package.name|lower }}" data-package-url="{% url 'account:initiate-package' package.id %}" class="open-plan-modal w-full py-4 rounded-2xl {% if forloop.counter == 2 %}bg-brand-500 text-white shadow-xl shadow-brand-500/20 hover:bg-brand-600{% else %}border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white{% endif %} font-bold transition-all">
+                Get Started
+              </button>
+            {% endif %}
+          {% endif %}
+          
         </div>
+        {% empty %}
+        <div class="col-span-3 text-center py-10">
+            <p class="text-slate-500">No subscription packages are available at the moment. Please contact support.</p>
+        </div>
+        {% endfor %}
       </div>
-      {% endwith %}
     </div>
   </section>
 

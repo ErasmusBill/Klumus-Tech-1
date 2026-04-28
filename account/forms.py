@@ -58,14 +58,14 @@ class SchoolProvisionForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.inquiry = inquiry
 
-    # def clean_school_name(self):
-    #     school_name = self.cleaned_data.get("school_name")
-    #     existing = School.objects.filter(name__iexact=school_name)
-    #     if self.inquiry and self.inquiry.provisioned_school_id:
-    #         existing = existing.exclude(id=self.inquiry.provisioned_school_id)
-    #     if existing.exists():
-    #         raise forms.ValidationError("A school with this name already exists.")
-    #     return school_name
+    def clean_school_name(self):
+        school_name = self.cleaned_data.get("school_name")
+        existing = School.objects.filter(name__iexact=school_name)
+        if self.inquiry and self.inquiry.provisioned_school_id:
+            existing = existing.exclude(id=self.inquiry.provisioned_school_id)
+        if existing.exists():
+            raise forms.ValidationError("A school with this name already exists.")
+        return school_name
 
     def clean_admin_username(self):
         username = self.cleaned_data.get("admin_username")

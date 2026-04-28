@@ -480,10 +480,11 @@
 
         <div>
           <h3 class="text-lg font-bold mb-5">Send Us an Email</h3>
-          <form action="mailto:support@kiddocore.com" method="post" enctype="text/plain" class="space-y-3">
-            <input type="text" name="Name" placeholder="Your name" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
-            <input type="email" name="Email" placeholder="Your email" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
-            <textarea name="Message" rows="3" placeholder="Your message" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none"></textarea>
+          <form action="{% url 'account:contact' %}" method="post" class="space-y-3">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Your name" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
+            <input type="email" name="email" placeholder="Your email" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none">
+            <textarea name="message" rows="3" placeholder="Your message" required class="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-brand-100/60 focus:border-brand-500 focus:outline-none"></textarea>
             <button type="submit" class="w-full rounded-xl bg-brand-500 py-3 font-bold text-white hover:bg-brand-600 transition-all">Send Message</button>
           </form>
         </div>

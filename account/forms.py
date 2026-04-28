@@ -45,7 +45,7 @@ class SchoolProvisionForm(forms.Form):
     postal_code = forms.CharField(max_length=20, label="Postal code", required=False)
     email = forms.EmailField(label="School Email")
     website = forms.URLField(required=False, label="School Website")
-    trial_days = forms.IntegerField(min_value=1, max_value=90, initial=14, label="Trial Days")
+    trial_days = forms.IntegerField(min_value=1, max_value=90, initial=30, label="Trial Days")
 
     admin_username = forms.CharField(max_length=150, label="Admin Username")
     admin_full_name = forms.CharField(max_length=150, label="Admin Full Name")

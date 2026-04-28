@@ -16,7 +16,9 @@ from .forms import PasswordRequestForm, SchoolInterestForm, SchoolProvisionForm,
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import json
+from decimal import Decimal
 import logging
+from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
@@ -55,6 +57,38 @@ def home(request):
     if should_cache(request):
         cache.set(cache_key, response, 300)
     return response
+
+@require_POST
+def contact_submit(request):
+    """Handle contact form submissions from the public footer.
+
+    Sends an email to the support inbox and provides user feedback via messages.
+    """
+    name = (request.POST.get("name") or "").strip()
+    email = (request.POST.get("email") or "").strip()
+    message = (request.POST.get("message") or "").strip()
+
+    if not email or not message:
+        messages.error(request, "Please provide an email and a message.")
+        return redirect(request.META.get("HTTP_REFERER") or reverse("account:home") + "#contact")
+
+    subject = f"Website Contact: {name or email}"
+    body = (
+        f"Name: {name}\n"
+        f"Email: {email}\n\n"
+        f"Message:\n{message}\n\n"
+        f"IP: {request.META.get('REMOTE_ADDR')}"
+    )
+
+    try:
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, ["support@kiddocore.com"], fail_silently=False)
+        messages.success(request, "Thanks — your message has been sent. We'll get back to you soon.")
+    except Exception as exc:
+        logger.exception("Error sending contact email: %s", exc)
+        messages.error(request, "Unable to send message right now. Please try again later.")
+
+    return redirect(request.META.get("HTTP_REFERER") or reverse("account:home") + "#contact")
+
 
 def register_school(request):
     if request.method == "POST":
@@ -486,8 +520,21 @@ def select_package(request):
         subscription.package = package
         subscription.start_date = timezone.now()
         subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
-        subscription.is_active = False
         subscription.is_trial = False
+
+        # If package is free (price == 0.00), activate immediately without Paystack flow.
+        try:
+            price_zero = (package.price == 0 or float(package.price) == 0.0)
+        except Exception:
+            price_zero = False
+
+        if price_zero:
+            subscription.is_active = True
+            subscription.save()
+            messages.success(request, "Free package activated! Your subscription is now active.")
+            return redirect("account:login")
+
+        subscription.is_active = False
         subscription.save()
 
         return redirect("account:initiate-package", package_id=package.id)
@@ -595,7 +642,7 @@ def verify_payment_view(request, school_id):
             return redirect("account:select-package")
         package = get_object_or_404(Package, id=package_id)
 
-        expected_amount_pesewas = int(package.price * 100)
+        expected_amount_pesewas = int(Decimal(package.price) * 100)
         paid_amount = data.get("amount")
         if paid_amount != expected_amount_pesewas:
             messages.error(request, "Payment amount does not match package amount.")

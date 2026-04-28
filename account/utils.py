@@ -28,7 +28,8 @@ def initialize_paystack_payment(email, amount, callback_url, metadata=None, phon
     }
     data = {
         "email": email,
-        "amount": int(amount * 100),
+        # Paystack expects amount in the smallest currency unit (pesewas). Allow zero for free trials.
+        "amount": int(amount * 100) if float(amount) > 0 else 0,
         "currency": "GHS",
         "callback_url": callback_url,
         "metadata": metadata or {},

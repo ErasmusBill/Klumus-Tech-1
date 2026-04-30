@@ -355,6 +355,16 @@
       </div>
     </div>
 
+    {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+      <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} border-0 shadow-sm" role="alert">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- ===== QUICK ACTIONS ===== -->
     <div class="quick-actions">
       <a href="{% url 'adminservices:add-student' %}" class="qa-btn primary">

@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.utils import timezone
 from datetime import timedelta
 from account.models import Notification, RequestPasswordReset, School, Subscription
@@ -92,6 +93,32 @@ class TrialSubscriptionFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse("adminservices:admin-dashboard"))
+
+    def test_trial_message_shows_once_on_first_admin_login(self):
+        Subscription.objects.create(
+            school=self.school,
+            package=None,
+            is_active=True,
+            is_trial=True,
+            start_date=timezone.now() - timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=29),
+        )
+
+        first_response = self.client.post(
+            reverse("account:login"),
+            {"username": self.admin.username, "password": self.password},
+        )
+        first_messages = [m.message for m in get_messages(first_response.wsgi_request)]
+        self.assertTrue(any("30-day free trial" in msg for msg in first_messages))
+
+        self.client.post(reverse("account:logout"))
+
+        second_response = self.client.post(
+            reverse("account:login"),
+            {"username": self.admin.username, "password": self.password},
+        )
+        second_messages = [m.message for m in get_messages(second_response.wsgi_request)]
+        self.assertFalse(any("30-day free trial" in msg for msg in second_messages))
 
     def test_admin_login_after_trial_redirects_to_package_selection(self):
         Subscription.objects.create(

@@ -277,6 +277,7 @@ def login_user(request):
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            is_first_login = user.last_login is None
             login(request, user)
 
             school = None
@@ -291,6 +292,22 @@ def login_user(request):
             if school:
                 subscription = Subscription.objects.filter(school=school).first()
                 subscription_status = _get_subscription_access_state(subscription)
+
+                if (
+                    user.role == "admin"
+                    and is_first_login
+                    and subscription_status == "trial_active"
+                    and subscription
+                ):
+                    trial_end_label = (
+                        subscription.end_date.strftime("%B %d, %Y")
+                        if subscription.end_date
+                        else "your trial end date"
+                    )
+                    messages.info(
+                        request,
+                        f"Welcome! Your school is on a 30-day free trial. Trial ends on {trial_end_label}.",
+                    )
 
                 if subscription_status == "trial_expired":
                     messages.error(request, "Your 30-day free trial has ended. Please subscribe to continue.")

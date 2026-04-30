@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
+from urllib.parse import urlencode
 
 class SubscriptionEnforcementMiddleware:
     """Blocks access to the application for schools without an active subscription.
@@ -58,21 +59,34 @@ class SubscriptionEnforcementMiddleware:
         if not school:
             return self.get_response(request)
 
-        subscription = getattr(school, "subscription", None)
+        try:
+            subscription = school.subscription
+        except Exception:
+            subscription = None
 
-        # Allow if subscription is active OR an unexpired trial
         allowed = False
+        reason = "no_subscription"
+        now = timezone.now()
+
         if subscription:
+            reason = "inactive"
             try:
-                if subscription.is_active:
-                    allowed = True
-                elif subscription.is_trial and subscription.end_date and subscription.end_date > timezone.now():
-                    allowed = True
+                end_date = subscription.end_date
+                if end_date and end_date <= now:
+                    if subscription.is_active:
+                        subscription.is_active = False
+                        subscription.save(update_fields=["is_active", "updated_at"])
+                    reason = "trial_expired" if subscription.is_trial else "subscription_expired"
+                else:
+                    trial_active = bool(subscription.is_trial and end_date and end_date > now)
+                    paid_active = bool(subscription.is_active and (not end_date or end_date > now))
+                    allowed = trial_active or paid_active
             except Exception:
                 allowed = False
+                reason = "inactive"
 
         if not allowed:
-            # Redirect to select package page
-            return redirect(reverse("account:select-package"))
+            target = reverse("account:select-package")
+            return redirect(f"{target}?{urlencode({'reason': reason})}")
 
         return self.get_response(request)

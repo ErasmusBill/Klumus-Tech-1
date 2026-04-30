@@ -61,6 +61,26 @@ def _is_trial_checkout(subscription):
     )
 
 
+def _get_subscription_access_state(subscription):
+    now = timezone.now()
+    if not subscription:
+        return "no_subscription"
+
+    if subscription.end_date and subscription.end_date <= now:
+        if subscription.is_active:
+            subscription.is_active = False
+            subscription.save(update_fields=["is_active", "updated_at"])
+        return "trial_expired" if subscription.is_trial else "subscription_expired"
+
+    if subscription.is_trial:
+        return "trial_active" if subscription.end_date and subscription.end_date > now else "trial_expired"
+
+    if subscription.is_active:
+        return "active"
+
+    return "inactive"
+
+
 def _as_bool(value):
     if isinstance(value, bool):
         return value
@@ -270,17 +290,20 @@ def login_user(request):
                 school = student_profile.school if student_profile else None
             if school:
                 subscription = Subscription.objects.filter(school=school).first()
-                
-                # Force package selection on first login after onboarding
-                if not subscription or not subscription.package:
-                    messages.info(request, "Welcome! Please select a package to complete your school's setup and activate your account.")
-                    return redirect("account:select-package")
-                
-                if subscription and subscription.end_date < timezone.now(): # type: ignore
-                    subscription.is_active = False
-                    subscription.save()
-                    messages.error(request, "Your subscription has expired. Please renew.")
-                    return redirect("account:select-package")
+                subscription_status = _get_subscription_access_state(subscription)
+
+                if subscription_status == "trial_expired":
+                    messages.error(request, "Your 30-day free trial has ended. Please subscribe to continue.")
+                    return redirect(f"{reverse('account:select-package')}?reason=trial_expired")
+
+                if subscription_status in {"subscription_expired", "inactive", "no_subscription"}:
+                    if subscription_status == "subscription_expired":
+                        messages.error(request, "Your subscription has expired. Please renew to continue.")
+                    elif subscription_status == "inactive":
+                        messages.error(request, "Please complete your subscription payment to continue.")
+                    else:
+                        messages.info(request, "Please select a package to complete your school's setup.")
+                    return redirect(f"{reverse('account:select-package')}?reason={subscription_status}")
 
             if user.role == "admin": # type: ignore
                 return redirect("adminservices:admin-dashboard")
@@ -534,17 +557,35 @@ def verify_reset_token(request, token):
 
 @login_required(login_url="account:login")
 def select_package(request):
-    if request.user.role != "admin":
-        messages.error(request, "Only school admins can manage subscriptions.")
-        return redirect("account:home")
+    school = None
+    can_manage_subscription = request.user.role == "admin"
+    if request.user.role == "admin":
+        school = getattr(request.user, "managed_school", None)
+    elif request.user.role == "teacher":
+        teacher_profile = getattr(request.user, "teacher_profile", None)
+        school = teacher_profile.school if teacher_profile else None
+    elif request.user.role == "student":
+        student_profile = getattr(request.user, "student_profile", None)
+        school = student_profile.school if student_profile else None
 
-    school = getattr(request.user, "managed_school", None)
     if not school:
         messages.error(request, "Your account is not linked to a school.")
-        return redirect("account:register-school")
+        return redirect("account:home")
+
+    subscription = Subscription.objects.filter(school=school).first()
+    reason = (request.GET.get("reason") or "").strip().lower()
+    show_subscription_prompt_modal = reason in {
+        "trial_expired",
+        "subscription_expired",
+        "inactive",
+        "no_subscription",
+    }
 
     packages = Package.objects.filter(is_active=True).order_by("price")
     if request.method == "POST":
+        if not can_manage_subscription:
+            messages.error(request, "Only school admins can initiate package payment.")
+            return redirect("account:select-package")
         package_id = request.POST.get("package_id")
         package = get_object_or_404(Package, id=package_id)
         return redirect("account:initiate-package", package_id=package.id)
@@ -554,10 +595,14 @@ def select_package(request):
         request,
         "account/select_package.html",
         {
-            "subscription": Subscription.objects.filter(school=school),
+            "subscription": subscription,
             "packages": packages,
             "packages_by_name": packages_by_name,
             "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
+            "subscription_reason": reason,
+            "show_subscription_prompt_modal": show_subscription_prompt_modal,
+            "trial_end_date": subscription.end_date if subscription else None,
+            "can_manage_subscription": can_manage_subscription,
         },
     )
 

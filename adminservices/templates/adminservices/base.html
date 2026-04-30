@@ -46,21 +46,9 @@
         <div class="header">
             <div class="header-left">
                 <a href="/" class="logo d-flex align-items-center gap-2">
-                    {% if request.user.managed_school and request.user.managed_school.logo %}
-                        <img src="{{ request.user.managed_school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.managed_school.name }} Logo" style="width: 34px; height: 34px; object-fit: cover; border-radius: 8px;">
-                    {% else %}
-                        <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" style="width: 34px; height: 34px; object-fit: cover; border-radius: 8px;">
-                    {% endif %}
                     <h2 class="font-extrabold text-indigo-600 tracking-tighter" style="font-size: 1.4rem; margin-top: 0;">
                         {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}
                     </h2>
-                </a>
-                <a href="/" class="logo logo-small">
-                    {% if request.user.managed_school and request.user.managed_school.logo %}
-                        <img src="{{ request.user.managed_school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.managed_school.name }} Logo" width="30" height="30">
-                    {% else %}
-                        <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
-                    {% endif %}
                 </a>
             </div>
 

@@ -436,6 +436,21 @@ class SubscriptionHistory(models.Model):
     end_date = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    transaction = models.OneToOneField(
+        "Transaction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="history_record"
+    )
+
+    # Helpful for tracking churn or growth
+    change_reason = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="e.g., Initial Signup, Renewal, Plan Upgrade"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -448,6 +463,32 @@ class SubscriptionHistory(models.Model):
         pkg = self.package.get_name_display() if self.package else "No Package"
         return f"{self.school.name} - {pkg} ({self.get_status_display()})"
 
+
+class Transaction(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("success", "Success"),
+        ("failed", "Failed"),
+        ("reversed", "Reversed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="transactions")
+    subscription = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True, related_name="transactions")
+    # Paystack specific fields
+    paystack_reference = models.CharField(max_length=100, unique=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default="GHS")  # or NGN
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    # Metadata
+    payment_date = models.DateTimeField(null=True, blank=True)
+    gateway_response = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.school.name} - {self.amount} ({self.status})"
 
 class Department(models.Model):
     """Department/Class model"""

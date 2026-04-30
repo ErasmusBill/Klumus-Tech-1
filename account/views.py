@@ -564,6 +564,15 @@ def initiate_payment(request, package_id):
         messages.error(request, "Your account is not linked to a school.")
         return redirect("account:register-school")
 
+    payment_reference = f"SUB-{uuid.uuid4().hex[:10].upper()}"
+
+    transaction = Transaction.objects.create(
+        shool=school,
+        amount=package.price,
+        paystack_reference=payment_reference,
+        status=TransactionStatus.PENDING,
+    )
+
     callback_url = request.build_absolute_uri(
         reverse("account:verify-payment", kwargs={"school_id": school.id})
     )
@@ -581,91 +590,118 @@ def initiate_payment(request, package_id):
         email=request.user.email,
         amount=package.price,
         callback_url=callback_url,
+        reference=payment_reference,
         metadata=metadata,
     )
 
     if response.get("status"):
         return redirect(response["data"]["authorization_url"])
+
     else:
+        transaction.status = TransactionStatus.FAILED
+        transaction.save()
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
 
+
 @login_required(login_url="account:login")
 def verify_payment_view(request, school_id):
+    # 1. Permission & Role Checks
     if request.user.role != "admin":
         messages.error(request, "Only school admins can verify subscription payments.")
         return redirect("account:home")
 
     managed_school = getattr(request.user, "managed_school", None)
-    if not managed_school or managed_school.id != school_id:
-        messages.error(request, "You are not allowed to verify payment for this school.")
+    if not managed_school or str(managed_school.id) != str(school_id):
+        messages.error(request, "Unauthorized access.")
         return redirect("account:home")
 
-    reference = None
+    # 2. Extract Reference
+    reference = request.GET.get("reference")
     if request.method == "POST":
         try:
             data = json.loads(request.body or "{}")
+            reference = data.get("reference") or reference
         except json.JSONDecodeError:
-            data = {}
-        reference = data.get("reference")
-    else:
-        reference = request.GET.get("reference")
+            pass
 
     if not reference:
         messages.error(request, "Payment reference not provided.")
         return redirect("account:select-package")
 
+    # 3. Call Paystack API
     response = verify_payment(reference)
+    data = response.get("data")
 
-    data = response.get("data") if isinstance(response, dict) else None
-    if response.get("status") and isinstance(data, dict) and data.get("status") == "success":
+    # 4. Process Success
+    if response.get("status") and data and data.get("status") == "success":
+        # Extract Metadata
         metadata = data.get("metadata") or {}
-        fields = {}
-        if isinstance(metadata, dict) and metadata.get("custom_fields"):
-            fields = {
-                f.get("variable_name"): f.get("value")
-                for f in metadata.get("custom_fields", [])
-                if isinstance(f, dict)
-            }
+        # Support both standard metadata and Paystack's custom_fields array
+        if "custom_fields" in metadata:
+            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}
         else:
-            fields = metadata if isinstance(metadata, dict) else {}
+            fields = metadata
 
-        metadata_school_id = fields.get("school_id")
-        if str(metadata_school_id) != str(school_id):
-            messages.error(request, "Payment metadata does not match school.")
-            return redirect("account:select-package")
-
-        school = get_object_or_404(School.objects.select_related('admin'), id=school_id)
         package_id = fields.get("package_id")
-        if not package_id:
-            messages.error(request, "Payment metadata missing package ID.")
+
+        # 5. Atomic Database Operations
+        try:
+            with db_transaction.atomic():
+                # Fetch Models
+                school = get_object_or_404(School, id=school_id)
+                package = get_object_or_404(Package, id=package_id)
+
+                # A. Update/Create Transaction Record
+                # We use update_or_create in case the Webhook already processed this
+                txn, created = Transaction.objects.update_or_create(
+                    paystack_reference=reference,
+                    defaults={
+                        'school': school,
+                        'amount': Decimal(data.get("amount")) / 100,
+                        'status': 'success',
+                        'currency': data.get("currency", "GHS"),
+                        'payment_date': timezone.now(),
+                        'gateway_response': data  # Store the full response for auditing
+                    }
+                )
+
+                # B. Update the Active Subscription
+                subscription, _ = Subscription.objects.get_or_create(school=school)
+
+                # If they were on a different plan, we might want to log that as a change status
+                history_status = "active"
+                if subscription.package and subscription.package != package:
+                    history_status = "upgraded" if package.price > subscription.package.price else "downgraded"
+
+                subscription.package = package
+                subscription.is_active = True
+                subscription.is_trial = False
+                subscription.start_date = timezone.now()
+                subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
+                subscription.save()
+
+                # C. Create Subscription History Record
+                SubscriptionHistory.objects.create(
+                    school=school,
+                    package=package,
+                    start_date=subscription.start_date,
+                    end_date=subscription.end_date,
+                    status=history_status,
+                    amount_paid=txn.amount
+                )
+
+            messages.success(request, f"Success! {package.get_name_display()} package is now active.")
+            return redirect("account:home")  # Redirect to dashboard
+
+        except Exception as e:
+            # Log the error (e.g., logging.error(e))
+            messages.error(request, "An error occurred while activating your subscription. Please contact support.")
             return redirect("account:select-package")
-        package = get_object_or_404(Package, id=package_id)
 
-        expected_amount_pesewas = int(Decimal(package.price) * 100)
-        paid_amount = data.get("amount")
-        if paid_amount != expected_amount_pesewas:
-            messages.error(request, "Payment amount does not match package amount.")
-            return redirect("account:select-package")
-
-        if data.get("currency") and data.get("currency") != "GHS":
-            messages.error(request, "Invalid payment currency.")
-            return redirect("account:select-package")
-
-        subscription, _ = Subscription.objects.get_or_create(school=school)
-        subscription.package = package
-        subscription.is_active = True
-        subscription.is_trial = False
-        subscription.start_date = timezone.now()
-        subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
-        subscription.save()
-
-        messages.success(request, "Payment verified! Your subscription is now active.")
-        return redirect("account:login")
-
-    messages.error(request, "Payment verification failed. Try again.")
+    # 6. Process Failure
+    messages.error(request, "Payment could not be verified by the gateway.")
     return redirect("account:select-package")
-
 
 @login_required(login_url="account:login")
 @require_POST

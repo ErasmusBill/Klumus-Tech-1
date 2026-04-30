@@ -166,7 +166,7 @@
                                 Fixed: Properly close the URL and encode only the name
                               {% endcomment %}
                               <img class="avatar-img rounded-circle"
-                                   src="https://ui-avatars.com/api/?name={{ student.full_name|urlencode }}&background=random"
+                                   src="{% static 'assets/img/profiles/avatar-01.jpg' %}"
                                    alt="Default Avatar">
                             {% endif %}
                           </a>

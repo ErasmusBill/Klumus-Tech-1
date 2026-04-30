@@ -1,12 +1,14 @@
 from django import forms
 from django.forms import ModelForm
 from .models import *
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 
 
 
 User = get_user_model()
+FREE_TRIAL_DAYS = getattr(settings, "FREE_TRIAL_DAYS", 30)
 
 
 class SchoolInterestForm(forms.ModelForm):
@@ -45,7 +47,13 @@ class SchoolProvisionForm(forms.Form):
     postal_code = forms.CharField(max_length=20, label="Postal code", required=False)
     email = forms.EmailField(label="School Email")
     website = forms.URLField(required=False, label="School Website")
-    trial_days = forms.IntegerField(min_value=1, max_value=90, initial=30, label="Trial Days")
+    trial_days = forms.IntegerField(
+        min_value=FREE_TRIAL_DAYS,
+        max_value=FREE_TRIAL_DAYS,
+        initial=FREE_TRIAL_DAYS,
+        label="Trial Days (Fixed 1 Month)",
+        disabled=True,
+    )
 
     admin_username = forms.CharField(max_length=150, label="Admin Username")
     admin_full_name = forms.CharField(max_length=150, label="Admin Full Name")
@@ -90,6 +98,9 @@ class SchoolProvisionForm(forms.Form):
             validate_password(password)
 
         return cleaned_data
+
+    def clean_trial_days(self):
+        return FREE_TRIAL_DAYS
 
 
 class ParentForm(forms.ModelForm):

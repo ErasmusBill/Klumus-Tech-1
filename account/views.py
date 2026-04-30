@@ -5,13 +5,24 @@ from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import login, authenticate,update_session_auth_hash,logout
 from django.urls import reverse
+import uuid
 from .utils import (
     initialize_paystack_payment,
     verify_payment,
     send_subscription_email,
     send_school_interest_email,
 )
-from .models import CustomUser, RequestPasswordReset, School, Subscription, Package, Notification, SchoolOnboardingRequest
+from .models import (
+    CustomUser,
+    RequestPasswordReset,
+    School,
+    Subscription,
+    Package,
+    Notification,
+    SchoolOnboardingRequest,
+    Transaction,
+    SubscriptionHistory,
+)
 from .forms import PasswordRequestForm, SchoolInterestForm, SchoolProvisionForm, ChangePasswordForm, PasswordResetForm
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -33,6 +44,27 @@ logger = logging.getLogger(__name__)
 
 PASSWORD_RESET_COOLDOWN_SECONDS = 60
 PASSWORD_RESET_MAX_REQUESTS_PER_HOUR = 5
+FREE_TRIAL_DAYS = getattr(settings, "FREE_TRIAL_DAYS", 30)
+try:
+    FREE_TRIAL_PAYSTACK_AMOUNT = Decimal(str(getattr(settings, "FREE_TRIAL_PAYSTACK_AMOUNT", "0.000")))
+except Exception:
+    FREE_TRIAL_PAYSTACK_AMOUNT = Decimal("0.000")
+
+
+def _is_trial_checkout(subscription):
+    return bool(
+        subscription
+        and subscription.is_trial
+        and not subscription.package_id
+        and subscription.end_date
+        and subscription.end_date > timezone.now()
+    )
+
+
+def _as_bool(value):
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 def home(request):
     cache_key = make_cache_key("home", "public", "landing")
@@ -161,7 +193,7 @@ def provision_school(request, inquiry_id):
                     school=school,
                     package=None,
                     start_date=timezone.now(),
-                    end_date=timezone.now() + timedelta(days=form.cleaned_data["trial_days"]),
+                    end_date=timezone.now() + timedelta(days=FREE_TRIAL_DAYS),
                     is_active=True,
                     is_trial=True,
                 )
@@ -515,28 +547,6 @@ def select_package(request):
     if request.method == "POST":
         package_id = request.POST.get("package_id")
         package = get_object_or_404(Package, id=package_id)
-
-        subscription, _ = Subscription.objects.get_or_create(school=school)
-        subscription.package = package
-        subscription.start_date = timezone.now()
-        subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
-        subscription.is_trial = False
-
-        # If package is free (price == 0.00), activate immediately without Paystack flow.
-        try:
-            price_zero = (package.price == 0 or float(package.price) == 0.0)
-        except Exception:
-            price_zero = False
-
-        if price_zero:
-            subscription.is_active = True
-            subscription.save()
-            messages.success(request, "Free package activated! Your subscription is now active.")
-            return redirect("account:login")
-
-        subscription.is_active = False
-        subscription.save()
-
         return redirect("account:initiate-package", package_id=package.id)
 
     packages_by_name = {p.name: p for p in packages}
@@ -564,13 +574,17 @@ def initiate_payment(request, package_id):
         messages.error(request, "Your account is not linked to a school.")
         return redirect("account:register-school")
 
+    subscription = Subscription.objects.filter(school=school).first()
+    trial_checkout = _is_trial_checkout(subscription)
+    charge_amount = FREE_TRIAL_PAYSTACK_AMOUNT if trial_checkout else package.price
+
     payment_reference = f"SUB-{uuid.uuid4().hex[:10].upper()}"
 
     transaction = Transaction.objects.create(
-        shool=school,
-        amount=package.price,
+        school=school,
+        amount=charge_amount,
         paystack_reference=payment_reference,
-        status=TransactionStatus.PENDING,
+        status="pending",
     )
 
     callback_url = request.build_absolute_uri(
@@ -580,25 +594,29 @@ def initiate_payment(request, package_id):
     metadata = {
         "school_id": str(school.id),
         "package_id": str(package.id),
+        "trial_checkout": trial_checkout,
+        "trial_days": FREE_TRIAL_DAYS,
         "custom_fields": [
             {"display_name": "School ID", "variable_name": "school_id", "value": str(school.id)},
             {"display_name": "Package ID", "variable_name": "package_id", "value": str(package.id)},
+            {"display_name": "Trial Checkout", "variable_name": "trial_checkout", "value": str(trial_checkout)},
+            {"display_name": "Trial Days", "variable_name": "trial_days", "value": str(FREE_TRIAL_DAYS)},
         ],
     }
 
     response = initialize_paystack_payment(
         email=request.user.email,
-        amount=package.price,
+        amount=charge_amount,
         callback_url=callback_url,
         reference=payment_reference,
         metadata=metadata,
     )
 
-    if response.get("status"):
+    if response.get("status") and response.get("data", {}).get("authorization_url"):
         return redirect(response["data"]["authorization_url"])
 
     else:
-        transaction.status = TransactionStatus.FAILED
+        transaction.status = "failed"
         transaction.save()
         messages.error(request, "Payment initialization failed. Try again.")
         return redirect("account:select-package")
@@ -639,46 +657,55 @@ def verify_payment_view(request, school_id):
         metadata = data.get("metadata") or {}
         # Support both standard metadata and Paystack's custom_fields array
         if "custom_fields" in metadata:
-            fields = {f["variable_name"]: f["value"] for f in metadata["custom_fields"]}
+            fields = {
+                field.get("variable_name"): field.get("value")
+                for field in metadata["custom_fields"]
+                if field.get("variable_name")
+            }
         else:
             fields = metadata
 
         package_id = fields.get("package_id")
+        trial_checkout = _as_bool(fields.get("trial_checkout"))
 
         # 5. Atomic Database Operations
         try:
-            with db_transaction.atomic():
+            with transaction.atomic():
                 # Fetch Models
                 school = get_object_or_404(School, id=school_id)
                 package = get_object_or_404(Package, id=package_id)
 
                 # A. Update/Create Transaction Record
                 # We use update_or_create in case the Webhook already processed this
-                txn, created = Transaction.objects.update_or_create(
+                paid_amount = Decimal(str(data.get("amount") or 0)) / 100
+                txn, _ = Transaction.objects.update_or_create(
                     paystack_reference=reference,
                     defaults={
-                        'school': school,
-                        'amount': Decimal(data.get("amount")) / 100,
+                        "school": school,
+                        "amount": paid_amount,
                         'status': 'success',
-                        'currency': data.get("currency", "GHS"),
-                        'payment_date': timezone.now(),
-                        'gateway_response': data  # Store the full response for auditing
+                        "currency": data.get("currency", "GHS"),
+                        "payment_date": timezone.now(),
+                        "gateway_response": data,  # Store the full response for auditing
                     }
                 )
 
                 # B. Update the Active Subscription
                 subscription, _ = Subscription.objects.get_or_create(school=school)
+                previous_package = subscription.package
 
                 # If they were on a different plan, we might want to log that as a change status
                 history_status = "active"
-                if subscription.package and subscription.package != package:
-                    history_status = "upgraded" if package.price > subscription.package.price else "downgraded"
+                if previous_package and previous_package != package and not trial_checkout:
+                    history_status = "upgraded" if package.price > previous_package.price else "downgraded"
 
                 subscription.package = package
                 subscription.is_active = True
-                subscription.is_trial = False
+                subscription.is_trial = trial_checkout
                 subscription.start_date = timezone.now()
-                subscription.end_date = timezone.now() + timedelta(days=package.duration_days)
+                subscription.end_date = timezone.now() + timedelta(
+                    days=FREE_TRIAL_DAYS if trial_checkout else package.duration_days
+                )
                 subscription.save()
 
                 # C. Create Subscription History Record
@@ -694,8 +721,8 @@ def verify_payment_view(request, school_id):
             messages.success(request, f"Success! {package.get_name_display()} package is now active.")
             return redirect("account:home")  # Redirect to dashboard
 
-        except Exception as e:
-            # Log the error (e.g., logging.error(e))
+        except Exception:
+            logger.exception("Subscription activation failed after Paystack verification")
             messages.error(request, "An error occurred while activating your subscription. Please contact support.")
             return redirect("account:select-package")
 

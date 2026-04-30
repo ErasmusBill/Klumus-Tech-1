@@ -16,7 +16,7 @@ from .models import (
     Student,
     Subject,
     Teacher,
-    Subscription
+    Subscription, Transaction
 )
 
 
@@ -56,3 +56,5 @@ admin.site.register(Fees)
 admin.site.register(Enrollment)
 admin.site.register(Announcement)
 admin.site.register(Subscription)
+admin.site.register(SubjectHistory)
+admin.site.register(Transaction)

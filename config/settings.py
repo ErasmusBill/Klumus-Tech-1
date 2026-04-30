@@ -234,6 +234,8 @@ if REDIS_URL_FOR_CACHE or os.getenv("APP_ENV") == "production":
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY")
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
+FREE_TRIAL_DAYS = int(os.getenv("FREE_TRIAL_DAYS", "30"))
+FREE_TRIAL_PAYSTACK_AMOUNT = os.getenv("FREE_TRIAL_PAYSTACK_AMOUNT", "0.000")
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "erasmuscharway77@gmail.com")

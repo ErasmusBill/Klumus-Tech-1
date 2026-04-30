@@ -1,6 +1,7 @@
 import os
 import requests
 import hashlib
+from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
 from django.conf import settings
 from django.core.mail import send_mail
@@ -9,12 +10,12 @@ PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 PAYSTACK_TIMEOUT_SECONDS = 10
 
-def initialize_paystack_payment(email, amount, callback_url, metadata=None, phone_number=None):
+def initialize_paystack_payment(email, amount, callback_url, metadata=None, phone_number=None, reference=None):
     if not PAYSTACK_SECRET_KEY:
         return {"status": False, "message": "PAYSTACK_SECRET_KEY is not configured."}
         
     # Generate an idempotency key based on the initialization parameters
-    payload_str = f"{email}-{amount}-{callback_url}-{metadata}"
+    payload_str = f"{email}-{amount}-{callback_url}-{metadata}-{reference}"
     idemp_key = f"paystack_init_{hashlib.md5(payload_str.encode()).hexdigest()}"
     
     # Check cache to prevent duplicate initializations within 30 minutes
@@ -22,6 +23,11 @@ def initialize_paystack_payment(email, amount, callback_url, metadata=None, phon
     if cached_response:
         return cached_response
         
+    try:
+        normalized_amount = Decimal(str(amount))
+    except (InvalidOperation, TypeError, ValueError):
+        normalized_amount = Decimal("0")
+
     headers = {
         "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
@@ -29,11 +35,13 @@ def initialize_paystack_payment(email, amount, callback_url, metadata=None, phon
     data = {
         "email": email,
         # Paystack expects amount in the smallest currency unit (pesewas). Allow zero for free trials.
-        "amount": int(amount * 100) if float(amount) > 0 else 0,
+        "amount": int(normalized_amount * 100) if normalized_amount > 0 else 0,
         "currency": "GHS",
         "callback_url": callback_url,
         "metadata": metadata or {},
     }
+    if reference:
+        data["reference"] = reference
 
     try:
         response = requests.post(

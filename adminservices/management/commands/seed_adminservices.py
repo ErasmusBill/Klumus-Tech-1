@@ -7,8 +7,11 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 from django.utils import timezone
+from django.conf import settings
 
 from account.models import School, Department, Teacher, Student, Parent, Subject, Subscription
+
+FREE_TRIAL_DAYS = getattr(settings, "FREE_TRIAL_DAYS", 30)
 
 
 class Command(BaseCommand):
@@ -38,7 +41,7 @@ class Command(BaseCommand):
                 school=school,
                 defaults={
                     "start_date": timezone.now(),
-                    "end_date": timezone.now() + timezone.timedelta(days=30),
+                    "end_date": timezone.now() + timezone.timedelta(days=FREE_TRIAL_DAYS),
                     "is_active": True,
                     "is_trial": True,
                 },

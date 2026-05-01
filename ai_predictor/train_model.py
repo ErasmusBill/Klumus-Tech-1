@@ -1,39 +1,73 @@
+import json
+from pathlib import Path
+
+import joblib
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-import joblib
-import os
+from sklearn.model_selection import train_test_split
+
+from ai_predictor.feature_engineering import FEATURE_COLUMNS
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "training_data.csv"
+MODEL_PATH = Path(__file__).resolve().parent / "performance_model.pkl"
+MODEL_META_PATH = Path(__file__).resolve().parent / "performance_model_meta.json"
+
 
 def train_model():
-    df = pd.read_csv("training_data.csv")
+    if not DATA_PATH.exists():
+        raise FileNotFoundError(f"Training data not found: {DATA_PATH}")
 
-   
-    grade_map = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
+    df = pd.read_csv(DATA_PATH)
     if "final_grade" not in df.columns:
         raise ValueError("The dataset must contain a 'final_grade' column.")
-    
-    df["final_grade"] = df["final_grade"].map(grade_map)
 
+    missing_features = [name for name in FEATURE_COLUMNS if name not in df.columns]
+    if missing_features:
+        raise ValueError(f"Missing feature columns: {', '.join(missing_features)}")
 
-    df = df.dropna(subset=["attendance", "average_score", "discipline", "homework", "final_grade"])
+    allowed_grades = {"A", "B", "C", "D", "F"}
+    df["final_grade"] = df["final_grade"].astype(str).str.strip().str.upper()
+    df = df.dropna(subset=[*FEATURE_COLUMNS, "final_grade"])
+    df = df[df["final_grade"].isin(allowed_grades)]
 
+    if df.empty:
+        raise ValueError("No valid rows available for training after preprocessing.")
 
-    X = df[["attendance", "average_score", "discipline", "homework"]]
+    X = df[list(FEATURE_COLUMNS)]
     y = df["final_grade"]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Small datasets are common early on; avoid brittle splits.
+    can_split = len(df) >= 4
+    if can_split:
+        stratify = y if y.nunique() > 1 and y.value_counts().min() > 1 else None
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.25, random_state=42, stratify=stratify
+        )
+    else:
+        X_train, y_train = X, y
+        X_test = y_test = None
 
-
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model = RandomForestClassifier(n_estimators=200, random_state=42)
     model.fit(X_train, y_train)
 
-    preds = model.predict(X_test)
-    acc = accuracy_score(y_test, preds)
-    print(f"Model trained successfully! Accuracy: {acc*100:.2f}%")
+    if X_test is not None and len(X_test) > 0:
+        preds = model.predict(X_test)
+        acc = accuracy_score(y_test, preds)
+        print(f"Model trained successfully. Accuracy: {acc * 100:.2f}%")
+    else:
+        print("Model trained successfully. Dataset too small for holdout accuracy.")
 
+    joblib.dump(model, MODEL_PATH)
 
-    os.makedirs("ai_predictor", exist_ok=True)
-    joblib.dump(model, "ai_predictor/performance_model.pkl")
-    print("Model saved as ai_predictor/performance_model.pkl")
+    metadata = {
+        "feature_columns": list(FEATURE_COLUMNS),
+        "trained_rows": int(len(df)),
+        "classes": sorted(y.unique().tolist()),
+    }
+    MODEL_META_PATH.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
+    print(f"Model saved to {MODEL_PATH}")
+    print(f"Model metadata saved to {MODEL_META_PATH}")

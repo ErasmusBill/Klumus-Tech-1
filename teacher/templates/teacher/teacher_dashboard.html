@@ -349,7 +349,7 @@
 </div>
 
 <script>
-function predictPerformance() {
+function legacyPredictPerformance() {
   const studentId = document.getElementById('studentIdInput').value.trim();
 
   if (!studentId) {
@@ -374,6 +374,51 @@ function predictPerformance() {
     .catch(err => {
       document.getElementById('result').innerHTML = `
         <div class="alert alert-danger mt-3">❌ Error fetching prediction. Try again.</div>
+      `;
+    });
+}
+</script>
+
+<script>
+// Override with explicit API error handling.
+function predictPerformance() {
+  const studentId = document.getElementById("studentIdInput").value.trim();
+  const resultContainer = document.getElementById("result");
+
+  if (!studentId) {
+    resultContainer.innerHTML = `
+      <div class="alert alert-warning mt-3">Please enter a Student ID.</div>
+    `;
+    return;
+  }
+
+  fetch(`/ai/predict/${studentId}/`)
+    .then(async (response) => {
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = {};
+      }
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to fetch prediction.");
+      }
+      return data;
+    })
+    .then((data) => {
+      resultContainer.innerHTML = `
+        <div class="alert alert-info mt-3 text-start">
+          <h5 class="mb-2">${data.student}</h5>
+          <p><strong>Predicted Grade:</strong> ${data.predicted_grade}</p>
+          <p><strong>Risk Level:</strong> ${data.risk_level}</p>
+          <p>${data.message}</p>
+        </div>
+      `;
+    })
+    .catch((err) => {
+      resultContainer.innerHTML = `
+        <div class="alert alert-danger mt-3">${err.message}</div>
       `;
     });
 }

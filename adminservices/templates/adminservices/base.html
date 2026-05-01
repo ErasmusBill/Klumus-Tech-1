@@ -38,6 +38,9 @@
             .header .user-menu .noti-dropdown { display: none; }
             .header-left .logo img { max-height: 32px; }
         }
+
+        /* Keep only the school logo on the right side avatar area. */
+        .header-left .logo img { display: none !important; }
     </style>
 </head>
 <body>
@@ -108,12 +111,10 @@
                 <li class="nav-item dropdown has-arrow">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
-                            {% if request.user.profile_picture %}
-                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
-                            {% elif request.user.managed_school and request.user.managed_school.logo %}
+                            {% if request.user.managed_school and request.user.managed_school.logo %}
                                 <img class="rounded-circle" src="{{ request.user.managed_school.logo|safe_media_url:'assets/img/logo-small.png' }}" width="31" height="31" alt="{{ request.user.managed_school.name }} Logo">
                             {% else %}
-                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                                <img class="rounded-circle" src="{% static 'assets/img/logo-small.png' %}" width="31" height="31" alt="School Logo">
                             {% endif %}
                         </span>
                     </a>

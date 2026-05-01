@@ -1,4 +1,5 @@
 from django import template
+from django.core.files.storage import default_storage
 from django.templatetags.static import static
 
 register = template.Library()
@@ -13,6 +14,20 @@ def safe_media_url(value, fallback=""):
     fallback_url = static(fallback) if fallback else ""
 
     if not value:
+        return fallback_url
+
+    # Accept plain string paths/URLs in templates as a safe fallback path.
+    if isinstance(value, str):
+        candidate = value.strip()
+        if not candidate:
+            return fallback_url
+        if candidate.startswith(("http://", "https://", "/")):
+            return candidate
+        try:
+            if default_storage.exists(candidate):
+                return default_storage.url(candidate)
+        except Exception:
+            pass
         return fallback_url
 
     # If this is a FieldFile and the backing file is missing, use fallback.

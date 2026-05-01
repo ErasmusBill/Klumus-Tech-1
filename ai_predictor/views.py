@@ -1,15 +1,27 @@
-import numpy as np
+from pathlib import Path
+
 import joblib
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from account.models import Student, ResultSheet, Attendance, Assignment, AssignmentSubmission
-from .models import PredictedPerformance
-from django.db.models import Count
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 from django.core.cache import cache
+from django.db.models import Count
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+
 from account.cache_utils import make_cache_key, should_cache
+from account.models import ResultSheet, Student
+from ai_predictor.feature_engineering import (
+    build_feature_vector,
+    calculate_student_features,
+    heuristic_prediction,
+    normalize_grade,
+    risk_from_grade,
+)
+from ai_predictor.models import PredictedPerformance
+
+
+MODEL_PATH = Path(__file__).resolve().parent / "performance_model.pkl"
+LEGACY_GRADE_MAP_REVERSE = {5: "A", 4: "B", 3: "C", 2: "D", 1: "F"}
+_model = None
 
 
 def _get_user_school(user):
@@ -23,21 +35,30 @@ def _get_user_school(user):
         return student.school if student else None
     return None
 
-# Lazy load model to prevent startup crashes
-_model = None
+
+def _coerce_model_grade(raw_prediction) -> str:
+    if raw_prediction is None:
+        return "F"
+
+    try:
+        numeric_prediction = int(float(raw_prediction))
+    except (TypeError, ValueError):
+        numeric_prediction = None
+
+    if numeric_prediction in LEGACY_GRADE_MAP_REVERSE:
+        return LEGACY_GRADE_MAP_REVERSE[numeric_prediction]
+    return normalize_grade(str(raw_prediction))
+
 
 def get_model():
     global _model
-    if _model is None:
-        _model = joblib.load("ai_predictor/performance_model.pkl")
+    if _model is None and MODEL_PATH.exists():
+        _model = joblib.load(MODEL_PATH)
     return _model
+
 
 @login_required
 def predict_student_performance(request, student_id):
-    """
-    Predict a student's performance using their features.
-    student_id refers to Student.student_id (e.g., STU-NXSANR)
-    """
     if request.user.role not in {"admin", "teacher", "student"}:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
@@ -55,70 +76,31 @@ def predict_student_performance(request, student_id):
         if cached_response:
             return cached_response
 
-    result = ResultSheet.objects.filter(student=student).last()
-
-    if not result:
+    has_results = ResultSheet.objects.filter(student=student).exists()
+    if not has_results:
         return JsonResponse({"error": "No result found for this student."}, status=404)
 
-    # Attendance percentage (last 30 days if available)
-    since = timezone.now().date() - timezone.timedelta(days=30)
-    attendance_qs = Attendance.objects.filter(student=student, date__gte=since)
-    total_att = attendance_qs.count()
-    present_att = attendance_qs.filter(status="present").count()
-    attendance_percentage = (present_att / total_att * 100) if total_att else 0
+    features_dict = calculate_student_features(student, school=school)
+    feature_vector = [build_feature_vector(features_dict)]
 
-    # Average score proxy from latest result
-    if result.percentage:
-        average_score = float(result.percentage)
-    else:
-        result.calculate_total()
-        average_score = float(result.total_marks or 0)
-
-    # Homework completion proxy (submissions / assignments for class)
-    assignments_count = Assignment.objects.filter(
-        student_class=student.student_class,
-        subject__school=school
-    ).count()
-    submissions_count = AssignmentSubmission.objects.filter(student=student).count()
-    homework_completion = (submissions_count / assignments_count * 100) if assignments_count else 0
-
-    # Discipline points not modeled; default to 0
-    discipline_points = 0
-
-    # Features must match training order
-    features = np.array([[attendance_percentage,
-                          average_score,
-                          discipline_points,
-                          homework_completion]])
-
-    # Predict grade - use lazy loaded model
+    model_source = "model"
     try:
         model = get_model()
-        prediction = model.predict(features)[0]
-    except Exception as exc:
-        return JsonResponse({"error": f"Model error: {exc}"}, status=500)
+        if model is None:
+            raise RuntimeError("Model file not found")
+        raw_prediction = model.predict(feature_vector)[0]
+        predicted_grade = _coerce_model_grade(raw_prediction)
+        risk = risk_from_grade(predicted_grade)
+    except Exception:
+        predicted_grade, risk = heuristic_prediction(features_dict)
+        model_source = "heuristic"
 
-    grade_map_reverse = {5: "A", 4: "B", 3: "C", 2: "D", 1: "E"}
-    if isinstance(prediction, (int, float, np.integer, np.floating)):
-        predicted_grade = grade_map_reverse.get(int(prediction), "N/A")
-    else:
-        predicted_grade = str(prediction)
-
-    # Risk logic
-    if predicted_grade in ["D", "E"]:
-        risk = "High"
-    elif predicted_grade == "C":
-        risk = "Medium"
-    else:
-        risk = "Low"
-
-    # Save to PredictedPerformance model
     PredictedPerformance.objects.update_or_create(
         student=student,
         defaults={
             "predicted_grade": predicted_grade,
             "risk_level": risk,
-        }
+        },
     )
 
     payload = {
@@ -126,18 +108,17 @@ def predict_student_performance(request, student_id):
         "student_id": student.student_id,
         "predicted_grade": predicted_grade,
         "risk_level": risk,
-        "message": f"{student.user.get_full_name()} ({student.student_id}) is at {risk} risk of underperforming."
+        "model_source": model_source,
+        "message": f"{student.user.get_full_name()} ({student.student_id}) is at {risk} risk of underperforming.",
     }
     response = JsonResponse(payload)
     if should_cache(request):
         cache.set(cache_key, response, 120)
     return response
 
+
 @login_required
 def dashboard(request):
-    """
-    Show AI prediction summary and risk analysis.
-    """
     if request.user.role not in {"admin", "teacher", "student"}:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
@@ -155,17 +136,16 @@ def dashboard(request):
     if request.user.role == "student":
         data = data.filter(student=request.user.student_profile)
 
-    # Count students by risk level
-    risk_summary = (
-        data
-        .values("risk_level")
-        .annotate(count=Count("id"))
-    )
+    risk_summary = data.values("risk_level").annotate(count=Count("id"))
 
-    response = render(request, "ai_predictor/dashboard.html", {
-        "data": data,
-        "risk_summary": risk_summary,
-    })
+    response = render(
+        request,
+        "ai_predictor/dashboard.html",
+        {
+            "data": data,
+            "risk_summary": risk_summary,
+        },
+    )
     if should_cache(request):
         cache.set(cache_key, response, 180)
     return response

@@ -1,33 +1,40 @@
+from pathlib import Path
+
 import pandas as pd
-from account.models import ResultSheet
+
+from account.models import Student
+from ai_predictor.feature_engineering import (
+    calculate_student_features,
+    latest_result_for_student,
+    normalize_grade,
+)
+
 
 def export_training_data():
+    base_dir = Path(__file__).resolve().parent.parent
+    output_path = base_dir / "training_data.csv"
+
     data = []
-    for result in ResultSheet.objects.select_related("student"):
-        total = (result.class_score or 0) + (result.mid_semester or 0) + (result.end_of_term_exams or 0)
+    students = Student.objects.select_related("user", "school")
+    for student in students:
+        result = latest_result_for_student(student)
+        if not result:
+            continue
 
-        # Assign a letter grade automatically
-        if total >= 80:
-            grade = "A"
-        elif total >= 70:
-            grade = "B"
-        elif total >= 60:
-            grade = "C"
-        elif total >= 50:
-            grade = "D"
-        else:
-            grade = "E"
-
-        data.append({
-            "student_id": result.student.id,
-            "student_name": result.student.user.get_full_name(),
-            "attendance": 90,     
-            "average_score": total / 3,
-            "discipline": 4,      # placeholder
-            "homework": 3,        # placeholder
-            "final_grade": grade,
-        })
+        features = calculate_student_features(student, school=student.school)
+        final_grade = normalize_grade(result.grade, float(result.percentage or 0))
+        data.append(
+            {
+                "student_id": student.student_id,
+                "student_name": student.user.get_full_name(),
+                "attendance": features["attendance"],
+                "average_score": features["average_score"],
+                "discipline": features["discipline"],
+                "homework": features["homework"],
+                "final_grade": final_grade,
+            }
+        )
 
     df = pd.DataFrame(data)
-    df.to_csv("training_data.csv", index=False)
-    print("✅ Training data exported to training_data.csv")
+    df.to_csv(output_path, index=False)
+    print(f"Training data exported to {output_path}")

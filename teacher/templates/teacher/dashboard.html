@@ -3,12 +3,10 @@
 
 {% block content %}
 <div class="container mt-4">
-  <h2 class="mb-3 text-center">🎯 AI Academic Performance Dashboard</h2>
+  <h2 class="mb-3 text-center">AI Academic Performance Dashboard</h2>
 
-  <!-- Chart Section -->
   <canvas id="riskChart" class="mb-5" height="120"></canvas>
 
-  <!-- Table Section -->
   <table class="table table-bordered table-striped">
     <thead class="table-dark">
       <tr>
@@ -21,7 +19,7 @@
     <tbody>
       {% for item in data %}
       <tr>
-        <td>{{ item.student.full_name }}</td>
+        <td>{{ item.student.user.get_full_name|default:item.student.user.username }}</td>
         <td>{{ item.predicted_grade }}</td>
         <td>
           {% if item.risk_level == "High" %}
@@ -41,18 +39,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('riskChart').getContext('2d');
+const ctx = document.getElementById("riskChart").getContext("2d");
 const chartData = {
-  labels: [{% for r in risk_summary %}'{{ r.risk_level }}',{% endfor %}],
+  labels: [{% for r in risk_summary %}"{{ r.risk_level }}",{% endfor %}],
   datasets: [{
-    label: 'Number of Students',
+    label: "Number of Students",
     data: [{% for r in risk_summary %}{{ r.count }},{% endfor %}],
     borderWidth: 1
   }]
 };
 
 new Chart(ctx, {
-  type: 'bar',
+  type: "bar",
   data: chartData,
   options: {
     responsive: true,

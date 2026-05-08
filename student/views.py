@@ -15,137 +15,137 @@ from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm,AssignmentS
 # Create your views here.
 
 
-@login_required
+@login_required(login_url='account:login')
 def student_dashboard(request):
+    """
+    Complete Student Dashboard view with Assignment tracking,
+    Attendance rates, and Fee ledger summaries.
+    """
     if request.user.role != "student":
-        messages.error(request, "Access denied")
-        return redirect("account:login")
-    
-    try:
-        student = request.user.student_profile
-        school = student.school
-    except Student.DoesNotExist:
-        messages.error(request, "Student profile not found")
+        messages.error(request, "Access denied. Student portal only.")
         return redirect("account:login")
 
-    cache_key = make_cache_key("student_portal", school.id, f"dashboard:{student.id}")
-    if should_cache(request):
-        cached_response = cache.get(cache_key)
-        if cached_response:
-            return cached_response
-    
+    try:
+        # select_related avoids extra DB hits for school data
+        student = Student.objects.select_related('school').get(user=request.user)
+        school = student.school
+    except Student.DoesNotExist:
+        messages.error(request, "Student profile not found.")
+        return redirect("account:login")
+
+    # --- Cache Logic ---
+    # make_cache_key and should_cache should be defined in your utils
+    cache_key = f"student_portal_{school.id}_dashboard_{student.id}"
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return cached_response
+
     today = timezone.now().date()
-    current_day = timezone.now().strftime('%A').lower()
-    
-    # Enrolled courses
-    enrolled_courses = Enrollment.objects.filter(student=student, is_active=True).select_related('subject__teacher__user', 'subject__department')[:5]
-    
-    # Attendance
+
+    # 1. Enrolled courses
+    enrolled_courses = Enrollment.objects.filter(
+        student=student,
+        is_active=True
+    ).select_related('subject__teacher__user', 'subject__department')[:5]
+
+    # 2. Attendance Stats
     total_attendance = Attendance.objects.filter(student=student).count()
     present_count = Attendance.objects.filter(student=student, status='present').count()
     attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
-    
-    # Results
+
+    # 3. Academic Results
     recent_results = ResultSheet.objects.filter(student=student).select_related('subject').order_by('-exam_date')[:6]
     average_grade = recent_results.aggregate(Avg('percentage'))['percentage__avg']
-    
-    # Fees
-    # We filter for anything that is NOT 'paid'
-    # Or specifically for 'unpaid' and 'partial'
+
+    # 4. FEES LOGIC (FIXED)
+    # We filter using the 'status' field found in your choices
     pending_fees = Fees.objects.filter(
         student=student,
         status__in=['unpaid', 'partial', 'overdue']
     ).order_by('due_date')
-    
-    # Announcements
+
+    # Calculation for total_pending_fees to fix NameError
+    # Uses database-level math for better performance
+    total_pending_fees = pending_fees.aggregate(
+        total=Sum(F('amount_required') - F('discount') - F('amount_paid'))
+    )['total'] or 0
+
+    # 5. Announcements & Events
     announcements = Announcement.objects.filter(
-        school=student.school,
+        school=school,
         published=True,
         target_audience__in=['all', 'students']
     ).order_by('-created_at')[:5]
-    
-    # Events
+
     upcoming_events = Event.objects.filter(
-        school=student.school,
+        school=school,
         start_date__gte=timezone.now(),
         is_public=True
     ).order_by('start_date')[:5]
-    
-    # ASSIGNMENTS DATA - NEW ADDITIONS
-    # Get all assignments for the student
+
+    # 6. ASSIGNMENTS DATA
     assignments = Assignment.objects.filter(
         subject__enrollments__student=student,
         subject__school=school,
         status="published"
     ).select_related('subject', 'teacher__user')
-    
-    # Assignment statistics
-    pending_assignments_count = assignments.filter(
-        due_date__gte=timezone.now().date()
-    ).exclude(
-        id__in=AssignmentSubmission.objects.filter(
-            student=student,
-            status__in=['submitted', 'graded']
-        ).values('assignment_id')
-    ).count()
-    
-    overdue_assignments_count = assignments.filter(
-        due_date__lt=timezone.now().date()
-    ).exclude(
-        id__in=AssignmentSubmission.objects.filter(
-            student=student,
-            status__in=['submitted', 'graded']
-        ).values('assignment_id')
-    ).count()
-    
-    submitted_assignments_count = AssignmentSubmission.objects.filter(
+
+    # Identify IDs of assignments already submitted to exclude them from 'pending'
+    submitted_ids = AssignmentSubmission.objects.filter(
         student=student,
-        assignment__in=assignments
-    ).count()
-    
-    # Recent assignments (last 10)
+        status__in=['submitted', 'graded']
+    ).values_list('assignment_id', flat=True)
+
+    pending_assignments_count = assignments.filter(
+        due_date__gte=today
+    ).exclude(id__in=submitted_ids).count()
+
+    overdue_assignments_count = assignments.filter(
+        due_date__lt=today
+    ).exclude(id__in=submitted_ids).count()
+
+    submitted_assignments_count = len(submitted_ids)
+
+    # Recent assignments (last 10 added)
     recent_assignments = assignments.order_by('-created_at')[:10]
-    
+
     # Upcoming deadlines (due in next 7 days)
     upcoming_deadlines = assignments.filter(
-        due_date__gte=timezone.now().date(),
-        due_date__lte=timezone.now().date() + timezone.timedelta(days=7)
-    ).exclude(
-        id__in=AssignmentSubmission.objects.filter(
-            student=student,
-            status__in=['submitted', 'graded']
-        ).values('assignment_id')
-    ).order_by('due_date')[:5]
-    
-    upcoming_deadlines_count = upcoming_deadlines.count()
-    
+        due_date__gte=today,
+        due_date__lte=today + timezone.timedelta(days=7)
+    ).exclude(id__in=submitted_ids).order_by('due_date')[:5]
+
+    # 7. Final Context
     context = {
         'student': student,
         'enrolled_courses': enrolled_courses,
         'enrolled_courses_count': enrolled_courses.count(),
-        
-        # Assignment data
+
+        # Assignment stats
         'pending_assignments_count': pending_assignments_count,
         'overdue_assignments_count': overdue_assignments_count,
         'submitted_assignments_count': submitted_assignments_count,
         'recent_assignments': recent_assignments,
         'upcoming_deadlines': upcoming_deadlines,
-        'upcoming_deadlines_count': upcoming_deadlines_count,
-        
-        # Existing data
-        'attendance_rate': attendance_rate,
-        'recent_results': recent_results,
-        'average_grade': f"{average_grade:.1f}" if average_grade else None,
-        'today': today,
+        'upcoming_deadlines_count': upcoming_deadlines.count(),
+
+        # Financial Data (Fixed)
         'pending_fees': pending_fees,
-        'total_pending_fees': total_pending_fees,
+        'total_pending_fees': total_pending_fees,  # Variable now defined!
+
+        # Other dashboard data
+        'attendance_rate': round(attendance_rate, 1),
+        'recent_results': recent_results,
+        'average_grade': round(average_grade, 1) if average_grade else None,
+        'today': today,
         'announcements': announcements,
         'upcoming_events': upcoming_events,
     }
-    
+
     response = render(request, 'student/student_dashboard.html', context)
-    if should_cache(request):
-        cache.set(cache_key, response, 180)
+
+    # Optional Cache Save
+    cache.set(cache_key, response, 180)  # Cache for 3 minutes
     return response
 
 @login_required

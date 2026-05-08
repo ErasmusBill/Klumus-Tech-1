@@ -59,7 +59,7 @@ class StudentAdmin(admin.ModelAdmin):
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ("name","subject_class", "department", "teacher")
     list_filter = ("subject_class", "department", "school")
-    search_fields = ("name")
+    search_fields = ("name",)
     autocomplete_fields = ["teacher", "department"]
 
 

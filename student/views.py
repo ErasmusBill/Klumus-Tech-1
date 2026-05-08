@@ -286,38 +286,58 @@ def student_enrolled_courses(request):
     return response
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Student, Fees
 
 
-
-@login_required
+@login_required(login_url='account:login')
 def list_fees_related(request, student_id):
-    # Check authentication and role
-    if not request.user.is_authenticated:
-        messages.error(request, "Please log in to access this page.")
-        return redirect("account:login")
-    
-    if request.user.role not in ["student", "admin"]:
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect("account:login")
-    
-    student = get_object_or_404(Student, id=student_id)
+    """
+    Lists all fee records for a specific student.
+    Strictly enforced for the specific student or an admin of the student's school.
+    """
+    # 1. Fetch Student and ensure they belong to a school
+    student = get_object_or_404(Student.objects.select_related('school', 'user'), id=student_id)
     school = student.school
 
+    # 2. Role-Based Access Control (RBAC)
     if request.user.role == "student":
-        if request.user.student_profile.id != student.id:
-            messages.error(request, "You can only view your own fees.")
+        # Check if the logged-in user is actually this student
+        # Using hasattr to avoid RelatedObjectDoesNotExist errors
+        if not hasattr(request.user, 'student_profile') or request.user.student_profile.id != student.id:
+            messages.error(request, "Access denied. You can only view your own financial records.")
             return redirect("student:student-dashboard")
-        
+
     elif request.user.role == "admin":
-        if request.user.managed_school != school:
-            messages.error(request, "You can only view fees for students in your school.")
+        # Check if the admin manages the school this student belongs to
+        managed_school = getattr(request.user, 'managed_school', None)
+        if not managed_school or managed_school != school:
+            messages.error(request, "Permission denied. This student belongs to another institution.")
             return redirect("adminservices:admin-dashboard")
 
-    fees = Fees.objects.filter(student=student, school=school).order_by('-due_date')
-    response = render(request, "student/fees_list.html", {"fees": fees, "student": student})
-    return response
+    else:
+        # Catch-all for roles like 'teacher' or others who shouldn't see money
+        messages.error(request, "You do not have permission to view fee records.")
+        return redirect("account:login")
 
+    # 3. Optimized Query
+    # select_related('fee_structure') helps if your template shows template names/amounts
+    fees = Fees.objects.filter(
+        student=student,
+        school=school
+    ).select_related('fee_structure').order_by('-due_date', '-id')
 
+    # 4. Contextual data for the template
+    context = {
+        "fees": fees,
+        "student": student,
+        "school": school,
+        "total_balance": sum(f.balance for f in fees)  # Optional: Quick sum for the UI
+    }
+
+    return render(request, "student/fees_list.html", context)
 
 def view_all_assignment(request):
     if not request.user.is_authenticated or request.user.role != "student":

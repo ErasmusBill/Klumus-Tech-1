@@ -6,176 +6,221 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Student Portal{% endblock %}</title>
     <link rel="shortcut icon" href="{% static 'assets/img/favicon.png' %}">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,500;0,600;0,700;1,400&amp;display=swap">
     <link rel="stylesheet" href="{% static 'assets/plugins/bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
-
     <style>
-        /* Sidebar User-Friendly Tweaks */
-        :root {
-            --sidebar-width: 240px;
-        }
-
-        /* Ensure Sidebar is NOT fixed and scrolls with content */
-        .sidebar {
-            position: absolute; /* Changed from fixed to absolute */
-            background-color: #fff;
-            border-right: 1px solid #f0f0f0;
-            transition: all 0.2s ease-in-out;
-            z-index: 1001;
-        }
-
-        /* Intuitive Active Link Styling */
-        .sidebar-menu li.active > a {
-            background-color: #f4f7fe !important;
-            color: #1e3a8a !important;
-            border-left: 4px solid #1e3a8a;
-            font-weight: 600;
-        }
-
-        .sidebar-menu li a:hover {
-            color: #1e3a8a;
-            background: #f8f9fa;
-        }
-
-        .sidebar-menu li a i {
-            width: 25px;
-            font-size: 1.1rem;
-            margin-right: 10px;
-            transition: transform 0.2s;
-        }
-
-        .sidebar-menu li a:hover i {
-            transform: scale(1.1);
-        }
-
-        /* Menu Titles Styling */
-        .menu-title {
-            color: #9ca3af !important;
-            text-transform: uppercase;
-            font-size: 0.75rem !important;
-            letter-spacing: 1px;
-            margin-top: 15px;
-            padding: 10px 20px 5px !important;
-        }
-
-        /* Responsive tweaks */
+        /* Responsive header tweaks */
         @media (max-width: 991.98px) {
-            .sidebar {
-                margin-left: -100%;
-            }
-            .sidebar.opened {
-                margin-left: 0;
+            .top-nav-search { display: none; }
+            .header .header-left .logo h2 {
+                font-size: 1rem;
+                max-width: 160px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
         }
 
-        /* Main content needs to account for non-fixed sidebar if desired,
-           but usually, we keep the wrapper flexible */
-        .page-wrapper {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
+        @media (max-width: 767.98px) {
+            .header { padding-left: 10px; padding-right: 10px; }
+            .header .user-menu .nav-item { margin-left: 6px; }
+            .header .user-menu .noti-dropdown { display: none; }
+            .header-left .logo img { max-height: 32px; }
         }
     </style>
 </head>
 <body>
     <div class="main-wrapper">
-        <!-- Header stays as provided -->
         <div class="header">
-            <!-- [Keep your existing Header Code here] -->
+            <div class="header-left">
+                <a href="{% url 'student:student-dashboard' %}" class="logo">
+                    {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                        <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ request.user.student_profile.school.name }} Logo">
+                    {% else %}
+                        <img src="{% static 'assets/img/logo.png' %}" alt="Logo">
+                    {% endif %}
+                    <h2>
+                        {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                            {{ request.user.student_profile.school.name }}
+                        {% else %}
+                            KIDDO CARE
+                        {% endif %}
+                    </h2>
+                </a>
+                <a href="{% url 'student:student-dashboard' %}" class="logo logo-small">
+                    {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                        <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.student_profile.school.name }} Logo" width="30" height="30">
+                    {% else %}
+                        <img src="{% static 'assets/img/logo-small.png' %}" alt="Logo" width="30" height="30">
+                    {% endif %}
+                </a>
+            </div>
+            <a href="javascript:void(0);" id="toggle_btn">
+                <i class="fas fa-align-left"></i>
+            </a>
+            <div class="top-nav-search">
+                <form>
+                    <input type="text" class="form-control" placeholder="Search here">
+                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+            <a class="mobile_btn" id="mobile_btn">
+                <i class="fas fa-bars"></i>
+            </a>
+            <ul class="nav user-menu">
+                <li class="nav-item dropdown noti-dropdown">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <i class="far fa-bell"></i> <span class="badge badge-pill">{{ navbar_unread_count|default:0 }}</span>
+                    </a>
+                    <div class="dropdown-menu notifications">
+                        <div class="topnav-dropdown-header">
+                            <span class="notification-title">Notifications</span>
+                            <form method="post" action="{% url 'account:notifications-clear' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="clear-noti border-0 bg-transparent p-0"> Clear All </button>
+                            </form>
+                        </div>
+                        <div class="noti-content">
+                            <ul class="notification-list">
+                                {% if navbar_notifications %}
+                                    {% for n in navbar_notifications %}
+                                        <li class="notification-message">
+                                            <a href="{% url 'account:notification-go' n.id %}">
+                                                <div class="media">
+                                                    <span class="avatar avatar-sm">
+                                                        <i class="fas fa-bell text-primary"></i>
+                                                    </span>
+                                                    <div class="media-body">
+                                                        <p class="noti-details"><span class="noti-title">{{ n.title }}</span> {{ n.message|truncatechars:60 }}</p>
+                                                        <p class="noti-time"><span class="notification-time">{{ n.created_at|timesince }} ago</span></p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="notification-message">
+                                        <p class="text-center text-muted mb-0">No new notifications</p>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="topnav-dropdown-footer">
+                            <a href="{% url 'account:notifications-list' %}">View all Notifications</a>
+                        </div>
+                    </div>
+                </li>
+                <li class="nav-item dropdown has-arrow">
+                    <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
+                        <span class="user-img">
+                            {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                                <img class="rounded-circle" src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" width="31" height="31" alt="{{ request.user.student_profile.school.name }} Logo">
+                            {% elif request.user.profile_picture %}
+                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% else %}
+                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                            {% endif %}
+                        </span>
+                    </a>
+                    <div class="dropdown-menu">
+                        <div class="user-header">
+                            <div class="avatar avatar-sm">
+                                {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
+                                    <img src="{{ request.user.student_profile.school.logo|safe_media_url:'assets/img/logo-small.png' }}" alt="{{ request.user.student_profile.school.name }} Logo" class="avatar-img rounded-circle">
+                                {% elif request.user.profile_picture %}
+                                    <img src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                {% else %}
+                                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                {% endif %}
+                            </div>
+                            <div class="user-text">
+                                <h6>{{ request.user.get_full_name }}</h6>
+                                <p class="text-muted mb-0">Student</p>
+                            </div>
+                        </div>
+                        <a class="dropdown-item" href="#">My Profile</a>
+                        <a class="dropdown-item" href="{% url 'account:change-password' %}">Change Password</a>
+                        <form method="post" action="{% url 'account:logout' %}">
+                            {% csrf_token %}
+                            <button class="dropdown-item border-0 bg-transparent w-100 text-start" type="submit">Logout</button>
+                        </form>
+                    </div>
+                </li>
+            </ul>
         </div>
 
-        <!-- Sidebar Start -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-inner slimscroll">
                 <div id="sidebar-menu" class="sidebar-menu">
                     <ul>
-                        <li class="menu-title"><span>Main</span></li>
-
-                        <li class="{% if request.resolver_match.url_name == 'student-dashboard' %}active{% endif %}">
-                            <a href="{% url 'student:student-dashboard' %}">
-                                <i class="fas fa-th-large"></i> <span>Dashboard</span>
-                            </a>
+                        <li class="menu-title">
+                            <span>Main Menu</span>
+                        </li>
+                        <li>
+                            <a href="{% url 'student:student-dashboard' %}"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+                        </li>
+                        <li>
+                            <a href="{% url 'student:student-detail' %}"><i class="fas fa-user"></i> <span>My Profile</span></a>
+                        </li>
+                        <li>
+                            <a href="{% url 'student:enrolled-courses' %}"><i class="fas fa-book-reader"></i> <span>Enrolled Courses</span></a>
                         </li>
 
-                        <li class="menu-title"><span>Academics</span></li>
-
-                        <li class="{% if request.resolver_match.url_name == 'enrolled-courses' %}active{% endif %}">
-                            <a href="{% url 'student:enrolled-courses' %}">
-                                <i class="fas fa-book-open"></i> <span>My Courses</span>
-                            </a>
-                        </li>
-
+                        <!-- Assignments Management -->
                         <li class="submenu {% if 'assignment' in request.resolver_match.url_name %}active open{% endif %}">
-                            <a href="javascript:void(0);">
-                                <i class="fas fa-edit"></i> <span>Assignments</span>
+                            <a href="#">
+                                <i class="fas fa-tasks"></i> <span>Assignments</span>
                                 <span class="menu-arrow"></span>
                             </a>
-                            <ul style="display: {% if 'assignment' in request.resolver_match.url_name %}block{% else %}none{% endif %};">
-                                <li><a href="{% url 'student:list-all-assignments' %}" class="{% if request.resolver_match.url_name == 'list-all-assignments' %}active{% endif %}">Current Tasks</a></li>
+                            <ul>
+                                <li class="{% if request.resolver_match.url_name == 'list-all-assignments' %}active{% endif %}">
+                                    <a href="{% url 'student:list-all-assignments' %}">
+                                        <i class="fas fa-list"></i> All Assignments
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
-                        <li class="{% if 'result' in request.resolver_match.url_name %}active{% endif %}">
-                            <a href="{% url 'student:view-result' request.user.student_profile.id %}">
-                                <i class="fas fa-poll"></i> <span>Academic Grades</span>
-                            </a>
-                        </li>
-
-                        <li class="menu-title"><span>Administrative</span></li>
-
-                        <li class="{% if 'fees' in request.resolver_match.url_name %}active{% endif %}">
-                            <a href="{% url 'student:fees-list' request.user.student_profile.id %}">
-                                <i class="fas fa-wallet"></i> <span>Fees & Payments</span>
-                            </a>
-                        </li>
-
-                        <li class="menu-title"><span>Account</span></li>
-
-                        <li class="{% if request.resolver_match.url_name == 'student-detail' %}active{% endif %}">
-                            <a href="{% url 'student:student-detail' %}">
-                                <i class="fas fa-user-circle"></i> <span>My Profile</span>
-                            </a>
-                        </li>
-
                         <li>
-                            <a href="{% url 'account:change-password' %}">
-                                <i class="fas fa-key"></i> <span>Security</span>
-                            </a>
+                            <a href="{% url 'student:view-result' request.user.student_profile.id %}"><i class="fas fa-chart-line"></i> <span>Grades</span></a>
                         </li>
 
+                        <li class="menu-title">
+                            <span>Financial</span>
+                        </li>
                         <li>
-                            <form method="post" action="{% url 'account:logout' %}" id="logoutFormSide">
-                                {% csrf_token %}
-                                <a href="javascript:void(0);" onclick="document.getElementById('logoutFormSide').submit();" class="text-danger">
-                                    <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-                                </a>
-                            </form>
+                            <a href="{% url 'student:fees-list' request.user.student_profile.id %}"><i class="fas fa-money-bill-wave"></i> <span>Fees & Payments</span></a>
+                        </li>
+
+                        <li class="menu-title">
+                            <span>Settings</span>
+                        </li>
+                        <li>
+                            <a href="{% url 'account:change-password' %}"><i class="fas fa-lock"></i> <span>Change Password</span></a>
                         </li>
                     </ul>
                 </div>
             </div>
         </div>
-        <!-- Sidebar End -->
 
-        <div class="page-wrapper">
-            <div class="content container-fluid">
-                {% block content %}{% endblock %}
-            </div>
+        {% block content %}
+        {% endblock %}
 
-            <footer class="mt-auto py-3 bg-white border-top">
-                <div class="container-fluid text-center">
-                    <p class="text-muted small mb-0">Copyright © {% now "Y" %} KIDDO CARE. All rights reserved.</p>
-                </div>
-            </footer>
-        </div>
+        <footer>
+            <p>Copyright © {% now "Y" %} KIDDO CARE. All rights reserved.</p>
+        </footer>
     </div>
 
-    <!-- Scripts stay as provided -->
     <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
     <script src="{% static 'assets/js/popper.min.js' %}"></script>
     <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
     <script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/apexchart/apexcharts.min.js' %}"></script>
+    <script src="{% static 'assets/plugins/apexchart/chart-data.js' %}"></script>
     <script src="{% static 'assets/js/script.js' %}"></script>
 </body>
 </html>

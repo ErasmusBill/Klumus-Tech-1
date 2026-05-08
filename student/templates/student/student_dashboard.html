@@ -1,141 +1,95 @@
 {% extends "student/base.html" %}
 {% load static media_tags %}
 
-{% block title %}Dashboard | KiddoCare Student{% endblock %}
+{% block title %}Dashboard | Student Hub{% endblock %}
 
 {% block content %}
-<div class="page-wrapper px-4">
-    <div class="content container-fluid">
+<div class="page-wrapper bg-light-faded">
+    <div class="content container-fluid px-lg-5">
 
-        <div class="page-header border-0 mb-4">
+        <!-- Personalized Greeting -->
+        <div class="page-header border-0 mb-5 pt-4">
             <div class="row align-items-center">
-                <div class="col">
-                    <h3 class="page-title text-2xl font-extrabold text-slate-800">Hi, {{ request.user.first_name }}! 👋</h3>
-                    <p class="text-muted font-medium">Here's what's happening with your studies today.</p>
+                <div class="col-lg-8">
+                    <h2 class="fw-black text-slate-900 display-6">Welcome back, {{ request.user.first_name }}! ✨</h2>
+                    <p class="text-muted lead fw-medium mb-0">Your academic journey is looking great today.</p>
                 </div>
-                <div class="col-auto">
-                    <span class="badge bg-indigo-100 text-indigo-700 px-3 py-2 rounded-pill font-bold">
-                        <i class="fas fa-graduation-cap me-1"></i> {{ student.get_student_class_display }}
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mb-4">
-            <div class="col-xl-3 col-sm-6">
-                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden">
-                    <div class="card-body p-4 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="bg-indigo-50 text-indigo-600 p-3 rounded-2xl">
-                                <i class="fas fa-book-reader fa-lg"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Courses</span>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm border">
+                        <div class="bg-primary text-white rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-school"></i>
                         </div>
-                        <h3 class="text-3xl font-extrabold text-slate-800">{{ enrolled_courses_count }}</h3>
-                        <p class="text-xs text-muted mb-0 font-medium">Currently enrolled</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-sm-6">
-                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-warning">
-                    <div class="card-body p-4 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="bg-orange-50 text-orange-600 p-3 rounded-2xl">
-                                <i class="fas fa-hourglass-half fa-lg text-warning"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending</span>
-                        </div>
-                        <h3 class="text-3xl font-extrabold text-slate-800">{{ pending_assignments_count|default:"0" }}</h3>
-                        <p class="text-xs text-muted mb-0 font-medium">Needs submission</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-sm-6">
-                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-danger">
-                    <div class="card-body p-4 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="bg-red-50 text-red-600 p-3 rounded-2xl">
-                                <i class="fas fa-calendar-times fa-lg text-danger"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Overdue</span>
-                        </div>
-                        <h3 class="text-3xl font-extrabold text-slate-800 text-danger">{{ overdue_assignments_count|default:"0" }}</h3>
-                        <p class="text-xs text-danger mb-0 font-bold italic">Urgent action required</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-sm-6">
-                <div class="card border-0 rounded-[1.5rem] shadow-sm overflow-hidden border-start border-4 border-success">
-                    <div class="card-body p-4 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="bg-green-50 text-green-600 p-3 rounded-2xl">
-                                <i class="fas fa-check-circle fa-lg text-success"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Completed</span>
-                        </div>
-                        <h3 class="text-3xl font-extrabold text-slate-800 text-success">{{ submitted_assignments_count|default:"0" }}</h3>
-                        <p class="text-xs text-muted mb-0 font-medium">Great job so far!</p>
+                        <span class="fw-bold pe-3 text-dark">{{ student.get_student_class_display }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-xl-8 mb-4">
-                <div class="card border-0 shadow-sm rounded-[2rem] h-100 overflow-hidden">
+        <!-- Metric Grid -->
+        <div class="row g-4 mb-5">
+            {% define_stats enrolled_courses_count "Courses" "fa-book-open" "primary" "Enrolled" %}
+            {% define_stats pending_assignments_count "To-Do" "fa-clock" "warning" "Submissions" %}
+            {% define_stats overdue_assignments_count "Missed" "fa-exclamation-triangle" "danger" "Urgent" %}
+            {% define_stats submitted_assignments_count "Graded" "fa-award" "success" "Completed" %}
+        </div>
+
+        <div class="row g-4">
+            <!-- Task Central: Main Content -->
+            <div class="col-xl-8">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
                     <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
-                        <h5 class="font-extrabold text-slate-800 mb-0">Active Assignments</h5>
-                        <a href="{% url 'student:list-all-assignments' %}" class="btn btn-sm btn-light font-bold text-xs rounded-pill px-3">View All</a>
+                        <h5 class="fw-black text-slate-800 mb-0">Upcoming Deadlines</h5>
+                        <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold">Explore All</a>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr class="text-xs font-bold text-slate-400 uppercase">
-                                    <th class="px-4 py-3">Task & Subject</th>
-                                    <th class="py-3 text-center">Deadline</th>
-                                    <th class="py-3 text-center">Status</th>
-                                    <th class="px-4 py-3 text-end">Action</th>
+                        <table class="table table-hover align-middle mb-0 custom-dashboard-table">
+                            <thead class="bg-faded-light">
+                                <tr class="text-uppercase small fw-black text-muted">
+                                    <th class="ps-4">Assignment Name</th>
+                                    <th class="text-center">Due Date</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end pe-4">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for assignment in recent_assignments %}
                                 <tr>
-                                    <td class="px-4">
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-indigo-50 text-indigo-600 p-2 rounded-lg me-3">
-                                                <i class="fas fa-file-alt"></i>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center py-2">
+                                            <div class="task-icon bg-faded-primary text-primary me-3">
+                                                <i class="fas fa-file-signature"></i>
                                             </div>
                                             <div>
-                                                <div class="font-bold text-slate-800">{{ assignment.title }}</div>
-                                                <div class="text-xs text-muted">{{ assignment.subject.name }}</div>
+                                                <div class="fw-bold text-dark">{{ assignment.title }}</div>
+                                                <div class="small text-muted">{{ assignment.subject.name }}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="text-sm font-bold {% if assignment.is_overdue %}text-danger{% else %}text-slate-700{% endif %}">
-                                            {{ assignment.due_date|date:"M d" }}
-                                        </span>
-                                        <div class="text-[10px] text-muted">{{ assignment.due_date|timeuntil }} left</div>
+                                        <div class="fw-bold {% if assignment.is_overdue %}text-danger{% else %}text-dark{% endif %}">
+                                            {{ assignment.due_date|date:"D, M d" }}
+                                        </div>
+                                        <div class="x-small text-muted opacity-75">{{ assignment.due_date|timeuntil }} remaining</div>
                                     </td>
                                     <td class="text-center">
                                         {% if assignment.is_overdue %}
-                                            <span class="badge bg-soft-danger text-danger rounded-pill">Overdue</span>
+                                            <span class="badge-pill-danger">Overdue</span>
                                         {% else %}
-                                            <span class="badge bg-soft-warning text-warning rounded-pill px-3">Pending</span>
+                                            <span class="badge-pill-warning">Pending</span>
                                         {% endif %}
                                     </td>
-                                    <td class="px-4 text-end">
-                                        <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-bold shadow-sm">
-                                            Submit
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary rounded-pill btn-sm px-3 fw-bold">
+                                            Upload <i class="fas fa-upload ms-1"></i>
                                         </a>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">All caught up! No assignments found.</td>
+                                    <td colspan="4" class="text-center py-5">
+                                        <img src="{% static 'assets/img/empty-tasks.svg' %}" style="width: 80px;" class="mb-3 opacity-25">
+                                        <p class="text-muted fw-bold">No active assignments. Enjoy your free time!</p>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -144,88 +98,114 @@
                 </div>
             </div>
 
-            <div class="col-xl-4 mb-4">
-                <div class="card border-0 shadow-sm rounded-[2rem] mb-4 text-center p-4">
-                    <div class="mx-auto mb-3 position-relative" style="width: 100px;">
-                        {% if student.student_image %}
-                            <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
-                        {% elif student.user.profile_picture %}
-                            <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
-                        {% else %}
-                            <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow-sm w-100" alt="{{ student.user.get_full_name }}">
-                        {% endif %}
-                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2 shadow-sm" title="Online"></span>
-                    </div>
-                    <h5 class="font-extrabold text-slate-800 mb-1">{{ student.user.get_full_name }}</h5>
-                    <p class="text-xs font-bold text-indigo-600 uppercase mb-4">{{ student.student_id }}</p>
-
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <div class="bg-light p-3 rounded-2xl">
-                                <div class="text-xs font-bold text-slate-400 mb-1">Adm. No</div>
-                                <div class="text-sm font-extrabold text-slate-800">{{ student.admission_number }}</div>
-                            </div>
+            <!-- Profile & Updates Sidebar -->
+            <div class="col-xl-4">
+                <!-- Profile Card -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                    <div class="profile-card-header bg-primary"></div>
+                    <div class="card-body text-center pt-0" style="margin-top: -45px;">
+                        <div class="position-relative d-inline-block mb-3">
+                            {% if student.student_image or student.user.profile_picture %}
+                                <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                                     class="rounded-circle border border-4 border-white shadow shadow-lg"
+                                     style="width: 100px; height: 100px; object-fit: cover;">
+                            {% else %}
+                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow" style="width: 90px;">
+                            {% endif %}
+                            <div class="status-online-dot"></div>
                         </div>
-                        <div class="col-6">
-                            <div class="bg-light p-3 rounded-2xl">
-                                <div class="text-xs font-bold text-slate-400 mb-1">Rank</div>
-                                <div class="text-sm font-extrabold text-slate-800">#--</div>
+                        <h5 class="fw-black text-dark mb-1">{{ student.user.get_full_name }}</h5>
+                        <p class="small text-primary fw-bold mb-4">{{ student.student_id }}</p>
+
+                        <div class="row g-3 bg-faded-light rounded-4 p-3 mx-1">
+                            <div class="col-6 border-end">
+                                <span class="x-small text-muted fw-bold text-uppercase">Adm No.</span>
+                                <div class="fw-black text-dark">{{ student.admission_number }}</div>
+                            </div>
+                            <div class="col-6">
+                                <span class="x-small text-muted fw-bold text-uppercase">Level</span>
+                                <div class="fw-black text-dark">{{ student.get_student_class_display|truncatechars:10 }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-[2rem] overflow-hidden">
-                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between">
-                        <h6 class="font-extrabold text-slate-800 mb-0">Latest Updates</h6>
-                        <span class="badge bg-indigo-50 text-indigo-600 rounded-pill px-2">New</span>
+                <!-- Updates List -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                        <h6 class="fw-black text-dark mb-0"><i class="fas fa-bell text-warning me-2"></i>School Bulletin</h6>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body px-4">
                         {% for announcement in announcements|slice:":3" %}
-                        <div class="d-flex gap-3 mb-4 last:mb-0">
-                            <div class="flex-shrink-0 text-indigo-500">
-                                <i class="fas fa-bullhorn"></i>
+                        <div class="announcement-item {% if not forloop.last %}border-bottom{% endif %} pb-3 mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <h6 class="small fw-black text-dark mb-0">{{ announcement.title|truncatechars:35 }}</h6>
+                                <span class="x-small text-primary fw-bold">{{ announcement.created_at|timesince }} ago</span>
                             </div>
-                            <div>
-                                <h6 class="text-sm font-bold text-slate-800 mb-1">{{ announcement.title }}</h6>
-                                <p class="text-xs text-muted mb-1 line-clamp-2">{{ announcement.content|truncatewords:10 }}</p>
-                                <span class="text-[10px] text-indigo-400 font-bold">{{ announcement.created_at|timesince }} ago</span>
-                            </div>
+                            <p class="x-small text-muted mb-0 line-clamp-2">{{ announcement.content|striptags }}</p>
                         </div>
                         {% empty %}
-                        <p class="text-xs text-center text-muted">No recent school news.</p>
+                        <div class="text-center py-4">
+                            <p class="x-small text-muted mb-0">No new updates from school.</p>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card border-0 rounded-[1.5rem] shadow-sm mb-5 bg-indigo-600 text-white overflow-hidden">
-            <div class="card-body p-4 position-relative">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <h4 class="font-extrabold mb-1">Need something else?</h4>
-                        <p class="text-indigo-100 mb-0 text-sm">Quickly access your grades or financial records.</p>
-                    </div>
-                    <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end">
-                        <a href="{% url 'student:view-result' request.user.student_profile.id %}" class="btn btn-white text-indigo-600 rounded-pill font-bold px-4 shadow-sm">My Grades</a>
-                        <a href="{% url 'student:fees-list' request.user.student_profile.id %}" class="btn btn-indigo-400 text-white rounded-pill font-bold px-4 border border-indigo-400 shadow-sm">Fee Portal</a>
-                    </div>
+        <!-- Footer Action Strip -->
+        <div class="footer-cta-card mt-5 mb-5 shadow-lg">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <h4 class="fw-black mb-1">Quick Portal Access</h4>
+                    <p class="mb-0 opacity-75">Instantly download your reports or check your billing status.</p>
                 </div>
-                <div class="position-absolute rounded-circle bg-white opacity-10" style="width: 200px; height: 200px; right: -50px; top: -100px;"></div>
+                <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                    <a href="{% url 'student:view-result' request.user.student_profile.id %}" class="btn btn-white text-primary rounded-pill fw-black px-4 me-2 shadow-sm">My Grades</a>
+                    <a href="{% url 'student:fees-list' request.user.student_profile.id %}" class="btn btn-glass-white rounded-pill fw-black px-4 shadow-sm">Fees Portal</a>
+                </div>
             </div>
         </div>
+
     </div>
 </div>
 
 <style>
-    /* Status Badge Styling */
-    .bg-soft-danger { background-color: #fee2e2; }
-    .bg-soft-warning { background-color: #fef3c7; }
-    .bg-soft-success { background-color: #dcfce7; }
+    /* Modern Dashboard Colors & UI */
+    .bg-light-faded { background-color: #f8fafc; }
+    .bg-faded-light { background-color: rgba(241, 245, 249, 0.5); }
+    .bg-faded-primary { background-color: rgba(79, 70, 229, 0.08); }
+    .fw-black { font-weight: 800; }
+    .x-small { font-size: 0.7rem; }
 
-    .last\:mb-0:last-child { margin-bottom: 0 !important; }
-    .btn-white { background: white; color: #4f46e5; }
-    .btn-white:hover { background: #f8fafc; }
+    /* Metrics */
+    .stat-icon-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
+    .stat-card { transition: transform 0.3s ease; border-radius: 24px !important; }
+    .stat-card:hover { transform: translateY(-5px); }
+
+    /* Custom Tables */
+    .custom-dashboard-table tr:last-child td { border-bottom: none; }
+    .task-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+
+    /* Profile Sidebar */
+    .profile-card-header { height: 80px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+    .status-online-dot { position: absolute; bottom: 8px; right: 8px; width: 14px; height: 14px; background: #22c55e; border: 3px solid #fff; border-radius: 50%; }
+
+    /* Custom Badges */
+    .badge-pill-warning { background: #fffbeb; color: #d97706; border-radius: 50px; padding: 4px 12px; font-size: 0.7rem; font-weight: 700; }
+    .badge-pill-danger { background: #fef2f2; color: #dc2626; border-radius: 50px; padding: 4px 12px; font-size: 0.7rem; font-weight: 700; }
+
+    /* CTA Card */
+    .footer-cta-card {
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        border-radius: 28px;
+        padding: 35px 45px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn-white { background: #fff; color: #4f46e5 !important; border: none; }
+    .btn-glass-white { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
 </style>
 {% endblock %}

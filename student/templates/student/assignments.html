@@ -1,419 +1,259 @@
 {% extends 'student/base.html' %}
 {% load static media_tags %}
 
-{% block title %}My Assignments - Student Portal{% endblock %}
+{% block title %}My Assignments | Student Portal{% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
     <div class="content container-fluid">
-        <div class="page-header">
+
+        <!-- Header Section -->
+        <div class="page-header mb-4">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title">My Assignments</h3>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Assignments</li>
-                    </ul>
+                    <h3 class="page-title text-primary"><i class="fas fa-book-reader me-2"></i>My Assignments</h3>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
+                            <li class="breadcrumb-item active">Assignments</li>
+                        </ol>
+                    </nav>
                 </div>
-                <div class="col-auto text-right float-right ml-auto">
+                <div class="col-auto">
                     <div class="student-assignment-count">
-                        <span class="badge badge-primary">{{ assignments.count }} Assignment{{ assignments.count|pluralize }}</span>
+                        <span class="badge bg-primary-light text-primary rounded-pill px-3">
+                            {{ assignments.count }} Total Tasks
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Assignment Filters -->
-        <div class="row filter-row">
-            <div class="col-sm-6 col-md-3">
-                <div class="form-group form-focus">
-                    <input type="text" class="form-control floating" id="searchInput" placeholder="Search assignments...">
-                    <label class="focus-label">Search</label>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <div class="form-group form-focus">
-                    <select class="form-control floating" id="subjectFilter">
-                        <option value="">All Subjects</option>
-                        {% for subject in subjects %}
-                        <option value="{{ subject.name }}">{{ subject.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <label class="focus-label">Filter by Subject</label>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <div class="form-group form-focus">
-                    <select class="form-control floating" id="statusFilter">
-                        <option value="">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="submitted">Submitted</option>
-                        <option value="overdue">Overdue</option>
-                    </select>
-                    <label class="focus-label">Filter by Status</label>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <a href="#" class="btn btn-success btn-block" id="resetFilters"> Reset Filters </a>
-            </div>
-        </div>
-
-        <!-- Assignment Statistics -->
-        <div class="row">
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <div class="dash-widget-header">
-                            <span class="dash-widget-icon"><i class="fas fa-tasks"></i></span>
-                            <div class="dash-widget-info">
-                                <h3>{{ assignments.count }}</h3>
-                                <h6 class="text-white">Total Assignments</h6>
-                            </div>
-                        </div>
+        <!-- Quick Stats Row -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-6">
+                <div class="card border-0 shadow-sm text-center py-3 stat-card">
+                    <div class="stat-icon bg-primary-light text-primary mx-auto mb-2">
+                        <i class="fas fa-tasks"></i>
                     </div>
+                    <h4 class="mb-0 fw-bold">{{ assignments.count }}</h4>
+                    <p class="text-muted small mb-0">Total</p>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <div class="dash-widget-header">
-                            <span class="dash-widget-icon"><i class="fas fa-check-circle"></i></span>
-                            <div class="dash-widget-info">
-                                <h3>{{ submitted_count }}</h3>
-                                <h6 class="text-white">Submitted</h6>
-                            </div>
-                        </div>
+            <div class="col-md-3 col-6">
+                <div class="card border-0 shadow-sm text-center py-3 stat-card">
+                    <div class="stat-icon bg-success-light text-success mx-auto mb-2">
+                        <i class="fas fa-check-double"></i>
                     </div>
+                    <h4 class="mb-0 fw-bold">{{ submitted_count }}</h4>
+                    <p class="text-muted small mb-0">Completed</p>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card bg-warning text-white">
-                    <div class="card-body">
-                        <div class="dash-widget-header">
-                            <span class="dash-widget-icon"><i class="fas fa-clock"></i></span>
-                            <div class="dash-widget-info">
-                                <h3>{{ pending_count }}</h3>
-                                <h6 class="text-white">Pending</h6>
-                            </div>
-                        </div>
+            <div class="col-md-3 col-6">
+                <div class="card border-0 shadow-sm text-center py-3 stat-card">
+                    <div class="stat-icon bg-warning-light text-warning mx-auto mb-2">
+                        <i class="fas fa-hourglass-half"></i>
                     </div>
+                    <h4 class="mb-0 fw-bold">{{ pending_count }}</h4>
+                    <p class="text-muted small mb-0">Pending</p>
                 </div>
             </div>
-            <div class="col-xl-3 col-sm-6 col-12">
-                <div class="card bg-danger text-white">
-                    <div class="card-body">
-                        <div class="dash-widget-header">
-                            <span class="dash-widget-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                            <div class="dash-widget-info">
-                                <h3>{{ overdue_count }}</h3>
-                                <h6 class="text-white">Overdue</h6>
-                            </div>
-                        </div>
+            <div class="col-md-3 col-6">
+                <div class="card border-0 shadow-sm text-center py-3 stat-card">
+                    <div class="stat-icon bg-danger-light text-danger mx-auto mb-2">
+                        <i class="fas fa-exclamation-circle"></i>
                     </div>
+                    <h4 class="mb-0 fw-bold">{{ overdue_count }}</h4>
+                    <p class="text-muted small mb-0">Overdue</p>
                 </div>
             </div>
         </div>
 
-        <!-- Assignments List -->
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="card card-table">
-                    <div class="card-header">
-                        <h4 class="card-title">All Assignments</h4>
-                        <p class="card-text">List of all assignments for your enrolled subjects</p>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            {% if assignments %}
-                            <table class="table table-hover table-center mb-0 datatable" id="assignmentsTable">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>Assignment</th>
-                                        <th>Subject</th>
-                                        <th>Teacher</th>
-                                        <th>Due Date</th>
-                                        <th>Status</th>
-                                        <th>Total Marks</th>
-                                        <th class="text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for assignment in assignments %}
-                                    <tr class="assignment-row" 
-                                        data-subject="{{ assignment.subject.name }}"
-                                        data-status="{% if assignment.is_overdue %}overdue{% else %}pending{% endif %}">
-                                        <td>
-                                            <h2 class="table-avatar">
-                                                <a href="{% url 'student:assignment-detail' assignment.id %}" class="assignment-title">
-                                                    {{ assignment.title }}
-                                                </a>
-                                            </h2>
-                                            <small class="text-muted">
-                                                {% if assignment.description|length > 100 %}
-                                                    {{ assignment.description|slice:":100" }}...
-                                                {% else %}
-                                                    {{ assignment.description }}
-                                                {% endif %}
-                                            </small>
-                                        </td>
-                                        <td>{{ assignment.subject.name }}</td>
-                                        <td>
-                                            <h2 class="table-avatar">
-                                                <a href="#" class="avatar avatar-sm mr-2">
-                                                    {% if assignment.teacher.user.profile_picture %}
-                                                        <img class="avatar-img rounded-circle"
-                                                             src="{{ assignment.teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
-                                                             alt="Teacher Image">
-                                                    {% elif assignment.teacher.image %}
-                                                        <img class="avatar-img rounded-circle"
-                                                             src="{{ assignment.teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
-                                                             alt="Teacher Image">
-                                                    {% else %}
-                                                        <img class="avatar-img rounded-circle"
-                                                             src="{% static 'assets/img/profiles/avatar-01.jpg' %}"
-                                                             alt="Teacher Image">
-                                                    {% endif %}
-                                                </a>
-                                                <a href="#">{{ assignment.teacher.user.get_full_name }}</a>
-                                            </h2>
-                                        </td>
-                                        <td>
-                                            <div class="due-date">
-                                                <strong>{{ assignment.due_date|date:"M d, Y" }}</strong>
-                                                <small class="text-muted d-block">{{ assignment.due_date|time:"g:i A" }}</small>
-                                                {% if assignment.is_overdue %}
-                                                <span class="badge badge-danger">Overdue</span>
-                                                {% else %}
-                                                <span class="badge badge-info">{{ assignment.due_date|timeuntil }} left</span>
-                                                {% endif %}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {% with submission=assignment.submissions.all|first %}
-                                                {% if submission %}
-                                                    {% if submission.status == 'graded' %}
-                                                    <span class="badge badge-success">
-                                                        <i class="fas fa-check"></i> Graded
-                                                    </span>
-                                                    {% elif submission.status == 'submitted' %}
-                                                    <span class="badge badge-info">
-                                                        <i class="fas fa-paper-plane"></i> Submitted
-                                                    </span>
-                                                    {% elif submission.status == 'late' %}
-                                                    <span class="badge badge-warning">
-                                                        <i class="fas fa-clock"></i> Late
-                                                    </span>
-                                                    {% endif %}
-                                                {% else %}
-                                                    {% if assignment.is_overdue %}
-                                                    <span class="badge badge-danger">
-                                                        <i class="fas fa-exclamation-triangle"></i> Not Submitted
-                                                    </span>
-                                                    {% else %}
-                                                    <span class="badge badge-warning">
-                                                        <i class="fas fa-clock"></i> Pending
-                                                    </span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endwith %}
-                                        </td>
-                                        <td>
-                                            <span class="total-marks">{{ assignment.total_marks }} marks</span>
-                                        </td>
-                                        <td class="text-right">
-                                            <div class="actions">
-                                                <a href="{% url 'student:assignment-detail' assignment.id %}" 
-                                                   class="btn btn-sm btn-outline-primary" 
-                                                   title="View Assignment">
-                                                    <i class="fas fa-eye"></i> View
-                                                </a>
-                                                
-                                                {% with submission=assignment.submissions.all|first %}
-                                                    {% if submission %}
-                                                        {% if submission.status == 'graded' %}
-                                                        <a href="#" class="btn btn-sm btn-success" title="View Grade">
-                                                            <i class="fas fa-chart-line"></i> {{ submission.marks_obtained }}/{{ assignment.total_marks }}
-                                                        </a>
-                                                        {% else %}
-                                                        <a href="#" class="btn btn-sm btn-info" title="View Submission">
-                                                            <i class="fas fa-file-alt"></i> Submitted
-                                                        </a>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        {% if not assignment.is_overdue %}
-                                                        <a href="{% url 'student:submit-assignment' assignment.id %}" 
-                                                           class="btn btn-sm btn-primary" 
-                                                           title="Submit Assignment">
-                                                            <i class="fas fa-upload"></i> Submit
-                                                        </a>
-                                                        {% else %}
-                                                        <button class="btn btn-sm btn-secondary" disabled title="Assignment Overdue">
-                                                            <i class="fas fa-ban"></i> Closed
-                                                        </button>
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            {% else %}
-                            <div class="empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-tasks fa-4x text-muted"></i>
-                                </div>
-                                <h3>No Assignments Found</h3>
-                                <p class="text-muted">You don't have any assignments at the moment.</p>
-                                <p class="text-muted">Assignments will appear here when your teachers publish them.</p>
-                            </div>
-                            {% endif %}
+        <!-- Smart Search & Filter Bar -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-lg-4 col-md-12">
+                        <div class="input-group input-group-merge">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control bg-light border-0" id="searchInput" placeholder="Find by title or teacher...">
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upcoming Deadlines -->
-        {% if upcoming_assignments %}
-        <div class="row">
-            <div class="col-sm-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title text-warning">
-                            <i class="fas fa-exclamation-circle"></i> Upcoming Deadlines
-                        </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {% for assignment in upcoming_assignments %}
-                            <div class="col-md-4 mb-3">
-                                <div class="assignment-alert alert alert-warning">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="alert-heading mb-1">{{ assignment.title }}</h6>
-                                            <p class="mb-1 small">{{ assignment.subject.name }}</p>
-                                            <p class="mb-0 small text-danger">
-                                                <i class="fas fa-clock"></i> Due in {{ assignment.due_date|timeuntil }}
-                                            </p>
-                                        </div>
-                                        <a href="{% url 'student:assignment-detail' assignment.id %}" 
-                                           class="btn btn-sm btn-outline-warning">View</a>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <select class="form-select border-0 bg-light" id="subjectFilter">
+                            <option value="">All Subjects</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject.name }}">{{ subject.name }}</option>
                             {% endfor %}
-                        </div>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <select class="form-select border-0 bg-light" id="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Not Started</option>
+                            <option value="submitted">Turned In</option>
+                            <option value="overdue">Missed</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-12">
+                        <button class="btn btn-primary w-100" id="resetFilters">
+                            <i class="fas fa-sync-alt me-1"></i> Reset
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-        {% endif %}
+
+        <!-- Assignments Table Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0">Academic Tasks</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {% if assignments %}
+                    <table class="table table-hover align-middle custom-table" id="assignmentsTable">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0">Assignment</th>
+                                <th class="border-0">Instructor</th>
+                                <th class="border-0">Subject</th>
+                                <th class="border-0">Deadline</th>
+                                <th class="border-0">Status</th>
+                                <th class="border-0 text-center">Score</th>
+                                <th class="border-0 text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments %}
+                            <tr class="assignment-row"
+                                data-subject="{{ assignment.subject.name }}"
+                                data-status="{% if assignment.is_overdue %}overdue{% else %}pending{% endif %}">
+
+                                <td style="min-width: 250px;">
+                                    <a href="{% url 'student:assignment-detail' assignment.id %}" class="fw-bold text-dark d-block mb-1">
+                                        {{ assignment.title }}
+                                    </a>
+                                    <span class="text-muted small text-truncate d-inline-block" style="max-width: 200px;">
+                                        {{ assignment.description|striptags }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-xs me-2">
+                                            <img class="rounded-circle" src="{% if assignment.teacher.user.profile_picture %}{{ assignment.teacher.user.profile_picture.url }}{% else %}{% static 'assets/img/profiles/avatar-01.jpg' %}{% endif %}" alt="T">
+                                        </div>
+                                        <span class="small text-nowrap">{{ assignment.teacher.user.get_full_name }}</span>
+                                    </div>
+                                </td>
+
+                                <td><span class="badge bg-light text-dark fw-normal border">{{ assignment.subject.name }}</span></td>
+
+                                <td>
+                                    <div class="small">
+                                        <div class="fw-bold {% if assignment.is_overdue %}text-danger{% endif %}">
+                                            {{ assignment.due_date|date:"M d, Y" }}
+                                        </div>
+                                        <span class="text-muted x-small">{{ assignment.due_date|timeuntil }} left</span>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {% with submission=assignment.submissions.all|first %}
+                                        {% if submission %}
+                                            <span class="badge rounded-pill {% if submission.status == 'graded' %}bg-success-light text-success{% else %}bg-info-light text-info{% endif %}">
+                                                {{ submission.get_status_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge rounded-pill {% if assignment.is_overdue %}bg-danger-light text-danger{% else %}bg-warning-light text-warning{% endif %}">
+                                                {% if assignment.is_overdue %}Not Submitted{% else %}Pending{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+
+                                <td class="text-center">
+                                    <span class="fw-bold text-muted">{{ assignment.total_marks }}</span>
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="btn-group shadow-sm">
+                                        <a href="{% url 'student:assignment-detail' assignment.id %}" class="btn btn-white btn-sm px-3" title="View Details">
+                                            <i class="fas fa-eye text-primary"></i>
+                                        </a>
+                                        {% with submission=assignment.submissions.all|first %}
+                                            {% if not submission and not assignment.is_overdue %}
+                                            <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary btn-sm px-3">
+                                                <i class="fas fa-upload"></i> Turn In
+                                            </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'assets/img/no-tasks.svg' %}" alt="None" style="width: 120px;" class="mb-3 opacity-50">
+                        <h5 class="text-muted">Clean Desk! No assignments found.</h5>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    // Search functionality
-    $('#searchInput').on('keyup', function() {
-        const value = $(this).val().toLowerCase();
-        $('#assignmentsTable tbody tr').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-    });
-
-    // Subject filter
-    $('#subjectFilter').on('change', function() {
-        const value = $(this).val().toLowerCase();
-        $('#assignmentsTable tbody tr').filter(function() {
-            $(this).toggle(value === '' || $(this).data('subject').toLowerCase() === value);
-        });
-    });
-
-    // Status filter
-    $('#statusFilter').on('change', function() {
-        const value = $(this).val().toLowerCase();
-        $('#assignmentsTable tbody tr').filter(function() {
-            $(this).toggle(value === '' || $(this).data('status') === value);
-        });
-    });
-
-    // Reset filters
-    $('#resetFilters').on('click', function(e) {
-        e.preventDefault();
-        $('#searchInput').val('');
-        $('#subjectFilter').val('');
-        $('#statusFilter').val('');
-        $('#assignmentsTable tbody tr').show();
-    });
-
-    // Auto-refresh time remaining every minute
-    setInterval(function() {
-        $('.due-date').each(function() {
-            const dueDate = new Date($(this).find('strong').text());
-            const now = new Date();
-            const timeDiff = dueDate - now;
-            
-            if (timeDiff > 0) {
-                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                $(this).find('.badge-info').text(days + 'd ' + hours + 'h left');
-            }
-        });
-    }, 60000);
-});
-</script>
 
 <style>
-.assignment-title {
-    color: #333;
-    font-weight: 600;
-    text-decoration: none;
-}
+    /* Custom Color Badge Lights */
+    .bg-primary-light { background: rgba(13, 110, 253, 0.1) !important; }
+    .bg-success-light { background: rgba(25, 135, 84, 0.1) !important; }
+    .bg-warning-light { background: rgba(255, 193, 7, 0.1) !important; }
+    .bg-danger-light { background: rgba(220, 53, 69, 0.1) !important; }
+    .bg-info-light { background: rgba(13, 202, 240, 0.1) !important; }
 
-.assignment-title:hover {
-    color: #007bff;
-    text-decoration: underline;
-}
+    .stat-icon { width: 45px; height: 45px; line-height: 45px; border-radius: 12px; font-size: 1.2rem; }
+    .stat-card:hover { transform: translateY(-3px); transition: 0.3s; }
+    .avatar-xs { width: 24px; height: 24px; }
+    .x-small { font-size: 0.75rem; }
 
-.due-date .badge {
-    font-size: 0.7rem;
-    margin-top: 5px;
-}
+    .custom-table thead th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
+    .custom-table tbody tr:hover { background-color: #fcfcfc !important; }
 
-.empty-state {
-    text-align: center;
-    padding: 40px 20px;
-}
-
-.empty-state-icon {
-    margin-bottom: 20px;
-}
-
-.assignment-alert {
-    border-left: 4px solid #ffc107;
-}
-
-.assignment-row:hover {
-    background-color: #f8f9fa;
-    transition: background-color 0.2s ease;
-}
-
-.actions .btn {
-    margin: 2px;
-}
-
-.table-avatar img {
-    width: 30px;
-    height: 30px;
-}
-
-.total-marks {
-    font-weight: 600;
-    color: #495057;
-}
+    .btn-white { background: #fff; border: 1px solid #dee2e6; }
+    .btn-white:hover { background: #f8f9fa; }
 </style>
+
+<script>
+$(document).ready(function() {
+    // Subject and Status Filter Logic
+    function applyFilters() {
+        const searchText = $('#searchInput').val().toLowerCase();
+        const subValue = $('#subjectFilter').val().toLowerCase();
+        const statValue = $('#statusFilter').val().toLowerCase();
+
+        $('#assignmentsTable tbody tr').each(function() {
+            const rowSubject = $(this).data('subject').toLowerCase();
+            const rowStatus = $(this).data('status').toLowerCase();
+            const rowText = $(this).text().toLowerCase();
+
+            const matchesSearch = rowText.includes(searchText);
+            const matchesSubject = subValue === '' || rowSubject === subValue;
+            const matchesStatus = statValue === '' || rowStatus === statValue;
+
+            $(this).toggle(matchesSearch && matchesSubject && matchesStatus);
+        });
+    }
+
+    $('#searchInput, #subjectFilter, #statusFilter').on('keyup change', applyFilters);
+
+    $('#resetFilters').on('click', function() {
+        $('#searchInput, #subjectFilter, #statusFilter').val('');
+        $('#assignmentsTable tbody tr').show();
+    });
+});
+</script>
 {% endblock %}

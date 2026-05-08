@@ -1,195 +1,152 @@
 from django import forms
 from django.db import transaction
-from account.models import AssignmentSubmission, Student, Subject, Enrollment
+from django.db.models import F
+from account.models import AssignmentSubmission, Student, Subject, Enrollment, School
+
 
 class StudentEnrollmentForm(forms.ModelForm):
     """
-    Form for updating student class.
-    Automatically enrolls student in subjects for their new class.
+    Standardizes class updates and subject auto-enrollment.
+    Optimized to handle reactivation and new enrollments in a single atomic block.
     """
+
     class Meta:
         model = Student
         fields = ['student_class']
         widgets = {
             'student_class': forms.Select(attrs={
-                'class': 'form-control',
-                'required': True
+                'class': 'form-select form-control-lg',
+                'data-placeholder': 'Select New Class'
             })
         }
-        labels = {
-            'student_class': 'Select Class'
-        }
+        labels = {'student_class': 'Academic Class Assignment'}
 
     def __init__(self, *args, **kwargs):
         self.student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
-        
-        # Add help text
         self.fields['student_class'].help_text = (
-            "Note: Changing class will automatically enroll you in all subjects for the selected class"
+            "⚠️ Note: Changing class deactivates previous enrollments and assigns all subjects for the new class."
         )
 
     def save(self, commit=True):
         student = super().save(commit=False)
-        
         if commit:
             with transaction.atomic():
-                # Save the student with new class
                 student.save()
-                
-                # Auto-enroll in subjects for the new class
-                self.auto_enroll_subjects(student)
-        
+                self._process_enrollments(student)
         return student
 
-    def auto_enroll_subjects(self, student):
-        """
-        Automatically enroll student in all subjects for their class.
-        Deactivates old enrollments and creates new ones.
-        """
-        # Deactivate all current enrollments
-        Enrollment.objects.filter(student=student).update(is_active=False)
-        
-        # Get all subjects for the student's class and school
-        subjects = Subject.objects.filter(
+    def _process_enrollments(self, student):
+        """Logic separated for cleaner maintenance."""
+        # Step 1: Deactivate existing
+        Enrollment.objects.filter(student=student, is_active=True).update(is_active=False)
+
+        # Step 2: Identify subjects for new class
+        target_subjects = Subject.objects.filter(
             school=student.school,
             subject_class=student.student_class
         )
-        
-        # Create or reactivate enrollments
-        enrolled_count = 0
-        for subject in subjects:
-            enrollment, created = Enrollment.objects.get_or_create(
+
+        # Step 3: Batch update/create for performance
+        for subject in target_subjects:
+            Enrollment.objects.update_or_create(
                 student=student,
                 subject=subject,
                 defaults={'is_active': True}
             )
-            
-            if not created:
-                # Reactivate existing enrollment
-                enrollment.is_active = True
-                enrollment.save()
-            
-            enrolled_count += 1
-        
-        return enrolled_count
 
 
 class BulkStudentEnrollmentForm(forms.Form):
     """
-    Form for bulk enrollment of multiple students in a specific class.
-    Admin can select a class and all students in that class will be 
-    automatically enrolled in the class subjects.
+    Intuitive bulk action form for Admins.
+    Uses descriptive querysets to prevent cross-school enrollment errors.
     """
     student_class = forms.ChoiceField(
         choices=Student.CLASS_CHOICES,
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-            'required': True
-        }),
-        label='Select Class'
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Target Class Level'
     )
-    
+
     school = forms.ModelChoiceField(
-        queryset=None,
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-            'required': True
-        }),
-        label='Select School',
-        required=False
+        queryset=School.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=False,
+        label='Target Institution'
     )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Set school queryset based on user role
+
         if self.user and self.user.role == 'admin':
-            from account.models import School
-            self.fields['school'].queryset = School.objects.filter( # type: ignore
-                admin=self.user
-            )
-            self.fields['school'].initial = self.user.managed_school
+            # Strictly limit to schools managed by this admin
+            self.fields['school'].queryset = School.objects.filter(admin=self.user)
+            self.fields['school'].initial = getattr(self.user, 'managed_school', None)
         else:
-            # Hide school field for non-admins
             self.fields['school'].widget = forms.HiddenInput()
 
-    def enroll_students(self, school=None):
-        """
-        Enroll all students in the selected class to their respective subjects.
-        """
-        student_class = self.cleaned_data['student_class']
-        
-        if not school and self.user and self.user.role == 'admin':
-            school = self.user.managed_school
-        elif not school:
-            school = self.cleaned_data.get('school')
-        
+    def enroll_students(self):
+        """Processes bulk enrollments with a summary return."""
+        data = self.cleaned_data
+        school = data.get('school') or getattr(self.user, 'managed_school', None)
+        target_class = data['student_class']
+
         if not school:
-            raise ValueError("School is required for enrollment")
-        
-        # Get all students in the selected class
-        students = Student.objects.filter(
-            school=school,
-            student_class=student_class,
-            is_active=True
-        )
-        
-        # Get all subjects for this class
-        subjects = Subject.objects.filter(
-            school=school,
-            subject_class=student_class
-        )
-        
-        enrolled_count = 0
-        
+            raise forms.ValidationError("Institution context is missing.")
+
+        students = Student.objects.filter(school=school, student_class=target_class, is_active=True)
+        subjects = Subject.objects.filter(school=school, subject_class=target_class)
+
         with transaction.atomic():
+            # Deactivate all active enrollments for affected students
+            Enrollment.objects.filter(student__in=students, is_active=True).update(is_active=False)
+
+            # Re-enroll or create new
+            total_processed = 0
             for student in students:
-                # Deactivate old enrollments
-                Enrollment.objects.filter(student=student).update(is_active=False)
-                
-                # Create new enrollments
                 for subject in subjects:
-                    enrollment, created = Enrollment.objects.get_or_create(
+                    Enrollment.objects.update_or_create(
                         student=student,
                         subject=subject,
                         defaults={'is_active': True}
                     )
-                    
-                    if not created:
-                        enrollment.is_active = True
-                        enrollment.save()
-                    
-                    enrolled_count += 1
-        
+                    total_processed += 1
+
         return {
-            'students_count': students.count(),
-            'subjects_count': subjects.count(),
-            'enrollments_created': enrolled_count
+            'students_impacted': students.count(),
+            'subjects_assigned': subjects.count(),
+            'total_enrollments': total_processed
         }
 
 
 class AssignmentSubmissionForm(forms.ModelForm):
+    """
+    Cleaned up submission form with better validation and modern styling.
+    """
+
     class Meta:
         model = AssignmentSubmission
         fields = ['submission_file', 'submission_text']
         widgets = {
-            'submission_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'submission_file': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.jpg,.png'
+            }),
             'submission_text': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 5,
-                'placeholder': 'Optional: Add your answers or notes here...'
+                'rows': 6,
+                'placeholder': 'Type your submission content or any additional notes here...'
             }),
         }
 
     def clean(self):
+        """Ensure the student actually provided something."""
         cleaned_data = super().clean()
         file = cleaned_data.get('submission_file')
         text = cleaned_data.get('submission_text')
 
-        if not file and not text:
+        if not file and (not text or len(text.strip()) == 0):
             raise forms.ValidationError(
-                "You must submit either a file or text response."
+                "Submission Error: Please either upload a file or provide a text response."
             )
         return cleaned_data

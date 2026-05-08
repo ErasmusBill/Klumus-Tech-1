@@ -1,88 +1,215 @@
 {% extends 'student/base.html' %}
 {% load static %}
 
-{% block title %}Fee Records - {{ student.user.get_full_name }}{% endblock %}
+{% block title %}Financial Statements | {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
     <div class="content container-fluid">
+
         <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header mb-4">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title">Fee Records</h3>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Fees</li>
-                    </ul>
+                    <h3 class="page-title text-primary"><i class="fas fa-wallet me-2"></i>Fee Management</h3>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
+                            <li class="breadcrumb-item active">Financial Records</li>
+                        </ol>
+                    </nav>
+                </div>
+                {% if request.user.role == "admin" %}
+                <div class="col-auto">
+                    <a href="{% url 'adminservices:manage-fees' student.id %}" class="btn btn-primary shadow-sm px-4">
+                        <i class="fas fa-edit me-2"></i>Update Records
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Financial Overview Cards -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <p class="text-white-50 small mb-1 text-uppercase fw-bold">Student Identity</p>
+                                <h5 class="mb-0">{{ student.user.get_full_name }}</h5>
+                                <span class="badge bg-white text-primary mt-2">{{ student.student_id }}</span>
+                            </div>
+                            <i class="fas fa-user-circle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon bg-success-light text-success me-3">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">Record Count</p>
+                                <h4 class="fw-bold mb-0">{{ fees.count }} Total</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon bg-info-light text-info me-3">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted small mb-0">Current Session</p>
+                                <h4 class="fw-bold mb-0">Academic Year 2026</h4>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Fee Summary Card -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            Fees for {{ student.user.get_full_name }} 
-                            <small class="text-muted">({{ student.student_id }})</small>
-                        </h5>
-                        {% if request.user.role == "admin" %}
-                            <a href="{% url 'adminservices:manage-fees' student.id %}" class="btn btn-sm btn-outline-primary">
-                                Manage Fees
-                            </a>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        {% if fees %}
-                            <div class="table-responsive">
-                                <table class="table table-hover table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Fee Type</th>
-                                            <th>Amount (GHS)</th>
-                                            <th>Due Date</th>
-                                            <th>Status</th>
-                                            <th>Payment Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for fee in fees %}
-                                        <tr>
-                                            <td>{{ fee.fee_type|default:"General Fee" }}</td>
-                                            <td>₵{{ fee.amount|floatformat:2 }}</td>
-                                            <td>{{ fee.due_date|date:"M d, Y" }}</td>
-                                            <td>
-                                                {% if fee.paid %}
-                                                    <span class="badge bg-success">Paid</span>
-                                                {% else %}
-                                                    <span class="badge bg-danger">Pending</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if fee.payment_date %}
-                                                    {{ fee.payment_date|date:"M d, Y" }}
-                                                {% else %}
-                                                    —
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No fee records found</h5>
-                                <p class="text-muted">This student has no associated fees.</p>
-                            </div>
-                        {% endif %}
+        <!-- Detailed Transaction Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 border-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark">Statement of Account</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
                     </div>
                 </div>
             </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    {% if fees %}
+                    <table class="table table-hover align-middle mb-0 custom-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4 border-0">Fee Classification</th>
+                                <th class="border-0">Amount</th>
+                                <th class="border-0">Deadline</th>
+                                <th class="border-0">Status</th>
+                                <th class="border-0">Transaction Date</th>
+                                <th class="text-end pe-4 border-0">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fee in fees %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="fee-type-dot {% if fee.paid %}bg-success{% else %}bg-danger{% endif %} me-2"></div>
+                                        <span class="fw-bold text-dark">{{ fee.fee_type|default:"General Tuition" }}</span>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-dark">₵{{ fee.amount|floatformat:2 }}</td>
+                                <td>
+                                    <div class="small">
+                                        <span class="d-block text-dark">{{ fee.due_date|date:"M d, Y" }}</span>
+                                        <span class="text-muted x-small">Official Deadline</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if fee.paid %}
+                                        <span class="badge bg-success-light text-success px-3 rounded-pill">
+                                            <i class="fas fa-check me-1"></i> Settled
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger-light text-danger px-3 rounded-pill">
+                                            <i class="fas fa-clock me-1"></i> Outstanding
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if fee.payment_date %}
+                                        <span class="text-dark small">{{ fee.payment_date|date:"M d, Y" }}</span>
+                                    {% else %}
+                                        <span class="text-muted italic small">Not Processed</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    {% if fee.paid %}
+                                        <button class="btn btn-sm btn-light rounded-pill"><i class="fas fa-file-invoice text-primary"></i> Receipt</button>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill">Pay Now</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="{% static 'assets/img/no-billing.svg' %}" alt="No Data" class="mb-3" style="width: 120px; opacity: 0.5;">
+                        <h5 class="text-muted">No Billing History Found</h5>
+                        <p class="text-muted x-small">All financial accounts for this student are currently clear.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+
+        <!-- Helpful Disclaimer -->
+        <div class="alert mt-4 bg-white border-0 shadow-sm d-flex align-items-center">
+            <i class="fas fa-info-circle text-info me-3 fa-2x"></i>
+            <div>
+                <p class="mb-0 text-dark small fw-bold">Payment Policy Note</p>
+                <p class="mb-0 text-muted x-small">All digital payments are reflected in real-time. For bank transfers, please allow 24-48 hours for the administrative team to update the "Settled" status.</p>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<style>
+    /* Styling Palette */
+    .bg-success-light { background: rgba(25, 135, 84, 0.1); }
+    .bg-danger-light { background: rgba(220, 53, 69, 0.1); }
+    .bg-info-light { background: rgba(13, 202, 240, 0.1); }
+
+    .stat-icon {
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.2rem;
+    }
+
+    .custom-table thead th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #7d8490;
+        padding-top: 15px;
+        padding-bottom: 15px;
+    }
+
+    .fee-type-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .x-small { font-size: 0.75rem; }
+    .italic { font-style: italic; }
+
+    /* Shadow Transitions */
+    .card { transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-2px); }
+
+    @media print {
+        .page-header, .stat-icon, .btn, .alert { display: none !important; }
+        .card { border: none !important; shadow: none !important; }
+    }
+</style>
 {% endblock %}

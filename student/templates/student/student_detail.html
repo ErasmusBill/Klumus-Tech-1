@@ -1,290 +1,275 @@
 {% extends "student/base.html" %}
 {% load static media_tags %}
 
-{% block title %}My Profile | Student{% endblock %}
+{% block title %}My Profile | {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
-<style>
-  .profile-hero {
-    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-    color: #fff;
-    border-radius: 18px;
-  }
-  .profile-hero .avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 9999px;
-    border: 4px solid rgba(255, 255, 255, 0.7);
-    object-fit: cover;
-    background: #fff;
-  }
-  .profile-stat {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 16px;
-    text-align: center;
-  }
-  .profile-card {
-    border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
-  }
-  .info-grid .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #64748b;
-    font-weight: 700;
-  }
-  .info-grid .value {
-    font-weight: 700;
-    color: #0f172a;
-  }
-  .fee-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    background: #fef3c7;
-    color: #92400e;
-  }
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 800;
-    color: #0f172a;
-  }
-  .section-title i {
-    color: #6366f1;
-  }
-  .copy-btn {
-    border: 0;
-    background: #eef2ff;
-    color: #4338ca;
-    font-weight: 700;
-    border-radius: 10px;
-    padding: 6px 10px;
-    cursor: pointer;
-  }
-  .copy-btn:active {
-    transform: scale(0.98);
-  }
-  @media (max-width: 767.98px) {
-    .profile-hero {
-      text-align: center;
-    }
-    .profile-hero .d-flex {
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-  }
-</style>
-
 <div class="page-wrapper">
-  <div class="content container-fluid">
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">My Profile</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Profile</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <div class="content container-fluid px-lg-5">
 
-    <div class="profile-hero p-4 mb-4">
-      <div class="d-flex align-items-center justify-content-between flex-wrap">
-        <div class="d-flex align-items-center gap-3">
-          {% if student.student_image %}
-            <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" class="avatar">
-          {% elif student.user.profile_picture %}
-            <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" class="avatar">
-          {% else %}
-            <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="{{ student.user.get_full_name }}" class="avatar">
-          {% endif %}
-          <div>
-            <h3 class="mb-1">{{ student.user.get_full_name }}</h3>
-            <div class="text-white-50">{{ student.get_student_class_display }}</div>
-            <div class="mt-2">
-              <span class="badge badge-light text-dark mr-2" id="studentIdText">{{ student.student_id }}</span>
-              <span class="badge badge-info">{{ student.get_promotion_status_display }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="mt-3 mt-md-0">
-          <button class="copy-btn" type="button" data-copy="#studentIdText">Copy ID</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-xl-4 col-lg-5 col-md-12 mb-4">
-        <div class="card profile-card">
-          <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-chart-line"></i> Quick Stats</div>
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="profile-stat">
-                  <div class="text-muted text-xs mb-1">Attendance Rate</div>
-                  <div class="h4 mb-0">{{ attendance_rate|floatformat:1 }}%</div>
+        <!-- Page Header -->
+        <div class="page-header border-0 mb-4 pt-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title fw-black text-slate-900"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</h3>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
+                            <li class="breadcrumb-item active">Account Settings</li>
+                        </ol>
+                    </nav>
                 </div>
-              </div>
-              <div class="col-12">
-                <div class="profile-stat">
-                  <div class="text-muted text-xs mb-1">Enrollments</div>
-                  <div class="h4 mb-0">{{ enrollments_count }}</div>
+            </div>
+        </div>
+
+        <!-- Profile Hero Section -->
+        <div class="profile-hero-card mb-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="hero-backdrop"></div>
+                <div class="card-body p-4 pt-0">
+                    <div class="d-flex align-items-end flex-wrap gap-4 profile-header-content">
+                        <div class="avatar-container">
+                            {% if student.student_image or student.user.profile_picture %}
+                                <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                                     alt="Profile" class="hero-avatar">
+                            {% else %}
+                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="hero-avatar">
+                            {% endif %}
+                            <div class="status-online-ring"></div>
+                        </div>
+
+                        <div class="hero-info flex-grow-1">
+                            <h2 class="fw-black text-slate-900 mb-1">{{ student.user.get_full_name }}</h2>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span class="badge-pill-primary">{{ student.get_student_class_display }}</span>
+                                <span class="badge-pill-success">{{ student.get_promotion_status_display }}</span>
+                            </div>
+                            <div class="student-id-pill d-inline-flex align-items-center">
+                                <i class="fas fa-fingerprint me-2 opacity-50"></i>
+                                <span id="studentIdText" class="fw-bold">{{ student.student_id }}</span>
+                                <button class="copy-icon-btn ms-2" data-copy="#studentIdText" title="Copy Student ID">
+                                    <i class="far fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="hero-actions mb-2">
+                            <a href="{% url 'student:student-dashboard' %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div class="col-12">
-                <div class="profile-stat">
-                  <div class="text-muted text-xs mb-1">Pending Fees</div>
-                  <div class="h4 mb-0">₵{{ total_pending_fees|floatformat:2 }}</div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Column: Metrics & School Info -->
+            <div class="col-xl-4">
+                <!-- Academic Stats -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-black text-dark mb-4"><i class="fas fa-chart-pie me-2 text-primary"></i>Academic Snapshot</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="stat-box-light">
+                                    <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Attendance Rate</span>
+                                    <div class="h3 fw-black text-dark mb-0">{{ attendance_rate|floatformat:1 }}%</div>
+                                    <div class="progress mt-2" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" style="width: {{ attendance_rate }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-box-light">
+                                    <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Courses</span>
+                                    <div class="h4 fw-black text-dark mb-0">{{ enrollments_count }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-box-light border-warning-subtle bg-warning-faded">
+                                    <span class="x-small text-warning fw-bold text-uppercase d-block mb-1">Pending Fees</span>
+                                    <div class="h4 fw-black text-warning mb-0">₵{{ total_pending_fees|floatformat:0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div class="card profile-card mt-4">
-          <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-school"></i> School</div>
-            <div class="info-grid">
-              <div class="mb-3">
-                <div class="label">School</div>
-                <div class="value">{{ student.school.name }}</div>
-              </div>
-              <div class="mb-3">
-                <div class="label">Location</div>
-                <div class="value">{{ student.school.location|default:"N/A" }}</div>
-              </div>
-              <div class="mb-3">
-                <div class="label">Phone</div>
-                <div class="value">{{ student.school.phone_number|default:"N/A" }}</div>
-              </div>
+                <!-- School Identity -->
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body">
+                        <h6 class="fw-black text-dark mb-4"><i class="fas fa-building me-2 text-primary"></i>School Identity</h6>
+                        <div class="list-group list-group-flush border-0">
+                            <div class="list-group-item px-0 py-3 border-0">
+                                <div class="x-small text-muted fw-bold text-uppercase">Organization</div>
+                                <div class="fw-bold text-dark">{{ student.school.name }}</div>
+                            </div>
+                            <div class="list-group-item px-0 py-3 border-0">
+                                <div class="x-small text-muted fw-bold text-uppercase">Campus Location</div>
+                                <div class="fw-bold text-dark">{{ student.school.location|default:"Main Campus" }}</div>
+                            </div>
+                            <div class="list-group-item px-0 py-3 border-0">
+                                <div class="x-small text-muted fw-bold text-uppercase">Contact Support</div>
+                                <div class="fw-bold text-primary">{{ student.school.phone_number|default:"N/A" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="col-xl-8 col-lg-7 col-md-12">
-        <div class="card profile-card mb-4">
-          <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-id-card"></i> Student Information</div>
-            <div class="row info-grid">
-              <div class="col-md-6 mb-3">
-                <div class="label">Admission Number</div>
-                <div class="value">{{ student.admission_number }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Date of Birth</div>
-                <div class="value">{{ student.user.date_of_birth|date:"M d, Y"|default:"N/A" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Gender</div>
-                <div class="value">{{ student.user.get_gender_display|default:"N/A" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Phone</div>
-                <div class="value">{{ student.mobile_number|default:"N/A" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Email</div>
-                <div class="value">{{ student.user.email|default:"N/A" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Address</div>
-                <div class="value">{{ student.user.address|default:"N/A" }}</div>
-              </div>
+            <!-- Right Column: Personal, Family & Financials -->
+            <div class="col-xl-8">
+                <!-- Personal Data -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 py-4 px-4">
+                        <h5 class="fw-black text-dark mb-0"><i class="fas fa-fingerprint me-2 text-primary"></i>Personal Credentials</h5>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-0">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="x-small text-muted fw-bold text-uppercase">Admission ID</label>
+                                <div class="fw-bold text-dark fs-5">{{ student.admission_number }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="x-small text-muted fw-bold text-uppercase">Birth Registry</label>
+                                <div class="fw-bold text-dark fs-5">{{ student.user.date_of_birth|date:"M d, Y"|default:"—" }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="x-small text-muted fw-bold text-uppercase">Gender Status</label>
+                                <div class="fw-bold text-dark fs-5">{{ student.user.get_gender_display|default:"—" }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="x-small text-muted fw-bold text-uppercase">Verified Email</label>
+                                <div class="fw-bold text-dark fs-5">{{ student.user.email|default:"—" }}</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="x-small text-muted fw-bold text-uppercase">Registered Address</label>
+                                <div class="fw-bold text-dark fs-6">{{ student.user.address|default:"No address on file" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guardian Information -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 py-4 px-4">
+                        <h5 class="fw-black text-dark mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Guardian Registry</h5>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-0">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-faded-light rounded-3">
+                                    <label class="x-small text-muted fw-bold text-uppercase">Father/Guardian</label>
+                                    <div class="fw-bold text-dark">{{ student.parent.father_name|default:"N/A" }}</div>
+                                    <div class="small text-primary fw-bold">{{ student.parent.father_phone|default:"" }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-faded-light rounded-3">
+                                    <label class="x-small text-muted fw-bold text-uppercase">Mother/Guardian</label>
+                                    <div class="fw-bold text-dark">{{ student.parent.mother_name|default:"N/A" }}</div>
+                                    <div class="small text-primary fw-bold">{{ student.parent.mother_phone|default:"" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Statement -->
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-black text-dark mb-0"><i class="fas fa-receipt me-2 text-primary"></i>Pending Balance</h5>
+                        <a href="{% url 'student:fees-list' student.id %}" class="btn btn-sm btn-faded-primary fw-black rounded-pill">Statement Portal</a>
+                    </div>
+                    <div class="table-responsive">
+                        {% if pending_fees %}
+                        <table class="table table-hover align-middle mb-0 custom-profile-table">
+                            <thead class="bg-faded-light">
+                                <tr class="x-small fw-black text-muted text-uppercase">
+                                    <th class="ps-4">Billing Item</th>
+                                    <th>Amount</th>
+                                    <th>Deadline</th>
+                                    <th class="text-end pe-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fee in pending_fees %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">{{ fee.get_fee_type_display }}</td>
+                                    <td class="fw-black text-dark">₵{{ fee.net_amount|floatformat:2 }}</td>
+                                    <td class="small text-muted">{{ fee.due_date|date:"M d, Y" }}</td>
+                                    <td class="text-end pe-4">
+                                        <span class="badge-pill-warning x-small fw-black">{{ fee.get_status_display }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-double text-success fa-3x mb-3 opacity-25"></i>
+                            <p class="text-muted fw-bold">All accounts are settled. No pending fees.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-
-        <div class="card profile-card mb-4">
-          <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-users"></i> Parent/Guardian</div>
-            <div class="row info-grid">
-              <div class="col-md-6 mb-3">
-                <div class="label">Father</div>
-                <div class="value">{{ student.parent.father_name|default:"N/A" }}</div>
-                <div class="text-muted small">{{ student.parent.father_phone|default:"" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Mother</div>
-                <div class="value">{{ student.parent.mother_name|default:"N/A" }}</div>
-                <div class="text-muted small">{{ student.parent.mother_phone|default:"" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Father Email</div>
-                <div class="value">{{ student.parent.father_email|default:"N/A" }}</div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="label">Mother Email</div>
-                <div class="value">{{ student.parent.mother_email|default:"N/A" }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card profile-card">
-          <div class="card-body">
-            <div class="section-title mb-3"><i class="fas fa-wallet"></i> Pending Fees</div>
-            {% if pending_fees %}
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Amount (GHS)</th>
-                      <th>Due</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for fee in pending_fees %}
-                      <tr>
-                        <td>{{ fee.get_fee_type_display }}</td>
-                        <td>₵{{ fee.net_amount|floatformat:2 }}</td>
-                        <td>{{ fee.due_date|date:"M d, Y" }}</td>
-                        <td>
-                          <span class="fee-status">{{ fee.get_status_display }}</span>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              <a href="{% url 'student:fees-list' student.id %}" class="btn btn-sm btn-outline-primary">View All Fees</a>
-            {% else %}
-              <p class="text-muted mb-0">No pending fees.</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
+<style>
+    /* Styling System */
+    .bg-light-faded { background-color: #f8fafc; }
+    .bg-faded-light { background-color: #f1f5f9; }
+    .bg-faded-primary { background-color: rgba(79, 70, 229, 0.08); color: #4f46e5; }
+    .bg-warning-faded { background-color: #fffbeb; }
+    .fw-black { font-weight: 900; }
+    .x-small { font-size: 0.7rem; }
+
+    /* Hero Design */
+    .hero-backdrop { height: 120px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+    .hero-avatar { width: 140px; height: 140px; border-radius: 50%; border: 6px solid #fff; object-fit: cover; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: #fff; }
+    .avatar-container { position: relative; margin-top: -70px; }
+    .status-online-ring { position: absolute; bottom: 10px; right: 10px; width: 22px; height: 22px; background: #22c55e; border: 4px solid #fff; border-radius: 50%; }
+
+    /* Stat & Info Boxes */
+    .stat-box-light { padding: 1.25rem; background: #fff; border: 1px solid #eef2ff; border-radius: 1rem; }
+    .student-id-pill { background: #f1f5f9; padding: 6px 16px; border-radius: 50px; color: #475569; font-size: 0.85rem; }
+    .copy-icon-btn { border: none; background: transparent; color: #4f46e5; transition: 0.2s; }
+    .copy-icon-btn:hover { color: #4338ca; transform: scale(1.1); }
+
+    /* Custom Badges */
+    .badge-pill-primary { background: #eef2ff; color: #4f46e5; padding: 4px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; }
+    .badge-pill-success { background: #f0fdf4; color: #16a34a; padding: 4px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 800; }
+    .badge-pill-warning { background: #fffbeb; color: #d97706; padding: 4px 14px; border-radius: 50px; }
+
+    /* Tables */
+    .custom-profile-table thead th { padding-top: 15px; padding-bottom: 15px; border: none; }
+    .custom-profile-table tbody td { border-bottom: 1px solid #f1f5f9; padding-top: 15px; padding-bottom: 15px; }
+
+    @media (max-width: 991px) {
+        .profile-header-content { justify-content: center; text-align: center; }
+        .hero-info { width: 100%; }
+        .avatar-container { margin-top: -60px; }
+    }
+</style>
+
 <script>
-  document.querySelectorAll('[data-copy]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const target = document.querySelector(btn.getAttribute('data-copy'));
-      if (!target) return;
-      const text = target.textContent.trim();
-      navigator.clipboard.writeText(text).then(() => {
-        const original = btn.textContent;
-        btn.textContent = "Copied";
-        setTimeout(() => {
-          btn.textContent = original;
-        }, 1200);
-      });
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const target = document.querySelector(btn.getAttribute('data-copy'));
+            if (!target) return;
+            const text = target.textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                icon.className = "fas fa-check text-success";
+                setTimeout(() => {
+                    icon.className = "far fa-copy";
+                }, 1500);
+            });
+        });
     });
-  });
 </script>
 {% endblock %}

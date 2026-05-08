@@ -12,35 +12,46 @@
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
-        .sidebar { background: #ffffff; border-right: 1px solid #f1f5f9; }
-        .sidebar-menu li a { border-radius: 12px; margin: 2px 12px; font-weight: 600; transition: all 0.2s; }
-        .sidebar-menu li a:hover, .sidebar-menu li.active a { background: #f1f5f9 !important; color: #6366f1 !important; }
-        .menu-title { padding: 20px 25px 10px !important; text-transform: uppercase; font-size: 11px !important; letter-spacing: 1px; color: #94a3b8 !important; font-weight: 800; }
-        .user-img img { border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        :root {
+            --sidebar-width: 240px;
+            --primary-color: #6366f1;
+        }
 
-        /* Responsive header tweaks */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; overflow-x: hidden; }
+
+        /* Layout Fix: Prevents content from hiding under sidebar */
+        .page-wrapper {
+            margin-left: var(--sidebar-width);
+            transition: all 0.2s ease-in-out;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 60px; /* Header height */
+        }
+
+        .content-container {
+            flex: 1;
+            padding: 30px;
+            position: relative;
+        }
+
+        /* Sidebar Styling */
+        .sidebar { background: #ffffff; border-right: 1px solid #f1f5f9; width: var(--sidebar-width); }
+        .sidebar-menu li a { border-radius: 12px; margin: 4px 15px; font-weight: 600; transition: all 0.2s; color: #64748b; }
+        .sidebar-menu li a:hover, .sidebar-menu li.active a { background: #f1f5f9 !important; color: var(--primary-color) !important; }
+        .menu-title { padding: 25px 25px 10px !important; text-transform: uppercase; font-size: 11px !important; letter-spacing: 1px; color: #94a3b8 !important; font-weight: 800; }
+
+        /* Header & User UI */
+        .header { background: #fff; border-bottom: 1px solid #f1f5f9; }
+        .user-img img { border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+        /* Responsive Sidebar Logic */
+        .mini-sidebar .page-wrapper { margin-left: 70px; }
         @media (max-width: 991.98px) {
-            .top-nav-search { display: none; }
-            .header .header-left .logo h2 {
-                font-size: 1rem !important;
-                margin-top: 8px !important;
-                max-width: 160px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
+            .page-wrapper { margin-left: 0 !important; }
         }
 
-        @media (max-width: 767.98px) {
-            .header { padding-left: 10px; padding-right: 10px; }
-            .header .user-menu .nav-item { margin-left: 6px; }
-            .header .user-menu .noti-dropdown { display: none; }
-            .header-left .logo img { max-height: 32px; }
-        }
-
-        /* Keep only the school logo on the right side avatar area. */
-        .header-left .logo img { display: none !important; }
+        footer { padding: 20px 30px; background: #fff; border-top: 1px solid #f1f5f9; text-align: center; color: #94a3b8; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -49,8 +60,8 @@
         <div class="header">
             <div class="header-left">
                 <a href="/" class="logo d-flex align-items-center gap-2">
-                    <h2 class="font-extrabold text-indigo-600 tracking-tighter" style="font-size: 1.4rem; margin-top: 0;">
-                        {% if request.user.managed_school %}{{ request.user.managed_school.name }}{% else %}KIDDO CARE{% endif %}
+                    <h2 class="font-extrabold text-indigo-600 tracking-tighter" style="font-size: 1.3rem; margin-top: 0; font-weight: 800;">
+                        {% if request.user.managed_school %}{{ request.user.managed_school.name|upper }}{% else %}KIDDO CARE{% endif %}
                     </h2>
                 </a>
             </div>
@@ -73,12 +84,11 @@
                         <i class="far fa-bell"></i> <span class="badge badge-pill badge-primary">{{ navbar_unread_count|default:0 }}</span>
                     </a>
                     <div class="dropdown-menu notifications shadow-lg border-0 rounded-4">
-                        <div class="topnav-dropdown-header px-3 py-2 border-bottom">
+                        <div class="topnav-dropdown-header px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                             <span class="notification-title font-bold">Notifications</span>
                             <form method="post" action="{% url 'account:notifications-clear' %}" class="d-inline">
                                 {% csrf_token %}
-                                <input type="hidden" name="next" value="{{ request.path }}">
-                                <button type="submit" class="clear-noti text-xs border-0 bg-transparent p-0"> Clear All </button>
+                                <button type="submit" class="btn btn-link p-0 text-xs text-muted">Clear All</button>
                             </form>
                         </div>
                         <div class="noti-content">
@@ -87,9 +97,7 @@
                                 <li class="notification-message">
                                     <a href="{% url 'account:notification-go' n.id %}" class="p-3 d-block border-bottom">
                                         <div class="media d-flex gap-3">
-                                            <span class="avatar avatar-sm bg-indigo-50 text-indigo-600 rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center">
-                                                <i class="fas fa-bell"></i>
-                                            </span>
+                                            <span class="avatar avatar-sm bg-light text-primary rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-bell"></i></span>
                                             <div class="media-body">
                                                 <p class="noti-details mb-0 text-sm font-bold">{{ n.title }}</p>
                                                 <p class="noti-time mb-0 text-xs text-muted">{{ n.created_at|timesince }} ago</p>
@@ -97,13 +105,11 @@
                                         </div>
                                     </a>
                                 </li>
-                                {% empty %}
-                                <li class="p-4 text-center text-muted text-sm font-medium">No notifications</li>
-                                {% endfor %}
+                                {% empty %}<li class="p-4 text-center text-muted text-sm">No new notifications</li>{% endfor %}
                             </ul>
                         </div>
-                        <div class="topnav-dropdown-footer px-3 py-2 border-top">
-                            <a href="{% url 'account:notifications-list' %}" class="text-sm">View all Notifications</a>
+                        <div class="topnav-dropdown-footer px-3 py-2 border-top text-center">
+                            <a href="{% url 'account:notifications-list' %}" class="text-sm">View all</a>
                         </div>
                     </div>
                 </li>
@@ -112,21 +118,20 @@
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
                             {% if request.user.managed_school and request.user.managed_school.logo %}
-                                <img class="rounded-circle" src="{{ request.user.managed_school.logo|safe_media_url:'assets/img/logo-small.png' }}" width="31" height="31" alt="{{ request.user.managed_school.name }} Logo">
+                                <img class="rounded-circle" src="{{ request.user.managed_school.logo.url }}" width="31" height="31">
                             {% else %}
-                                <img class="rounded-circle" src="{% static 'assets/img/logo-small.png' %}" width="31" height="31" alt="School Logo">
+                                <img class="rounded-circle" src="{% static 'assets/img/logo-small.png' %}" width="31" height="31">
                             {% endif %}
                         </span>
                     </a>
                     <div class="dropdown-menu shadow-lg border-0 rounded-4 p-2">
                         <div class="user-header bg-light rounded-3 p-3 mb-2">
-                            <h6 class="font-bold mb-0">{{ request.user.get_full_name|default:request.user.username }}</h6>
-                            <p class="text-muted text-xs font-bold uppercase mb-0">Administrator</p>
+                            <h6 class="font-bold mb-0 text-sm">{{ request.user.get_full_name|default:request.user.username }}</h6>
+                            <p class="text-muted text-xs font-bold mb-0 uppercase">Administrator</p>
                         </div>
-                        <a class="dropdown-item rounded-2 py-2" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a>
+                        <a class="dropdown-item rounded-2" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a>
                         <form method="post" action="{% url 'account:logout' %}">
-                            {% csrf_token %}
-                            <button class="dropdown-item rounded-2 py-2 text-danger border-0 bg-transparent w-100 text-start" type="submit"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
+                            {% csrf_token %}<button class="dropdown-item rounded-2 text-danger border-0 bg-transparent w-100 text-start" type="submit"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
                         </form>
                     </div>
                 </li>
@@ -138,7 +143,7 @@
                 <div id="sidebar-menu" class="sidebar-menu">
                     <ul>
                         <li class="menu-title"><span>Main Panel</span></li>
-                        <li >
+                        <li class="{% if request.resolver_match.url_name == 'admin-dashboard' %}active{% endif %}">
                             <a href="{% url 'adminservices:admin-dashboard' %}"><i class="fas fa-th-large"></i> <span>Dashboard</span></a>
                         </li>
 
@@ -176,6 +181,8 @@
                         <li class="submenu">
                             <a href="#"><i class="fas fa-file-invoice-dollar"></i> <span> Accounts</span> <span class="menu-arrow"></span></a>
                             <ul>
+                                <li><a href="{% url 'adminservices:fee-configuration' %}">Fees Configuration</a></li>
+                                <li><a href="{% url 'adminservices:fee_structure_list' %}">Fees Templates</a></li>
                                 <li><a href="{% url 'adminservices:list-fees' %}">Fees Collection</a></li>
                                 <li><a href="{% url 'adminservices:add-fees' %}">Add Fees Entry</a></li>
                             </ul>
@@ -197,13 +204,11 @@
                         </li>
 
                         <li class="menu-title"><span>Settings</span></li>
-                        <li>
-                            <a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a>
-                        </li>
+                        <li><a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a></li>
                         <li>
                             <form method="post" action="{% url 'account:logout' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="text-danger border-0 bg-transparent p-0"><i class="fas fa-power-off"></i> <span>Sign Out</span></button>
+                                <button type="submit" class="text-danger border-0 bg-transparent p-0 ms-3"><i class="fas fa-power-off"></i> <span class="ms-2 font-bold">Sign Out</span></button>
                             </form>
                         </li>
                     </ul>
@@ -211,11 +216,15 @@
             </div>
         </div>
 
-        {% block content %}{% endblock %}
+        <div class="page-wrapper">
+            <div class="content-container">
+                {% block content %}{% endblock %}
+            </div>
 
-        <footer class="mt-4">
-            <p>Copyright © {{ year|default:"2026" }} {{ request.user.managed_school.name|default:"KiddoCore" }}. All rights reserved.</p>
-        </footer>
+            <footer>
+                <p>Copyright © {{ year|default:"2026" }} {{ request.user.managed_school.name|default:"KiddoCore" }}. All rights reserved.</p>
+            </footer>
+        </div>
     </div>
 
     <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>

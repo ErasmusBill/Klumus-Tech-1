@@ -26,7 +26,7 @@ urlpatterns = [
     path("adminservices/",include("adminservices.urls")),
     path("teacher/",include("teacher.urls")),
     path("student/",include("student.urls")),
-    path('select2/', include('django_select2.urls')),
+    path("select2/", include("django_select2.urls")),
     path("ai/",include("ai_predictor.urls")),
     # Serve uploaded media files even when DEBUG=False.
     # This prevents broken logos/profile images when the reverse proxy

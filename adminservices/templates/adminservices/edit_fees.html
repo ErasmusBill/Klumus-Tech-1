@@ -1,6 +1,8 @@
 {% extends "adminservices/base.html" %}
 {% load static %}
 
+{% block title %}Edit Invoice | {{ school.name }}{% endblock %}
+
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -9,14 +11,12 @@
     .summary-box { background: #1e293b; color: white; border-radius: 20px; padding: 25px; position: sticky; top: 90px; }
     label { font-weight: 700; color: #64748b; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
 
-    /* Auto-fill visual feedback */
     .auto-filled {
         border: 2px solid #10b981 !important;
         background-color: #f0fdf4 !important;
         transition: background-color 0.5s ease;
     }
 
-    /* Fix Select2 height to match theme */
     .select2-container--default .select2-selection--single {
         height: 38px !important;
         border: 1px solid #dee2e6 !important;
@@ -30,45 +30,50 @@
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card-custom">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Edit Invoice</h4>
+                    <span class="badge bg-primary">Ref: {{ form.instance.id|stringformat:".8s" }}...</span>
+                </div>
+
                 <form method="post" id="feeForm" novalidate>
                     {% csrf_token %}
 
                     <div class="mb-4">
-                        <label>1. Select Student <span class="text-danger">*</span></label>
-                        {{ form.student }}
-                    </div>
-
-                    <div class="p-3 rounded-3 mb-4" style="background: #f5f3ff; border: 1px dashed #6366f1;">
-                        <label class="text-primary">2. Apply Standard Fee Template</label>
-                        {{ form.fee_structure }}
-                        <small class="text-muted">This will auto-populate the Category and Required Amount.</small>
+                        <label>Student</label>
+                        <div class="form-control bg-light" style="height: auto;">
+                            <strong>{{ form.instance.student.user.get_full_name }}</strong><br>
+                            <small class="text-muted">{{ form.instance.student.student_class }}</small>
+                        </div>
+                        <div style="display:none;">{{ form.student }}</div>
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-12"><h6 class="text-muted small text-uppercase fw-bold">3. Invoice Details</h6></div>
-
                         <div class="col-md-6">
-                            <label>Fee Category (Type)</label>
+                            <label>Fee Category</label>
                             {{ form.fee_type }}
                         </div>
                         <div class="col-md-6">
                             <label>Due Date</label>
                             {{ form.due_date }}
                         </div>
+
+                        <div class="col-12"><hr class="my-2"></div>
+
                         <div class="col-md-4">
                             <label>Required Amount (₵)</label>
                             {{ form.amount_required }}
                         </div>
                         <div class="col-md-4">
-                            <label>Discount (₵)</label>
+                            <label>Total Discount (₵)</label>
                             {{ form.discount }}
                         </div>
                         <div class="col-md-4">
-                            <label>Amount Paid Now (₵)</label>
+                            <label>Total Paid to Date (₵)</label>
                             {{ form.amount_paid }}
                         </div>
+
                         <div class="col-12">
-                            <label>Notes / Installment Remarks</label>
+                            <label>Internal Notes / History</label>
                             {{ form.notes }}
                         </div>
                     </div>
@@ -78,7 +83,7 @@
 
         <div class="col-lg-4">
             <div class="summary-box">
-                <h6 class="small opacity-50 mb-4">LIVE LEDGER PREVIEW</h6>
+                <h6 class="small opacity-50 mb-4">ADJUSTED BALANCE PREVIEW</h6>
 
                 <div class="d-flex justify-content-between mb-2">
                     <span>Subtotal</span>
@@ -89,20 +94,21 @@
                     <span id="summDisc">- ₵ 0.00</span>
                 </div>
                 <div class="d-flex justify-content-between mb-4 text-success">
-                    <span>Current Payment</span>
+                    <span>Total Paid</span>
                     <span id="summPaid">₵ 0.00</span>
                 </div>
 
                 <hr class="opacity-20">
 
                 <div class="py-3">
-                    <small class="opacity-50">ESTIMATED BALANCE</small>
+                    <small class="opacity-50">FINAL BALANCE</small>
                     <h2 class="fw-bold mb-0" id="summBalance">₵ 0.00</h2>
                 </div>
 
                 <button type="submit" form="feeForm" class="btn btn-primary w-100 py-3 mt-3 fw-bold shadow-sm" style="border-radius: 12px;" id="submitBtn">
-                    RECORD TRANSACTION
+                    UPDATE INVOICE
                 </button>
+                <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-light w-100 mt-2 border-0 opacity-75">Cancel Changes</a>
             </div>
         </div>
     </div>
@@ -115,24 +121,11 @@
 
 <script>
 $(document).ready(function() {
-    // 1. Improved Data Bridge
-    const feeData = {
-        {% for item in form.fields.fee_structure.queryset %}
-            "{{ item.id|stringformat:'s' }}": {
-                "amt": "{{ item.amount|stringformat:'.2f' }}",
-                "type": "{{ item.fee_type }}"
-            },
-        {% endfor %}
-    };
+    // 1. Initialize Select2 for standard fields
+    $('#id_fee_type').select2({ width: '100%' });
 
-    // 2. Initialize Select2
-    const studentSelect = $('#id_student').select2({ width: '100%' });
-    const templateSelect = $('#id_fee_structure').select2({ width: '100%', placeholder: "Select a template..." });
-    const typeSelect = $('#id_fee_type').select2({ width: '100%' });
-
-    // 3. Real-time Calculation Function
+    // 2. Real-time Calculation Function
     function calculate() {
-        // We use parseFloat and ensure we handle empty strings
         const required = parseFloat($('#id_amount_required').val()) || 0;
         const discount = parseFloat($('#id_discount').val()) || 0;
         const paidNow = parseFloat($('#id_amount_paid').val()) || 0;
@@ -145,54 +138,32 @@ $(document).ready(function() {
             maximumFractionDigits: 2
         });
 
-        // Update the Preview UI
         $('#summReq').text(formatGHS(required));
         $('#summDisc').text('- ' + formatGHS(discount));
         $('#summPaid').text(formatGHS(paidNow));
         $('#summBalance').text(formatGHS(balance));
 
-        // Visual balance indicators
+        // Color coding based on balance
         if (balance > 0) {
-            $('#summBalance').css('color', '#fbbf24'); // Warning yellow
+            $('#summBalance').css('color', '#fbbf24'); // Yellow
         } else if (balance <= 0 && required > 0) {
-            $('#summBalance').css('color', '#10b981'); // Success green
+            $('#summBalance').css('color', '#10b981'); // Green
         } else {
             $('#summBalance').css('color', 'white');
         }
     }
 
-    // 4. The Auto-Fill Fetching Logic
-    $('#id_fee_structure').on('select2:select', function(e) {
-        const selectedId = $(this).val();
-
-        if (selectedId && feeData[selectedId]) {
-            const data = feeData[selectedId];
-
-            // Populate fields
-            $('#id_amount_required').val(data.amt).addClass('auto-filled');
-            $('#id_fee_type').val(data.type).trigger('change').addClass('auto-filled');
-
-            // Trigger calculation immediately after auto-fill
-            calculate();
-
-            setTimeout(() => {
-                $('.auto-filled').removeClass('auto-filled');
-            }, 1000);
-        }
-    });
-
-    // 5. ATTACH LISTENERS (The "Real-Time" part)
-    // We listen for 'input' (typing) AND 'change' (programmatic updates)
+    // 3. Listen for changes on all numeric inputs
     $('#id_amount_required, #id_discount, #id_amount_paid').on('input change', function() {
         calculate();
     });
 
-    // Prevent double submission
+    // 4. Handle form submission visual
     $('#feeForm').on('submit', function() {
-        $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i> Processing...').prop('disabled', true);
+        $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i> Updating...').prop('disabled', true);
     });
 
-    // Run once on page load in case fields are pre-filled
+    // Run initial calculation on load to show current values
     calculate();
 });
 </script>

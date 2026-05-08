@@ -1,5 +1,7 @@
 # adminservices/views.py
 import logging
+from decimal import Decimal
+
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
@@ -11,12 +13,12 @@ from django.views.decorators.cache import never_cache
 from django.core.cache import cache
 
 from account.models import (
-     Teacher, CustomUser, Department, School, 
-    Student, Parent, Fees, Subject, Announcement, Notification
+    Teacher, CustomUser, Department, School,
+    Student, Parent, Fees, Subject, Announcement, Notification, ClassFee
 )
 from .forms import (
-    AddTeacherForm, AddDepartmentForm, AddStudentForm, 
-    AddFeesForm, AddSubjectForm, AnnouncementForm
+    AddTeacherForm, AddDepartmentForm, AddStudentForm,
+    AddFeesForm, AddSubjectForm, AnnouncementForm, ClassFeeForm
 )
 from .utils import *
 from .utils import send_announcement_via_email_and_sms
@@ -879,11 +881,42 @@ def delete_student(request, student_id):
     return redirect("adminservices:list-students")
 
 # ===== FEES MANAGEMENT VIEWS =====
+@login_required(login_url='account:login')
+def create_fee_structure(request):
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    # Use 'managed_school' which is the correct attribute for your CustomUser
+    school = getattr(request.user, 'managed_school', None)
+
+    if not school:
+        messages.error(request, "Your account is not linked to a school.")
+        return redirect("adminservices:admin-dashboard")
+
+    if request.method == 'POST':
+        # Change request.user.school to school
+        form = ClassFeeForm(request.POST, school=school)
+        if form.is_valid():
+            fee_struct = form.save(commit=False)
+            fee_struct.school = school  # Change request.user.school to school
+            fee_struct.save()
+            messages.success(request, "Fee structure created successfully!")
+            return redirect('adminservices:fee_structure_list')
+    else:
+        # Change request.user.school to school
+        form = ClassFeeForm(school=school)
+
+    return render(request, 'adminservices/fees_configuration.html', {'form': form})
+
+
+from django.utils import timezone
+
 
 @login_required(login_url='account:login')
 def add_fees(request):
-    """Add new fees with async parent notifications"""
-    if not request.user.is_authenticated or request.user.role != "admin":
+    """Add or update fees with strict Decimal math for installment support."""
+    if request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
 
@@ -896,129 +929,175 @@ def add_fees(request):
         form = AddFeesForm(request.POST, school=school)
         if form.is_valid():
             try:
-                with transaction.atomic(): 
-                    fee = form.save(commit=False)
-                    fee.school = school  
+                with transaction.atomic():
+                    # 1. Strict Data Extraction
+                    student = form.cleaned_data['student']
+                    fee_structure = form.cleaned_data.get('fee_structure')
+                    fee_type = form.cleaned_data['fee_type']
+
+                    # Prevent Decimal vs Float crash by casting explicitly
+                    new_payment = Decimal(str(form.cleaned_data.get('amount_paid') or 0))
+                    req_amt = Decimal(str(form.cleaned_data.get('amount_required') or 0))
+                    discount = Decimal(str(form.cleaned_data.get('discount') or 0))
+
+                    # Logic for Academic Year/Term
+                    academic_year = fee_structure.academic_year if fee_structure else "2025/2026"
+                    term = fee_structure.term if fee_structure else "Term 1"
+
+                    # 2. INSTALLMENT LOGIC
+                    # We use get_or_create to find if this specific fee (e.g. Tuition for Term 1) exists
+                    fee, created = Fees.objects.get_or_create(
+                        school=school,
+                        student=student,
+                        fee_type=fee_type,
+                        academic_year=academic_year,
+                        term=term,
+                        defaults={
+                            'fee_structure': fee_structure,
+                            'amount_required': req_amt,
+                            'discount': discount,
+                            'due_date': form.cleaned_data.get('due_date') or timezone.now().date(),
+                            'notes': form.cleaned_data.get('notes') or "Initial record."
+                        }
+                    )
+
+                    if not created:
+                        # INSTALLMENT: Add the new payment to the existing total
+                        # This prevents duplicate rows in your database
+                        fee.amount_paid += new_payment
+
+                        payment_note = form.cleaned_data.get('notes') or "Installment payment"
+                        fee.notes += f"\n[{timezone.now().date()}] Paid ₵{new_payment}: {payment_note}"
+
+                        # Optionally update due_date or discount if changed in form
+                        if form.cleaned_data.get('due_date'):
+                            fee.due_date = form.cleaned_data.get('due_date')
+                    else:
+                        # NEW RECORD
+                        fee.amount_paid = new_payment
+
+                    # Save triggers the status calculation (Paid, Partial, Unpaid) in the model
                     fee.save()
 
-                    # Send fee notification (ASYNC)
+                    # 3. Parent Notification Logic
                     try:
-                        student = fee.student
                         parent_emails, parent_phones = get_student_parent_contacts(student)
-                        
+
+                        # Context-aware messaging
+                        subject_line = f"Payment Received: {student.user.get_full_name()}" if new_payment > 0 else f"New Fee Assigned: {student.user.get_full_name()}"
+
                         email_message = (
                             f"Dear Parent/Guardian,\n\n"
-                            f"A new fee has been added for your child:\n\n"
-                            f"Student: {student.user.get_full_name()}\n"
-                            f"Fee Type: {fee.get_fee_type_display()}\n"
-                            f"Amount: ₵{fee.amount:.2f}\n"
+                            f"A transaction has been recorded for {student.user.get_full_name()}.\n\n"
+                            f"Fee Category: {fee.get_fee_type_display()}\n"
+                            f"Total Bill: ₵{fee.amount_required - fee.discount:.2f}\n"
+                            f"Payment Made Today: ₵{new_payment:.2f}\n"
+                            f"Total Paid to Date: ₵{fee.amount_paid:.2f}\n"
+                            f"--- REMAINING BALANCE: ₵{fee.balance:.2f} ---\n\n"
                             f"Due Date: {fee.due_date}\n"
                             f"Status: {fee.get_status_display()}\n\n"
-                            f"Please make payment before the due date.\n\n"
-                            f"Thank you,\n"
-                            f"{school.name} Administration"
+                            f"Thank you,\n{school.name} Finance Dept."
                         )
-                        
-                        sms_message = (
-                            f"New fee for {student.user.first_name}: {fee.get_fee_type_display()} - "
-                            f"₵{fee.amount:.2f} due {fee.due_date}. Check email for details."
-                        )
-                        
-                        notification_results = send_notification(
+
+                        send_notification(
                             emails=parent_emails,
                             phones=parent_phones,
                             users=[student.user],
-                            subject=f"New Fee Added for {student.user.get_full_name()} - {school.name}",
+                            subject=subject_line,
                             message=email_message,
                             notification_type="fee"
                         )
-                        
-                        # Provide feedback
-                        if notification_results.get('email_sent') and notification_results.get('sms_sent'):
-                            messages.success(request, 
-                                f"Fee for '{student.user.get_full_name()}' added successfully! "
-                                f"Parents notified."
-                            )
-                        elif notification_results.get('email_sent'):
-                            messages.success(request, 
-                                f"Fee for '{student.user.get_full_name()}' added successfully! "
-                                f"Email queued for parents."
-                            )
-                        else:
-                            messages.success(request, 
-                                f"Fee for '{student.user.get_full_name()}' added successfully!"
-                            )
-                            
-                    except Exception as e:
-                        logger.error(f"Notification error: {str(e)}")
-                        messages.success(request, 
-                            f"Fee for '{student.user.get_full_name()}' added successfully!" # type: ignore
-                        )
-                    
-                    bump_cache_version(school.id, "fees")
+
+                    except Exception as noti_err:
+                        # Log but don't crash the transaction if email fails
+                        logger.error(f"Notification failed: {str(noti_err)}")
+
+                    messages.success(request,
+                                     f"Successfully recorded ₵{new_payment} for {student.user.get_full_name()}.")
                     return redirect("adminservices:list-fees")
 
             except Exception as e:
-                logger.error(f"Failed to add fee: {str(e)}", exc_info=True)
-                messages.error(request, f"An error occurred while saving: {str(e)}")
-        else:
-            messages.error(request, "Please correct the errors below.")
+                logger.error(f"Error in add_fees: {str(e)}", exc_info=True)
+                messages.error(request, f"Database Error: {str(e)}")
     else:
         form = AddFeesForm(school=school)
-    
-    students = Student.objects.filter(school=school, is_active=True).select_related('user')
-    return render(request, "adminservices/add_fees.html", {"form": form, "students": students})
 
+    return render(request, "adminservices/add_fees.html", {"form": form})
 
 @login_required(login_url='account:login')
 def edit_fees(request, fee_id):
-    """Edit fee information"""
-    if not request.user.is_authenticated or request.user.role != "admin":
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect("account:login")
-
+    """Edit existing fee and recalculate balances"""
     school = request.user.managed_school
-    fee = get_object_or_404(Fees, id=fee_id, student__school=school)
+    # Ensure the fee belongs to this school
+    fee = get_object_or_404(Fees, id=fee_id, school=school)
 
     if request.method == "POST":
-        form = _build_partial_bound_form(AddFeesForm, request, school=school, instance=fee)
+        form = AddFeesForm(request.POST, instance=fee, school=school)
         if form.is_valid():
-            form.save()
+            form.save() # This triggers the model logic to update status/balance
             bump_cache_version(school.id, "fees")
-            messages.success(request, "Fee updated successfully!")
+            messages.success(request, f"Fee for {fee.student.user.get_full_name()} updated.")
             return redirect("adminservices:list-fees")
-        else:
-            messages.error(request, "Please correct the errors below.")
     else:
         form = AddFeesForm(instance=fee, school=school)
 
     return render(request, "adminservices/edit_fees.html", {"form": form, "fee": fee})
 
+
+from django.db.models import Sum, F
+
+@login_required(login_url='account:login')
+def list_fee_structures(request):
+    """List all standard fee templates created for the school"""
+    if request.user.role != "admin":
+        messages.error(request, "Access denied.")
+        return redirect("account:login")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "No school associated with this account.")
+        return redirect("adminservices:admin-dashboard")
+
+    # Fetch all structures, ordering by year and class for readability
+    structures = ClassFee.objects.filter(school=school).order_by('-academic_year', 'student_class')
+
+    return render(request, 'adminservices/list_fee_structures.html', {
+        'structures': structures,
+        'school': school
+    })
+
+
 @login_required(login_url='account:login')
 def list_fees(request):
-    """List all fees with pagination"""
-    if not request.user.is_authenticated or request.user.role != "admin":
-        messages.error(request, "You are not authorized to perform this action.")
+    """List all fees with grouped class totals and pagination"""
+    if request.user.role != "admin":
         return redirect("account:login")
 
     school = request.user.managed_school
-    page_number = request.GET.get('page') or 1
-    cache_key = make_cache_key("fees", school.id, f"page:{page_number}")
-    if should_cache(request):
-        cached_response = cache.get(cache_key)
-        if cached_response:
-            return cached_response
 
-    fees = Fees.objects.filter(student__school=school).select_related('student__user', 'student__parent').order_by('-created_at')
+    # 1. Calculate Grouped Stats (Totals per Class)
+    # We calculate: (Amount Required - Discount) as the 'Expected'
+    class_summaries = Fees.objects.filter(school=school).values('student_class').annotate(
+        total_billed=Sum(F('amount_required') - F('discount')),
+        total_paid=Sum('amount_paid'),
+        total_owing=Sum(F('amount_required') - F('discount') - F('amount_paid'))
+    ).order_by('student_class')
 
-    paginator = Paginator(fees, 10)
+    # 2. List Individual Fee Records
+    fees_list = Fees.objects.filter(school=school).select_related(
+        'student__user', 'fee_structure'
+    ).order_by('-created_at')
+
+    # Pagination
+    paginator = Paginator(fees_list, 15)
+    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    response = render(request, "adminservices/list_fees.html", {"page_obj": page_obj})
-    if should_cache(request):
-        cache.set(cache_key, response, 300)
-    return response
-
+    context = {
+        "page_obj": page_obj,
+        "class_summaries": class_summaries,
+    }
+    return render(request, "adminservices/list_fees.html", context)
 @login_required(login_url='account:login')
 def delete_fees(request, fee_id):
     """Delete a fee record"""
@@ -1343,21 +1422,19 @@ def print_fee_receipt(request, fee_id):
         return redirect("adminservices:list-fees")
 
     school = request.user.managed_school
-    fee = get_object_or_404(Fees, id=fee_id, student__school=school)
+    # Use the new model name (likely 'Fees' or 'Fee') and proper school lookup
+    fee = get_object_or_404(Fees, id=fee_id, school=school)
 
-    # Use existing receipt_number or generate a safe fallback
+    # Use the fee's stored year/term instead of generic functions
     receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
-    issue_date = timezone.now().strftime('%B %d, %Y')
-    academic_year = _get_academic_year(school)
-    payment_method = fee.get_payment_method_display() or "Cash" # type: ignore
 
     context = {
         'school': school,
         'fee': fee,
         'receipt_number': receipt_number,
-        'issue_date': issue_date,
-        'academic_year': academic_year,
-        'payment_method': payment_method,
+        'issue_date': fee.created_at.strftime('%B %d, %Y'),
+        'academic_year': fee.academic_year,  # Pulled directly from the Fee record
+        'payment_method': "Cash",  # Or fee.payment_method if added to model
     }
 
     return render(request, 'adminservices/fee_receipt.html', context)

@@ -2,7 +2,7 @@ from dataclasses import field
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.forms import ModelForm
-from account.models import Announcement, CustomUser, Department, Fees, Parent, Student, Subject, Teacher
+from account.models import Announcement, CustomUser, Department, Fees, Parent, Student, Subject, Teacher, ClassFee
 from .utils import generate_default_password
 from django.core.exceptions import ObjectDoesNotExist
 from django_select2.forms import Select2Widget
@@ -543,42 +543,73 @@ class AddStudentForm(forms.ModelForm):
         return student   # type: ignore
 
 
+class ClassFeeForm(forms.ModelForm):
+    class Meta:
+        model = ClassFee
+        fields = ['student_class', 'fee_type', 'amount', 'academic_year', 'term']
+        widgets = {
+            'student_class': forms.Select(attrs={'class': 'form-control'}),
+            'fee_type': forms.Select(attrs={'class': 'form-control'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'academic_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2025/2026'}),
+            'term': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.school = kwargs.pop('school', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.school:
+            exists = ClassFee.objects.filter(
+                school=self.school,
+                student_class=cleaned_data.get('student_class'),
+                fee_type=cleaned_data.get('fee_type'),
+                academic_year=cleaned_data.get('academic_year'),
+                term=cleaned_data.get('term')
+            ).exclude(pk=self.instance.pk).exists()
+            if exists:
+                raise forms.ValidationError("This fee structure template already exists.")
+        return cleaned_data
+
+
 class AddFeesForm(forms.ModelForm):
     student = forms.ModelChoiceField(
         queryset=Student.objects.none(),
-        widget=forms.Select(attrs={
-            'class': 'form-control select2-search',
-        }),
-        label="Student"
+        widget=forms.Select(attrs={'class': 'form-control select2-search'}),
+    )
+    fee_structure = forms.ModelChoiceField(
+        queryset=ClassFee.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control border-primary'}),
+        label="Standard Fee Template",
     )
 
     class Meta:
         model = Fees
-        fields = ['student', 'fee_type', 'amount', 'due_date', 'status', 'payment_date', 'notes']
+        fields = ['student', 'fee_structure', 'fee_type', 'amount_required', 'discount', 'amount_paid', 'due_date',
+                  'notes']
         widgets = {
-            'fee_type': forms.Select(attrs={'class': 'form-control'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control'}),
+            'fee_type': forms.Select(attrs={'class': 'form-select'}),
+            'amount_required': forms.NumberInput(attrs={'class': 'form-control fw-bold', 'step': '0.01'}),
+            'discount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'amount_paid': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'payment_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
     def __init__(self, *args, **kwargs):
         school = kwargs.pop('school', None)
         super().__init__(*args, **kwargs)
-
         if school:
-            self.fields['student'].queryset = Student.objects.filter( # type: ignore
-                school=school, 
-                is_active=True
-            ).select_related('user')
-        else:
-            self.fields['student'].queryset = Student.objects.none() # type: ignore
+            self.fields['student'].queryset = Student.objects.filter(school=school, is_active=True)
+            self.fields['fee_structure'].queryset = ClassFee.objects.filter(school=school)
 
-    def label_from_instance(self, obj):
-        return f"{obj.user.get_full_name()} ({obj.student_id})"
-    
+            self.fields['student'].label_from_instance = lambda obj: f"{obj.user.get_full_name()} ({obj.student_class})"
+            self.fields['fee_structure'].label_from_instance = lambda \
+                obj: f"{obj.student_class}: {obj.get_fee_type_display()} (₵{obj.amount})"
+
 class AddSubjectForm(forms.ModelForm):
     class Meta:
         model = Subject

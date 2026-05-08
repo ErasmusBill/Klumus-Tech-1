@@ -1,0 +1,154 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Confirm Deletion | {{ school.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ensure the main content area doesn't hide behind the sidebar */
+    /* Most sidebars are 250px-300px. Adjust the 'padding-left' if needed */
+    .main-wrapper-fix {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #f8fafc;
+        /* This prevents content from going under sidebars on larger screens */
+        position: relative;
+    }
+
+    .delete-card {
+        background: #ffffff;
+        border-radius: 28px;
+        max-width: 480px;
+        width: 100%;
+        padding: 45px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        /* Animation to make it pop */
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .warning-circle {
+        width: 90px;
+        height: 90px;
+        background: #fff1f2;
+        color: #e11d48;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        margin: 0 auto 30px;
+    }
+
+    .object-preview {
+        background: #fdf2f2;
+        border: 1px solid #fee2e2;
+        border-radius: 16px;
+        padding: 20px;
+        margin: 25px 0;
+    }
+
+    .btn-group-vertical {
+        width: 100%;
+        gap: 12px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .btn-danger-confirm {
+        background: #e11d48;
+        color: white;
+        border: none;
+        border-radius: 14px;
+        padding: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: 0.2s;
+    }
+
+    .btn-danger-confirm:hover {
+        background: #be123c;
+        transform: scale(1.02);
+        box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.3);
+    }
+
+    .btn-go-back {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        border-radius: 14px;
+        padding: 16px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+
+    .btn-go-back:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    /* Responsive adjustment: If sidebar is too wide on mobile */
+    @media (max-width: 991px) {
+        .main-wrapper-fix { padding-left: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-wrapper-fix">
+    <div class="delete-card">
+        <div class="warning-circle">
+            <i class="fas fa-trash-alt"></i>
+        </div>
+
+        <h2 class="fw-black text-slate-900 mb-2">Are you sure?</h2>
+        <p class="text-muted">
+            This action is permanent. The following record will be purged from the school's database:
+        </p>
+
+        <div class="object-preview">
+            {% if object.user %}
+                <h5 class="fw-bold text-danger mb-1">{{ object.user.get_full_name }}</h5>
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2 rounded-pill">
+                    Student Record
+                </span>
+            {% elif object.fee_type %}
+                <h5 class="fw-bold text-danger mb-1">{{ object.get_fee_type_display }}</h5>
+                <span class="text-muted small">Assigned to {{ object.student.user.get_full_name }}</span>
+                <div class="mt-2 fw-bold text-dark">₵ {{ object.amount_required }}</div>
+            {% else %}
+                <h5 class="fw-bold text-danger mb-0">{{ object }}</h5>
+            {% endif %}
+        </div>
+
+        <form method="post" class="btn-group-vertical">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger-confirm">
+                Yes, Delete Permanently
+            </button>
+            <a href="javascript:history.back()" class="btn-go-back">
+                Cancel, Keep Record
+            </a>
+        </form>
+
+        <div class="mt-4 pt-3 border-top border-light">
+            <p class="small text-muted mb-0">
+                <i class="fas fa-lock-open me-1"></i>
+                Authorized Admin Action Required
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

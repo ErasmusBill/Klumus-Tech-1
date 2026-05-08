@@ -1,0 +1,300 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Setup Fee Structure | Kiddo Care Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --primary-indigo: #6366f1;
+    --primary-hover: #4f46e5;
+    --dark-slate: #0f172a;
+    --bg-slate: #f8fafc;
+    --glass-white: rgba(255, 255, 255, 0.9);
+  }
+
+  .page-wrapper {
+    background: radial-gradient(circle at top right, #eef2ff, #f8fafc);
+    padding: 60px 20px;
+    min-height: 100vh;
+  }
+
+  /* Main Card with Glass Effect */
+  .setup-card {
+    background: var(--glass-white);
+    backdrop-filter: blur(10px);
+    padding: 0;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease;
+  }
+
+  /* Sophisticated Header */
+  .card-header-custom {
+    padding: 50px 50px 20px 50px;
+    background: linear-gradient(to bottom, rgba(99, 102, 241, 0.03), transparent);
+    border-radius: 2rem 2rem 0 0;
+  }
+
+  .badge-finance {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+  }
+
+  .setup-header h4 {
+    font-weight: 900;
+    color: var(--dark-slate);
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+  }
+
+  /* Form Section Enhancements */
+  .form-section {
+    background: white;
+    padding: 30px;
+    border-radius: 1.5rem;
+    margin-bottom: 30px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+  }
+
+  .form-section:hover {
+    border-color: #e2e8f0;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.02);
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+
+  .step-number {
+    width: 28px;
+    height: 28px;
+    background: var(--dark-slate);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--dark-slate);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  /* Inputs Styling */
+  label {
+    font-weight: 700;
+    color: #475569;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+
+  .form-control, .form-select {
+    height: 52px;
+    border-radius: 12px;
+    border: 2px solid #f1f5f9;
+    padding: 0 18px;
+    font-weight: 600;
+    color: var(--dark-slate);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .form-control:focus, .form-select:focus {
+    border-color: var(--primary-indigo);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+
+  .input-group-text {
+    background: #f8fafc;
+    border: 2px solid #f1f5f9;
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    color: var(--primary-indigo);
+    font-weight: 800;
+  }
+
+  .input-group .form-control {
+    border-radius: 0 12px 12px 0;
+  }
+
+  /* Action Buttons */
+  .btn-create {
+    height: 55px;
+    background: var(--dark-slate);
+    color: white;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-create:hover {
+    background: #000;
+    transform: scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    color: white;
+  }
+
+  .btn-cancel {
+    color: #94a3b8;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+
+  .btn-cancel:hover { color: #ef4444; }
+
+  /* Interactive Tooltip */
+  .help-box {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    padding: 20px;
+    border-radius: 0 16px 16px 0;
+    margin-bottom: 35px;
+  }
+
+  /* Micro-animations */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .form-section { animation: slideIn 0.5s ease forwards; }
+  .form-section:nth-child(2) { animation-delay: 0.2s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="container">
+
+    <div class="row justify-content-center">
+      <div class="col-xl-8 col-lg-10">
+
+        <div class="setup-card">
+          <div class="card-header-custom text-center">
+            <span class="badge-finance">SYSTEM CONFIGURATION</span>
+            <div class="setup-header mt-3">
+              <h4>Fee Structure Setup</h4>
+              <p>Define standard billing rates across your school departments.</p>
+            </div>
+          </div>
+
+          <div class="card-body px-5 pb-5">
+            <div class="help-box d-flex align-items-center">
+              <div class="me-3">
+                <span style="font-size: 1.5rem;">💡</span>
+              </div>
+              <div>
+                <span class="fw-bold d-block text-info" style="font-size: 0.75rem; text-transform: uppercase;">Pro Tip</span>
+                <span class="text-muted" style="font-size: 0.9rem;">Changes here only affect <strong>new</strong> fee entries. Existing bills remain unchanged.</span>
+              </div>
+            </div>
+
+            <form method="post" novalidate>
+              {% csrf_token %}
+
+              <div class="form-section">
+                <div class="section-label">
+                  <div class="step-number">1</div>
+                  <h6 class="section-title">Timeline & Period</h6>
+                </div>
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label>Academic Year</label>
+                    {{ form.academic_year }}
+                  </div>
+                  <div class="col-md-6">
+                    <label>Term / Semester</label>
+                    {{ form.term }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <div class="section-label">
+                  <div class="step-number">2</div>
+                  <h6 class="section-title">Billing Scope</h6>
+                </div>
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label>Target Student Class</label>
+                    {{ form.student_class }}
+                  </div>
+                  <div class="col-md-6">
+                    <label>Fee Classification</label>
+                    {{ form.fee_type }}
+                  </div>
+                  <div class="col-12">
+                    <label>Standard Rate (GHS)</label>
+                    <div class="input-group">
+                      <span class="input-group-text">₵</span>
+                      {{ form.amount }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row align-items-center mt-5">
+                <div class="col-md-4 text-center text-md-start">
+                  <a href="{% url 'adminservices:list-fees' %}" class="btn-cancel">
+                    <i class="fas fa-times-circle me-1"></i> Discard Changes
+                  </a>
+                </div>
+                <div class="col-md-8 text-center text-md-end mt-4 mt-md-0">
+                  <div class="d-inline-block w-100" style="max-width: 350px;">
+                    <button type="submit" class="btn btn-create">
+                      <i class="fas fa-check-double"></i> Save Configuration
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          <small class="text-muted">Security Policy: All financial configurations are logged by {{ school.name }}.</small>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function() {
+      // Dynamic class assignment
+      $('select').addClass('form-select');
+      $('input[type="number"]').addClass('form-control').attr('placeholder', '0.00');
+  });
+</script>
+{% endblock %}

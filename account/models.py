@@ -1012,9 +1012,22 @@ class ResultSheet(models.Model):
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.subject.name} ({self.grade})"
 
-class Fees(models.Model):
-    """Student fees management"""
-    FEE_TYPE_CHOICES = [
+
+class ClassFee(models.Model):
+    """
+    Defines the 'Standard Price' for a specific class.
+    Example: JHS 1 Tuition = ₵1,200 for Term 1.
+    """
+    TERM_CHOICES = [
+        ('TERM_1', 'Term 1'),
+        ('TERM_2', 'Term 2'),
+        ('TERM_3', 'Term 3'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="class_fee_structures")
+    student_class = models.CharField(max_length=50, blank=True, null=True, choices=Student.CLASS_CHOICES)
+    fee_type = models.CharField(max_length=20, choices=[
         ("tuition", "Tuition Fee"),
         ("admission", "Admission Fee"),
         ("exam", "Exam Fee"),
@@ -1022,7 +1035,26 @@ class Fees(models.Model):
         ("library", "Library Fee"),
         ("sports", "Sports Fee"),
         ("other", "Other"),
-    ]
+    ], default="tuition")
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    academic_year = models.CharField(max_length=20, help_text="e.g., 2025/2026")
+    term = models.CharField(max_length=10, choices=TERM_CHOICES)
+
+    class Meta:
+        unique_together = ('school', 'student_class', 'fee_type', 'academic_year', 'term')
+        verbose_name = "Class Fee Structure"
+        verbose_name_plural = "Class Fee Structures"
+
+    def __str__(self):
+        return f"{self.get_student_class_display()} - {self.get_term_display()} ({self.get_fee_type_display()}: ₵{self.amount})"
+
+
+class Fees(models.Model):
+    """
+    The actual bill assigned to a student.
+    Linked to ClassFee to pull pricing, but allows individual adjustments.
+    """
     PAYMENT_METHOD_CHOICES = [
         ("cash", "Cash"),
         ("bank_transfer", "Bank Transfer"),
@@ -1039,55 +1071,94 @@ class Fees(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="school_fees")
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="fees")
-    fee_type = models.CharField(max_length=20, choices=FEE_TYPE_CHOICES, default="tuition")
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, blank=True, null=True, related_name="fees")
+
+    # --- The Relationship ---
+    fee_structure = models.ForeignKey(
+        ClassFee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generated_bills",
+        help_text="Link to the standard class fee structure"
+    )
+
+    # Snapped fields (frozen at time of creation)
+    student_class = models.CharField(max_length=50, choices=Student.CLASS_CHOICES)
+    term = models.CharField(max_length=10, choices=ClassFee.TERM_CHOICES)
+    academic_year = models.CharField(max_length=20)
+    fee_type = models.CharField(max_length=20, choices=ClassFee._meta.get_field('fee_type').choices)
+
+    # Financials
+    amount_required = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total amount expected")
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Amount actually paid")
+
+    # Meta
     due_date = models.DateField()
-    paid = models.BooleanField(default=False)
     payment_date = models.DateField(blank=True, null=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, blank=True)
     transaction_id = models.CharField(max_length=100, blank=True)
-    
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="unpaid")
-    
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default="unpaid")
     receipt_number = models.CharField(max_length=50, blank=True, editable=False)
     notes = models.TextField(blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Fee"
-        verbose_name_plural = "Fees"
+        verbose_name = "Student Fee"
+        verbose_name_plural = "Student Fees"
         ordering = ["-created_at"]
 
+    @property
+    def total_bill(self):
+        """The total amount to be paid after discount"""
+        return max(self.amount_required - self.discount, 0)
+
+    from decimal import Decimal
+
+    @property
+    def balance(self):
+        # Convert everything to Decimal to avoid the TypeError
+        total = Decimal(str(self.total_bill or 0))
+        paid = Decimal(str(self.amount_paid or 0))
+        return total - paid
+
     def save(self, *args, **kwargs):
-        if self.status == 'paid':
-            self.paid = True
+        # 1. If a structure is linked, pull its data to populate the bill
+        if self.fee_structure:
+            if not self.amount_required:
+                self.amount_required = self.fee_structure.amount
+            self.fee_type = self.fee_structure.fee_type
+            self.term = self.fee_structure.term
+            self.academic_year = self.fee_structure.academic_year
+
+        # 2. Ensure student_class is set (defaults to student's current class)
+        if not self.student_class:
+            self.student_class = self.student.student_class
+
+        # 3. Calculate status
+        current_balance = self.balance
+        if current_balance <= 0:
+            self.status = 'paid'
             if not self.payment_date:
                 self.payment_date = timezone.now().date()
+        elif self.amount_paid > 0:
+            self.status = 'partial'
+        elif timezone.now().date() > self.due_date:
+            self.status = 'overdue'
         else:
-            self.paid = False
-            if self.payment_date:
-                self.payment_date = None
-        if self.paid and not self.receipt_number:
+            self.status = 'unpaid'
+
+        # 4. Generate Receipt
+        if self.status == 'paid' and not self.receipt_number:
             self.receipt_number = f"RCP-{get_random_string(8).upper()}"
+
         super().save(*args, **kwargs)
 
-    def net_amount(self):
-        """Calculate net amount after discount"""
-        return self.amount - self.discount
-
-    def is_overdue(self):
-        """Check if fee payment is overdue"""
-        return not self.paid and timezone.now().date() > self.due_date
-
     def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"{self.student.user.get_full_name()} - {self.get_fee_type_display()} - ₵{self.amount} ({status})"
-
+        return f"{self.student.user.get_full_name()} - {self.student_class} - Balance: ₵{self.balance}"
 
 class Attendance(models.Model):
     """Track student and teacher attendance"""

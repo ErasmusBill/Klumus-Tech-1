@@ -1,285 +1,307 @@
 {% load static media_tags %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Fee Receipt - {{ school.name }}</title>
+    <title>Fee Receipt - {{ fee.student.student_id|upper }}</title>
     <style>
+        /* Print Configuration */
         @media print {
-            @page {
-                size: A4;
-                margin: 0.5in;
-            }
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                color: #333;
-            }
-            .no-print {
-                display: none !important;
-            }
+            @page { size: A4; margin: 0.5in; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; color: #333; }
+            .no-print { display: none !important; }
+            .receipt-card { border: none !important; box-shadow: none !important; }
         }
-        
+
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            padding: 40px 20px;
             color: #333;
-            max-width: 800px;
+        }
+
+        .receipt-card {
+            background: #fff;
+            max-width: 850px;
             margin: 0 auto;
+            padding: 40px;
+            border: 1px solid #e1e4e8;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
         }
-        
-        .header {
-            text-align: center;
-            border-bottom: 3px double #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .school-name {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .school-address {
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .document-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-        
-        .receipt-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-        }
-        
-        .student-info, .receipt-details {
-            width: 48%;
-        }
-        
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        
-        .info-table td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        
-        .info-table .label {
-            font-weight: bold;
-            background-color: #f5f5f5;
-            width: 40%;
-        }
-        
-        .fee-details {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        
-        .fee-details th {
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            text-align: left;
-        }
-        
-        .fee-details td {
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        
-        .total-row {
-            font-weight: bold;
-            background-color: #f9f9f9;
-        }
-        
-        .footer {
-            margin-top: 50px;
-            border-top: 1px solid #333;
-            padding-top: 20px;
-        }
-        
-        .signature-area {
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .signature {
-            text-align: center;
-            width: 45%;
-        }
-        
-        .signature-line {
-            border-top: 1px solid #333;
-            margin: 40px 0 5px 0;
-        }
-        
-        .print-btn {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-        
-        .print-btn:hover {
-            background-color: #0056b3;
-        }
-        
+
+        /* Watermark */
         .watermark {
-            opacity: 0.1;
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 80px;
-            color: #333;
+            font-size: 90px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.03);
+            white-space: nowrap;
             pointer-events: none;
+            text-transform: uppercase;
         }
+
+        /* Header Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .school-info { text-align: left; }
+        .school-name { font-size: 26px; font-weight: 800; color: #1a1a1a; margin: 0; }
+        .school-details { font-size: 13px; color: #666; margin-top: 5px; line-height: 1.4; }
+
+        .receipt-label-box {
+            text-align: right;
+        }
+        .document-title {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-table .label {
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            font-size: 11px;
+            width: 120px;
+        }
+
+        /* Table Styles */
+        .fee-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .fee-table th {
+            background-color: #1a1a1a;
+            color: #fff;
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .fee-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 15px;
+        }
+
+        .total-section {
+            float: right;
+            width: 300px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .summary-row.grand-total {
+            border-top: 2px solid #333;
+            margin-top: 10px;
+            padding-top: 15px;
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        /* Footer & Signatures */
+        .footer {
+            margin-top: 80px;
+            clear: both;
+        }
+
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 100px;
+            text-align: center;
+        }
+
+        .sig-line {
+            border-top: 1px solid #333;
+            margin-bottom: 8px;
+        }
+
+        .sig-text { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #444; }
+
+        .btn-print {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-print:hover { background: #333; }
     </style>
 </head>
 <body>
-    <div class="watermark">OFFICIAL RECEIPT</div>
-    
-    <button class="print-btn no-print" onclick="window.print()">🖨️ Print Receipt</button>
-    
-    <div class="header">
-        {% if school.logo %}
-            <div style="margin-bottom: 10px;">
-                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" style="height: 70px; max-width: 200px; object-fit: contain;">
-            </div>
-        {% endif %}
-        <div class="school-name">{{ school.name }}</div>
-        <div class="school-address">{{ school.address }}</div>
-        <div class="school-address">Phone: {{ school.phone_number }} | Email: {{ school.email }}</div>
-        <div class="document-title">FEE PAYMENT RECEIPT</div>
+
+    <div style="max-width: 850px; margin: 0 auto;" class="no-print">
+        <button class="btn-print" onclick="window.print()">
+            <span>🖨️</span> PRINT OFFICIAL RECEIPT
+        </button>
     </div>
-    
-    <div class="receipt-info">
-        <div class="student-info">
-            <table class="info-table">
-                <tr>
-                    <td class="label">Student Name:</td>
-                    <td>{{ fee.student.user.get_full_name }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Student ID:</td>
-                    <td>{{ fee.student.student_id }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Class/Grade:</td>
-                    <td>{{ fee.student.grade_level }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Parent Name:</td>
-                    <td>{{ fee.student.parent.father_name|default:"N/A" }}</td>
-                </tr>
-            </table>
+
+    <div class="receipt-card">
+        <div class="watermark">OFFICIAL</div>
+
+        <div class="header">
+            <div class="school-info">
+                <h1 class="school-name">{{ school.name|upper }}</h1>
+                <div class="school-details">
+                    {{ school.address }}<br>
+                    Tel: {{ school.phone_number }} | Email: {{ school.email }}
+                </div>
+            </div>
+            <div class="receipt-label-box">
+                <h2 class="document-title">FEE RECEIPT</h2>
+                <div style="font-size: 14px; margin-top: 5px; color: #666;">
+                    No: <strong>#{{ receipt_number }}</strong>
+                </div>
+            </div>
         </div>
-        
-        <div class="receipt-details">
-            <table class="info-table">
+
+        <div class="info-grid">
+            <div class="student-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Student Name</td>
+                        <td><strong>{{ fee.student.user.get_full_name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Student ID</td>
+                        <td>{{ fee.student.student_id|upper }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Class/Grade</td>
+                        <td>{{ fee.student_class }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="meta-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Date Issued</td>
+                        <td>{{ issue_date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Academic Year</td>
+                        <td>{{ fee.academic_year }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Term</td>
+                        <td>{{ fee.get_term_display }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <table class="fee-table">
+            <thead>
                 <tr>
-                    <td class="label">Receipt No:</td>
-                    <td>#{{ receipt_number }}</td>
+                    <th>Description</th>
+                    <th>Payment Method</th>
+                    <th>Due Date</th>
+                    <th style="text-align: right;">Amount (GHS)</th>
                 </tr>
+            </thead>
+            <tbody>
                 <tr>
-                    <td class="label">Date Issued:</td>
-                    <td>{{ issue_date }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Academic Year:</td>
-                    <td>{{ academic_year }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Payment Method:</td>
+                    <td>{{ fee.get_fee_type_display }}</td>
                     <td>{{ payment_method }}</td>
+                    <td>{{ fee.due_date|date:"M d, Y" }}</td>
+                    <td style="text-align: right;">₵{{ fee.amount_required|floatformat:2 }}</td>
                 </tr>
-            </table>
-        </div>
-    </div>
-    
-    <table class="fee-details">
-        <thead>
-            <tr>
-                <th>Description</th>
-                <th>Amount (GHS)</th>
-                <th>Status</th>
-                <th>Due Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ fee.get_fee_type_display }}</td>
-                <td>₵{{ fee.amount }}</td>
-                <td>{{ fee.get_status_display }}</td>
-                <td>{{ fee.due_date }}</td>
-            </tr>
-            {% if fee.paid_amount %}
-            <tr>
-                <td colspan="3" style="text-align: right; font-weight: bold;">Paid Amount (GHS):</td>
-                <td style="font-weight: bold;">₵{{ fee.paid_amount }}</td>
-            </tr>
-            <tr>
-                <td colspan="3" style="text-align: right; font-weight: bold;">Balance (GHS):</td>
-                <td style="font-weight: bold; color: {% if fee.balance > 0 %}red{% else %}green{% endif %};">
-                    ₵{{ fee.balance }}
-                </td>
-            </tr>
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <div class="summary-row">
+                <span>Sub-Total:</span>
+                <span>₵{{ fee.amount_required|floatformat:2 }}</span>
+            </div>
+            <div class="summary-row" style="color: green;">
+                <span>Total Paid:</span>
+                <span>₵{{ fee.amount_paid|floatformat:2 }}</span>
+            </div>
+            {% if fee.discount > 0 %}
+            <div class="summary-row">
+                <span>Scholarship/Discount:</span>
+                <span>- ₵{{ fee.discount|floatformat:2 }}</span>
+            </div>
             {% endif %}
-        </tbody>
-    </table>
-    
-    {% if fee.notes %}
-    <div style="margin: 20px 0;">
-        <strong>Notes:</strong> {{ fee.notes }}
-    </div>
-    {% endif %}
-    
-    <div class="footer">
-        <div class="signature-area">
-            <div class="signature">
-                <div class="signature-line"></div>
-                <div>School Administrator</div>
-            </div>
-            <div class="signature">
-                <div class="signature-line"></div>
-                <div>Parent/Guardian Signature</div>
+            <div class="summary-row grand-total" style="color: {% if fee.balance > 0 %}#d9534f{% else %}#2ecc71{% endif %};">
+                <span>Balance Due:</span>
+                <span>₵{{ fee.balance|floatformat:2 }}</span>
             </div>
         </div>
-        
-        <div style="text-align: center; margin-top: 20px; font-size: 12px;">
-            This is a computer-generated receipt. No signature required.
+
+        {% if fee.notes %}
+        <div style="margin-top: 40px; font-size: 13px; color: #666; font-style: italic; clear: both;">
+            <strong>Notes:</strong> {{ fee.notes }}
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <div class="signature-grid">
+                <div class="signature">
+                    <div class="sig-line"></div>
+                    <div class="sig-text">Accounts Department</div>
+                </div>
+                <div class="signature">
+                    <div class="sig-line"></div>
+                    <div class="sig-text">Parent/Guardian Signature</div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 40px; font-size: 11px; color: #999;">
+                This document is a computer-generated official receipt. <br>
+                Printed on: {% now "F d, Y H:i" %}
+            </div>
         </div>
     </div>
-    
-    <script>
-        // Auto-print if specified in URL
-        if (window.location.search.includes('autoprint=true')) {
-            window.print();
-        }
-        
-        // Close window after print (optional)
-        window.onafterprint = function() {
-            if (window.location.search.includes('closeafterprint=true')) {
-                setTimeout(function() {
-                    window.close();
-                }, 500);
-            }
-        };
-    </script>
+
 </body>
 </html>

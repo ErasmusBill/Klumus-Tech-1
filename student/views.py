@@ -178,7 +178,8 @@ def student_detail(request):
     attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
 
     # Updated fee logic to match database aggregate patterns
-    pending_fees = Fees.objects.filter(student=student, paid=False).order_by('due_date')
+    # Update 'paid=False' to 'status="pending"' (or "unpaid" depending on your choices)
+    pending_fees = Fees.objects.filter(student=student, status="pending").order_by('due_date')
     fee_aggregate = pending_fees.aggregate(total=Sum(F('amount_required') - F('discount') - F('amount_paid')))
     total_pending_fees = fee_aggregate['total'] or 0
 

@@ -50,8 +50,12 @@ def student_dashboard(request):
     average_grade = recent_results.aggregate(Avg('percentage'))['percentage__avg']
     
     # Fees
-    pending_fees = Fees.objects.filter(student=student, paid=False).order_by('due_date')
-    total_pending_fees = sum(fee.net_amount() for fee in pending_fees)
+    # We filter for anything that is NOT 'paid'
+    # Or specifically for 'unpaid' and 'partial'
+    pending_fees = Fees.objects.filter(
+        student=student,
+        status__in=['unpaid', 'partial', 'overdue']
+    ).order_by('due_date')
     
     # Announcements
     announcements = Announcement.objects.filter(

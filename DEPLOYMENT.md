@@ -1,5 +1,7 @@
 # VPS deployment for `school.fruitfulyouth.org`
 
+For local Windows setup without Docker, use [WINDOWS_DEVELOPMENT.md](WINDOWS_DEVELOPMENT.md).
+
 This project is set up to run Django in Docker on `127.0.0.1:8000` and let the VPS Nginx handle public traffic on ports `80/443`.
 
 ## DNS

@@ -245,8 +245,8 @@ class AddDepartmentForm(forms.ModelForm):
         model = Department
         fields = ["name", "code", "description", "head_of_department"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Mathematics"}),
-            "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., MATH101"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Name Of Department"}),
+            "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Departmenet code"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Optional description"}),
             "head_of_department": forms.TextInput(attrs={"class": "form-control", "placeholder": "Full name of HOD"}),
         }
@@ -280,7 +280,7 @@ class AddStudentForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'})
     )
     email = forms.EmailField(
-        required=True,
+        required=False,
         widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'})
     )
     username = forms.CharField(

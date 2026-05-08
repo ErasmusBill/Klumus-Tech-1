@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.utils import timezone
 from datetime import timedelta
-from account.models import Notification, RequestPasswordReset, School, Subscription
+from account.models import Notification, Parent, RequestPasswordReset, School, Student, Subscription
 
 
 User = get_user_model()
@@ -153,3 +153,55 @@ class TrialSubscriptionFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, f"{reverse('account:select-package')}?reason=trial_expired")
+
+
+class StudentIdentifierGenerationTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="idadmin",
+            email="idadmin@example.com",
+            password="StrongPass123!",
+            role="admin",
+        )
+        self.school = School.objects.create(
+            name="Identifier Test School",
+            location="Accra",
+            phone_number="0201111111",
+            admin=self.admin,
+        )
+
+    def _create_student(self, index: int) -> Student:
+        user = User.objects.create_user(
+            username=f"student_seq_{index}",
+            email=f"student_seq_{index}@example.com",
+            password="StrongPass123!",
+            role="student",
+            first_name=f"Student{index}",
+            last_name="Seq",
+        )
+        parent = Parent.objects.create(
+            father_name=f"Father {index}",
+            father_phone=f"02412345{index:02d}",
+            mother_name=f"Mother {index}",
+            mother_phone=f"05412345{index:02d}",
+            present_address="Accra",
+        )
+        return Student.objects.create(
+            user=user,
+            parent=parent,
+            school=self.school,
+            student_class="JHS_1",
+            mobile_number=f"02012345{index:02d}",
+        )
+
+    def test_student_id_is_auto_generated_unique_and_sequential(self):
+        first = self._create_student(1)
+        second = self._create_student(2)
+
+        self.assertRegex(first.student_id, r"^STU-\d{6}$")
+        self.assertRegex(second.student_id, r"^STU-\d{6}$")
+        self.assertNotEqual(first.student_id, second.student_id)
+
+        first_seq = int(first.student_id.split("-")[1])
+        second_seq = int(second.student_id.split("-")[1])
+        self.assertEqual(second_seq, first_seq + 1)

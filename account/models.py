@@ -605,7 +605,11 @@ class Student(models.Model):
         ("CRECHE", "Creche"),
         ("NURSERY_1", "Nursery 1"),
         ("NURSERY_2", "Nursery 2"),
-        ("KINDERGARTEN", "Kindergarten"),
+        ("KINDERGARTEN_1", "Kindergarten 1"),
+        ("KINDERGARTEN_2", "Kindergarten 2"),
+        ("UPPER_PRIMARY_1", "Upper Primary 1"),
+        ("UPPER_PRIMARY_2", "Upper Primary 2"),
+        ("UPPER_PRIMARY_3", "Upper Primary 3"),
         ("UPPER_PRIMARY_4", "Upper Primary 4"),
         ("UPPER_PRIMARY_5", "Upper Primary 5"),
         ("UPPER_PRIMARY_6", "Upper Primary 6"),
@@ -670,33 +674,85 @@ class Student(models.Model):
         verbose_name_plural = "Students"
         ordering = ["-created_at"]
 
+    @staticmethod
+    def _extract_suffix_number(value: str, prefix: str) -> int | None:
+        normalized = (value or "").strip().upper()
+        if not normalized.startswith(prefix):
+            return None
+        suffix = normalized[len(prefix):]
+        if not suffix.isdigit():
+            return None
+        return int(suffix)
+
+    @classmethod
+    def _next_student_id(cls) -> str:
+        prefix = "STU-"
+        max_sequence = 0
+        existing_ids = cls.objects.filter(student_id__startswith=prefix).values_list("student_id", flat=True)
+        for existing_id in existing_ids:
+            sequence = cls._extract_suffix_number(existing_id, prefix)
+            if sequence and sequence > max_sequence:
+                max_sequence = sequence
+        return f"{prefix}{max_sequence + 1:06d}"
+
+    @classmethod
+    def _next_admission_number(cls) -> str:
+        year = timezone.now().year
+        prefix = f"{year}-"
+        max_sequence = 0
+        existing_numbers = cls.objects.filter(admission_number__startswith=prefix).values_list(
+            "admission_number", flat=True
+        )
+        for existing_number in existing_numbers:
+            sequence = cls._extract_suffix_number(existing_number, prefix)
+            if sequence and sequence > max_sequence:
+                max_sequence = sequence
+        return f"{year}-{max_sequence + 1:04d}"
+
+    def _build_slug(self) -> str:
+        base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
+        return base[:100] or f"student-{self.student_id.lower()}"
+
+    def _assign_identifiers(self) -> None:
+        if not self.student_id:
+            self.student_id = self._next_student_id()
+        if not self.admission_number:
+            self.admission_number = self._next_admission_number()
+        if not self.slug:
+            self.slug = self._build_slug()
+
     def save(self, *args, **kwargs):
-        if self.pk:
-            if not self.slug:
-                base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
-                self.slug = base[:100]
+        is_create = self._state.adding
+
+        if not is_create:
+            self._assign_identifiers()
             super().save(*args, **kwargs)
             return
 
-        for _ in range(10):
-            if not self.student_id:
-                self.student_id = f"STU-{get_random_string(6).upper()}"
-            if not self.admission_number:
-                year = timezone.now().year
-                count = Student.objects.filter(school=self.school).count() + 1
-                self.admission_number = f"{year}-{count:04d}"
-            if not self.slug:
-                base = slugify(f"{self.user.first_name}-{self.user.last_name}-{self.student_id}")
-                self.slug = base[:100]
+        for _ in range(20):
+            self._assign_identifiers()
             try:
                 super().save(*args, **kwargs)
                 return
-            except IntegrityError:
-                # Retry on rare collisions from concurrent student creation.
+            except IntegrityError as exc:
+                message = str(exc).lower()
+                retryable_tokens = (
+                    "account_student_student_id",
+                    "account_student_admission_number",
+                    "account_student_slug",
+                    "account_student.student_id",
+                    "account_student.admission_number",
+                    "account_student.slug",
+                )
+                if not any(token in message for token in retryable_tokens):
+                    raise
+
+                # Retry on identifier collisions caused by concurrent inserts.
                 self.student_id = ""
                 self.admission_number = ""
                 self.slug = ""
                 continue
+
         raise IntegrityError("Could not generate unique student identifiers after multiple retries.")
 
     def promote_to_next_class(self):

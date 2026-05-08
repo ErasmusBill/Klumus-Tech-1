@@ -576,6 +576,60 @@ def create_bulk_in_app_notifications(
 
 # ===== MAIN NOTIFICATION FUNCTION =====
 
+def _dispatch_email_notification(
+    to_emails: List[str],
+    subject: str,
+    message: str,
+    html_message: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Dispatch email via Celery when available, with a synchronous fallback.
+    """
+    try:
+        from .tasks import send_email_task
+
+        async_result = send_email_task.delay(to_emails, subject, message, html_message)
+
+        # In eager mode, tasks execute in-process and return immediately.
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            payload = async_result.get(timeout=30)
+            if isinstance(payload, dict):
+                return payload
+            return {"success": True, "message_id": None, "error": None}
+
+        return {"success": True, "message_id": None, "error": None}
+    except Exception as exc:
+        logger.warning(
+            "Celery email dispatch unavailable; using synchronous email fallback: %s",
+            exc,
+        )
+        return send_email_sync(to_emails, subject, message, html_message)
+
+
+def _dispatch_sms_notification(to_phones: List[str], message: str) -> Dict[str, Any]:
+    """
+    Dispatch SMS via Celery when available, with a synchronous fallback.
+    """
+    try:
+        from .tasks import send_sms_task
+
+        async_result = send_sms_task.delay(to_phones, message)
+
+        # In eager mode, tasks execute in-process and return immediately.
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            payload = async_result.get(timeout=30)
+            if isinstance(payload, dict):
+                return payload
+            return {"success": True, "message_id": None, "error": None}
+
+        return {"success": True, "message_id": None, "error": None}
+    except Exception as exc:
+        logger.warning(
+            "Celery SMS dispatch unavailable; using synchronous SMS fallback: %s",
+            exc,
+        )
+        return send_sms_sync(to_phones, message)
+
 async def send_notification_async(
     emails: List[str] = None,  # type: ignore
     phones: List[str] = None,  # type: ignore
@@ -609,31 +663,25 @@ async def send_notification_async(
     }
     
     try:
-        # Queue emails via Celery
+        # Dispatch emails
         if emails and subject and message:
-            try:
-                from celery import current_app
-                current_app.send_task(
-                    "adminservices.tasks.send_email_task",
-                    args=[emails, subject, message, html_message],
-                )
-                results['email_sent'] = True
+            email_result = await sync_to_async(_dispatch_email_notification)(
+                emails, subject, message, html_message
+            )
+            results['email_sent'] = bool(email_result.get('success'))
+            if results['email_sent']:
                 results['emails_queued'] = len(emails)
-            except Exception as e:
-                results['email_error'] = str(e)
+            if email_result.get('error'):
+                results['email_error'] = str(email_result.get('error'))
         
-        # Queue SMS via Celery
+        # Dispatch SMS
         if phones and message:
-            try:
-                from celery import current_app
-                current_app.send_task(
-                    "adminservices.tasks.send_sms_task",
-                    args=[phones, message],
-                )
-                results['sms_sent'] = True
+            sms_result = await sync_to_async(_dispatch_sms_notification)(phones, message)
+            results['sms_sent'] = bool(sms_result.get('success'))
+            if results['sms_sent']:
                 results['sms_sent_count'] = len(phones)
-            except Exception as e:
-                results['sms_error'] = str(e)
+            if sms_result.get('error'):
+                results['sms_error'] = str(sms_result.get('error'))
         
         # Create in-app notifications
         if create_in_app and users:
@@ -696,28 +744,20 @@ def send_notification(
 
     try:
         if emails and subject and message:
-            try:
-                from celery import current_app
-                current_app.send_task(
-                    "adminservices.tasks.send_email_task",
-                    args=[emails, subject, message, html_message],
-                )
-                results['email_sent'] = True
+            email_result = _dispatch_email_notification(emails, subject, message, html_message)
+            results['email_sent'] = bool(email_result.get('success'))
+            if results['email_sent']:
                 results['emails_queued'] = len(emails)
-            except Exception as e:
-                results['email_error'] = str(e)
+            if email_result.get('error'):
+                results['email_error'] = str(email_result.get('error'))
 
         if phones and message:
-            try:
-                from celery import current_app
-                current_app.send_task(
-                    "adminservices.tasks.send_sms_task",
-                    args=[phones, message],
-                )
-                results['sms_sent'] = True
+            sms_result = _dispatch_sms_notification(phones, message)
+            results['sms_sent'] = bool(sms_result.get('success'))
+            if results['sms_sent']:
                 results['sms_sent_count'] = len(phones)
-            except Exception as e:
-                results['sms_error'] = str(e)
+            if sms_result.get('error'):
+                results['sms_error'] = str(sms_result.get('error'))
 
         if create_in_app and users:
             if hasattr(users, '__iter__') and not isinstance(users, str):

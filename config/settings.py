@@ -3,10 +3,19 @@ from pathlib import Path
 from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 import dj_database_url  # pyright: ignore[reportMissingImports]
 
-# Load environment variables
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _load_environment_files() -> None:
+    """
+    Load local overrides first, then default environment values.
+    Existing process-level variables are never overwritten.
+    """
+    load_dotenv(BASE_DIR / ".env.local")
+    load_dotenv(BASE_DIR / ".env")
+
+
+_load_environment_files()
 
 # ========================
 # SECURITY CONFIGURATION
@@ -128,7 +137,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ========================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-APP_ENV = os.getenv("APP_ENV", "development")
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 
 
 def _db_ssl_required(app_env: str) -> bool:
@@ -137,7 +146,7 @@ def _db_ssl_required(app_env: str) -> bool:
     if explicit is not None:
         return explicit.strip().lower() in {"1", "true", "yes", "on"}
     # Only default to True if in production AND no explicit override exists
-    if app_env.strip().lower() == "production":
+    if app_env == "production":
         # Note: If you are in Docker on a local/private network, you usually want False
         return False
     return False
@@ -217,7 +226,7 @@ CACHES = {
 }
 
 REDIS_URL_FOR_CACHE = os.getenv("REDIS_URL")
-if REDIS_URL_FOR_CACHE or os.getenv("APP_ENV") == "production":
+if REDIS_URL_FOR_CACHE or APP_ENV == "production":
     _redis_url = REDIS_URL_FOR_CACHE or "redis://redis:6379/0"
     CACHES["default"] = {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -288,13 +297,21 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # ========================
 
 REDIS_URL = os.getenv("REDIS_URL")
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL") or REDIS_URL or "redis://redis:6379/0"
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or CELERY_BROKER_URL
+_default_celery_broker = "redis://redis:6379/0" if APP_ENV == "production" else "memory://"
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL") or REDIS_URL or _default_celery_broker
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or (
+    "cache+memory://" if CELERY_BROKER_URL == "memory://" else CELERY_BROKER_URL
+)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False").lower() in ("true", "1", "yes")
+_default_celery_eager = "True" if APP_ENV != "production" else "False"
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", _default_celery_eager).lower() in (
+    "true",
+    "1",
+    "yes",
+)
 
 
 # ========================

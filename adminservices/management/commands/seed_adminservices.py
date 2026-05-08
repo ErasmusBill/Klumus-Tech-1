@@ -5,7 +5,6 @@ from typing import Iterable
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.conf import settings
 
@@ -212,20 +211,4 @@ class Command(BaseCommand):
                 school=school,
                 student_class=random.choice(class_choices),
                 mobile_number=f"027{random.randint(1000000, 9999999)}",
-                student_id=self._unique_student_id(),
-                admission_number=self._unique_admission_number(),
             )
-
-    def _unique_student_id(self) -> str:
-        while True:
-            student_id = f"STU-{get_random_string(6).upper()}"
-            if not Student.objects.filter(student_id=student_id).exists():
-                return student_id
-
-    def _unique_admission_number(self) -> str:
-        year = timezone.now().year
-        while True:
-            suffix = random.randint(1, 9999)
-            admission_number = f"{year}-{suffix:04d}"
-            if not Student.objects.filter(admission_number=admission_number).exists():
-                return admission_number

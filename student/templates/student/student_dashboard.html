@@ -25,16 +25,76 @@
             </div>
         </div>
 
-        <!-- Metric Grid -->
+        <!-- Metric Grid (REPLACED define_stats with native HTML) -->
         <div class="row g-4 mb-5">
-            {% define_stats enrolled_courses_count "Courses" "fa-book-open" "primary" "Enrolled" %}
-            {% define_stats pending_assignments_count "To-Do" "fa-clock" "warning" "Submissions" %}
-            {% define_stats overdue_assignments_count "Missed" "fa-exclamation-triangle" "danger" "Urgent" %}
-            {% define_stats submitted_assignments_count "Graded" "fa-award" "success" "Completed" %}
+            <!-- Courses -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon-box bg-faded-primary text-primary me-3">
+                                <i class="fas fa-book-open fa-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-black mb-0">{{ enrolled_courses_count|default:"0" }}</h3>
+                                <p class="x-small text-muted fw-bold text-uppercase mb-0">Enrolled Courses</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- To-Do -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon-box bg-faded-warning text-warning me-3">
+                                <i class="fas fa-clock fa-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-black mb-0">{{ pending_assignments_count|default:"0" }}</h3>
+                                <p class="x-small text-muted fw-bold text-uppercase mb-0">Pending Tasks</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Missed -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon-box bg-faded-danger text-danger me-3">
+                                <i class="fas fa-exclamation-triangle fa-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-black mb-0">{{ overdue_assignments_count|default:"0" }}</h3>
+                                <p class="x-small text-muted fw-bold text-uppercase mb-0">Overdue Work</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Completed -->
+            <div class="col-md-6 col-xl-3">
+                <div class="card stat-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon-box bg-faded-success text-success me-3">
+                                <i class="fas fa-award fa-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-black mb-0">{{ submitted_assignments_count|default:"0" }}</h3>
+                                <p class="x-small text-muted fw-bold text-uppercase mb-0">Graded Work</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4">
-            <!-- Task Central: Main Content -->
+            <!-- Task Central -->
             <div class="col-xl-8">
                 <div class="card border-0 shadow-sm rounded-4 h-100">
                     <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
@@ -87,7 +147,6 @@
                                 {% empty %}
                                 <tr>
                                     <td colspan="4" class="text-center py-5">
-                                        <img src="{% static 'assets/img/empty-tasks.svg' %}" style="width: 80px;" class="mb-3 opacity-25">
                                         <p class="text-muted fw-bold">No active assignments. Enjoy your free time!</p>
                                     </td>
                                 </tr>
@@ -98,40 +157,38 @@
                 </div>
             </div>
 
-            <!-- Profile & Updates Sidebar -->
+            <!-- Profile Sidebar -->
             <div class="col-xl-4">
-                <!-- Profile Card -->
-                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                    <div class="profile-card-header bg-primary"></div>
-                    <div class="card-body text-center pt-0" style="margin-top: -45px;">
+                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden text-center">
+                    <div class="profile-card-header bg-primary py-4"></div>
+                    <div class="card-body pt-0" style="margin-top: -50px;">
                         <div class="position-relative d-inline-block mb-3">
                             {% if student.student_image or student.user.profile_picture %}
                                 <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
                                      class="rounded-circle border border-4 border-white shadow shadow-lg"
                                      style="width: 100px; height: 100px; object-fit: cover;">
                             {% else %}
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow" style="width: 90px;">
+                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow" style="width: 100px;">
                             {% endif %}
-                            <div class="status-online-dot"></div>
                         </div>
                         <h5 class="fw-black text-dark mb-1">{{ student.user.get_full_name }}</h5>
                         <p class="small text-primary fw-bold mb-4">{{ student.student_id }}</p>
 
                         <div class="row g-3 bg-faded-light rounded-4 p-3 mx-1">
                             <div class="col-6 border-end">
-                                <span class="x-small text-muted fw-bold text-uppercase">Adm No.</span>
+                                <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Adm No.</span>
                                 <div class="fw-black text-dark">{{ student.admission_number }}</div>
                             </div>
                             <div class="col-6">
-                                <span class="x-small text-muted fw-bold text-uppercase">Level</span>
+                                <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Level</span>
                                 <div class="fw-black text-dark">{{ student.get_student_class_display|truncatechars:10 }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Updates List -->
-                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <!-- Announcements -->
+                <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
                         <h6 class="fw-black text-dark mb-0"><i class="fas fa-bell text-warning me-2"></i>School Bulletin</h6>
                     </div>
@@ -142,11 +199,11 @@
                                 <h6 class="small fw-black text-dark mb-0">{{ announcement.title|truncatechars:35 }}</h6>
                                 <span class="x-small text-primary fw-bold">{{ announcement.created_at|timesince }} ago</span>
                             </div>
-                            <p class="x-small text-muted mb-0 line-clamp-2">{{ announcement.content|striptags }}</p>
+                            <p class="x-small text-muted mb-0">{{ announcement.content|striptags|truncatechars:100 }}</p>
                         </div>
                         {% empty %}
                         <div class="text-center py-4">
-                            <p class="x-small text-muted mb-0">No new updates from school.</p>
+                            <p class="x-small text-muted mb-0">No new updates.</p>
                         </div>
                         {% endfor %}
                     </div>
@@ -154,7 +211,7 @@
             </div>
         </div>
 
-        <!-- Footer Action Strip -->
+        <!-- Action Strip -->
         <div class="footer-cta-card mt-5 mb-5 shadow-lg">
             <div class="row align-items-center">
                 <div class="col-md-7">
@@ -162,8 +219,8 @@
                     <p class="mb-0 opacity-75">Instantly download your reports or check your billing status.</p>
                 </div>
                 <div class="col-md-5 text-md-end mt-3 mt-md-0">
-                    <a href="{% url 'student:view-result' request.user.student_profile.id %}" class="btn btn-white text-primary rounded-pill fw-black px-4 me-2 shadow-sm">My Grades</a>
-                    <a href="{% url 'student:fees-list' request.user.student_profile.id %}" class="btn btn-glass-white rounded-pill fw-black px-4 shadow-sm">Fees Portal</a>
+                    <a href="{% url 'student:view-result' student.id %}" class="btn btn-white text-primary rounded-pill fw-black px-4 me-2 shadow-sm">My Grades</a>
+                    <a href="{% url 'student:fees-list' student.id %}" class="btn btn-glass-white rounded-pill fw-black px-4 shadow-sm">Fees Portal</a>
                 </div>
             </div>
         </div>
@@ -172,40 +229,25 @@
 </div>
 
 <style>
-    /* Modern Dashboard Colors & UI */
     .bg-light-faded { background-color: #f8fafc; }
-    .bg-faded-light { background-color: rgba(241, 245, 249, 0.5); }
-    .bg-faded-primary { background-color: rgba(79, 70, 229, 0.08); }
-    .fw-black { font-weight: 800; }
+    .bg-faded-primary { background-color: #e0e7ff; color: #4338ca; }
+    .bg-faded-warning { background-color: #fef3c7; color: #92400e; }
+    .bg-faded-danger { background-color: #fee2e2; color: #991b1b; }
+    .bg-faded-success { background-color: #dcfce7; color: #166534; }
+    .bg-faded-light { background-color: #f1f5f9; }
+
+    .fw-black { font-weight: 900; }
     .x-small { font-size: 0.7rem; }
 
-    /* Metrics */
-    .stat-icon-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
-    .stat-card { transition: transform 0.3s ease; border-radius: 24px !important; }
+    .stat-card { transition: all 0.3s ease; border-radius: 20px; }
     .stat-card:hover { transform: translateY(-5px); }
+    .stat-icon-box { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
 
-    /* Custom Tables */
-    .custom-dashboard-table tr:last-child td { border-bottom: none; }
-    .task-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .badge-pill-warning { background: #fffbeb; color: #d97706; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 0.7rem; }
+    .badge-pill-danger { background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 0.7rem; }
 
-    /* Profile Sidebar */
-    .profile-card-header { height: 80px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
-    .status-online-dot { position: absolute; bottom: 8px; right: 8px; width: 14px; height: 14px; background: #22c55e; border: 3px solid #fff; border-radius: 50%; }
-
-    /* Custom Badges */
-    .badge-pill-warning { background: #fffbeb; color: #d97706; border-radius: 50px; padding: 4px 12px; font-size: 0.7rem; font-weight: 700; }
-    .badge-pill-danger { background: #fef2f2; color: #dc2626; border-radius: 50px; padding: 4px 12px; font-size: 0.7rem; font-weight: 700; }
-
-    /* CTA Card */
-    .footer-cta-card {
-        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-        border-radius: 28px;
-        padding: 35px 45px;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    .btn-white { background: #fff; color: #4f46e5 !important; border: none; }
-    .btn-glass-white { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
+    .footer-cta-card { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 40px; border-radius: 30px; color: white; }
+    .btn-white { background: white; color: #4f46e5; border: none; }
+    .btn-glass-white { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; }
 </style>
 {% endblock %}

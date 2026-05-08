@@ -286,10 +286,6 @@ def student_enrolled_courses(request):
     return response
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import Student, Fees
 
 
 @login_required(login_url='account:login')
@@ -322,7 +318,7 @@ def list_fees_related(request, student_id):
         messages.error(request, "You do not have permission to view fee records.")
         return redirect("account:login")
 
-    # 3. Optimized Query
+    # 3. Optimized Querygit
     # select_related('fee_structure') helps if your template shows template names/amounts
     fees = Fees.objects.filter(
         student=student,

@@ -3,6 +3,7 @@ from django.contrib import messages
 from account.models import Enrollment, ResultSheet, Student, Teacher, Enrollment,Fees,Assignment,Attendance,Announcement,Event,Subject,AssignmentSubmission
 from django.db import models
 from django.db.models import Q,Avg,Count
+from django.db.models import Avg, Sum, F
 from django.utils import timezone
 from django.urls import reverse
 from adminservices.utils import create_in_app_notification
@@ -18,23 +19,22 @@ from .forms import (StudentEnrollmentForm, BulkStudentEnrollmentForm,AssignmentS
 @login_required(login_url='account:login')
 def student_dashboard(request):
     """
-    Complete Student Dashboard view with Assignment tracking,
-    Attendance rates, and Fee ledger summaries.
+    Complete Student Dashboard view with fixed NameError for Sum/F
+    and corrected Fee logic using Status choices.
     """
     if request.user.role != "student":
         messages.error(request, "Access denied. Student portal only.")
         return redirect("account:login")
 
     try:
-        # select_related avoids extra DB hits for school data
+        # Optimized fetch using select_related for the school object
         student = Student.objects.select_related('school').get(user=request.user)
         school = student.school
     except Student.DoesNotExist:
         messages.error(request, "Student profile not found.")
         return redirect("account:login")
 
-    # --- Cache Logic ---
-    # make_cache_key and should_cache should be defined in your utils
+    # --- Cache Check ---
     cache_key = f"student_portal_{school.id}_dashboard_{student.id}"
     cached_response = cache.get(cache_key)
     if cached_response:
@@ -42,35 +42,33 @@ def student_dashboard(request):
 
     today = timezone.now().date()
 
-    # 1. Enrolled courses
+    # 1. Enrolled Courses (limit 5)
     enrolled_courses = Enrollment.objects.filter(
         student=student,
         is_active=True
     ).select_related('subject__teacher__user', 'subject__department')[:5]
 
-    # 2. Attendance Stats
+    # 2. Attendance Performance
     total_attendance = Attendance.objects.filter(student=student).count()
     present_count = Attendance.objects.filter(student=student, status='present').count()
     attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
 
-    # 3. Academic Results
+    # 3. Recent Exam Results
     recent_results = ResultSheet.objects.filter(student=student).select_related('subject').order_by('-exam_date')[:6]
     average_grade = recent_results.aggregate(Avg('percentage'))['percentage__avg']
 
-    # 4. FEES LOGIC (FIXED)
-    # We filter using the 'status' field found in your choices
+    # 4. Financial Records (Fixed Sum/F logic)
     pending_fees = Fees.objects.filter(
         student=student,
         status__in=['unpaid', 'partial', 'overdue']
     ).order_by('due_date')
 
-    # Calculation for total_pending_fees to fix NameError
-    # Uses database-level math for better performance
+    # Database-level calculation for accuracy and speed
     total_pending_fees = pending_fees.aggregate(
         total=Sum(F('amount_required') - F('discount') - F('amount_paid'))
     )['total'] or 0
 
-    # 5. Announcements & Events
+    # 5. School Notices & Calendar
     announcements = Announcement.objects.filter(
         school=school,
         published=True,
@@ -83,14 +81,14 @@ def student_dashboard(request):
         is_public=True
     ).order_by('start_date')[:5]
 
-    # 6. ASSIGNMENTS DATA
+    # 6. Assignments & Submissions
     assignments = Assignment.objects.filter(
         subject__enrollments__student=student,
         subject__school=school,
         status="published"
     ).select_related('subject', 'teacher__user')
 
-    # Identify IDs of assignments already submitted to exclude them from 'pending'
+    # Exclude IDs already submitted or graded
     submitted_ids = AssignmentSubmission.objects.filter(
         student=student,
         status__in=['submitted', 'graded']
@@ -104,36 +102,31 @@ def student_dashboard(request):
         due_date__lt=today
     ).exclude(id__in=submitted_ids).count()
 
-    submitted_assignments_count = len(submitted_ids)
-
-    # Recent assignments (last 10 added)
-    recent_assignments = assignments.order_by('-created_at')[:10]
-
-    # Upcoming deadlines (due in next 7 days)
+    # Deadlines for the next 7 days
     upcoming_deadlines = assignments.filter(
         due_date__gte=today,
         due_date__lte=today + timezone.timedelta(days=7)
     ).exclude(id__in=submitted_ids).order_by('due_date')[:5]
 
-    # 7. Final Context
+    # 7. Context Assembly
     context = {
         'student': student,
         'enrolled_courses': enrolled_courses,
         'enrolled_courses_count': enrolled_courses.count(),
 
-        # Assignment stats
+        # Assignment metrics
         'pending_assignments_count': pending_assignments_count,
         'overdue_assignments_count': overdue_assignments_count,
-        'submitted_assignments_count': submitted_assignments_count,
-        'recent_assignments': recent_assignments,
+        'submitted_assignments_count': len(submitted_ids),
+        'recent_assignments': assignments.order_by('-created_at')[:10],
         'upcoming_deadlines': upcoming_deadlines,
         'upcoming_deadlines_count': upcoming_deadlines.count(),
 
-        # Financial Data (Fixed)
+        # Financial summary
         'pending_fees': pending_fees,
-        'total_pending_fees': total_pending_fees,  # Variable now defined!
+        'total_pending_fees': total_pending_fees,
 
-        # Other dashboard data
+        # Performance/Social metrics
         'attendance_rate': round(attendance_rate, 1),
         'recent_results': recent_results,
         'average_grade': round(average_grade, 1) if average_grade else None,
@@ -144,8 +137,8 @@ def student_dashboard(request):
 
     response = render(request, 'student/student_dashboard.html', context)
 
-    # Optional Cache Save
-    cache.set(cache_key, response, 180)  # Cache for 3 minutes
+    # Cache the rendered dashboard for 3 minutes to save resources
+    cache.set(cache_key, response, 180)
     return response
 
 @login_required

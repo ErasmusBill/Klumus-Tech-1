@@ -1,4 +1,6 @@
 from decimal import Decimal
+
+from account.signals import auto_enroll_class_students
 from django.conf import settings
 import uuid
 from datetime import timedelta

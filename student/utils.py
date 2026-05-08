@@ -1,3 +1,6 @@
+from django.core.cache import cache
+
+from account.cache_utils import make_cache_key
 from django.db import transaction
 from account.models import Student, Subject, Enrollment
 
@@ -37,6 +40,9 @@ def auto_enroll_student(student):
                 enrollment.save()
             
             enrolled_count += 1
+
+    cache_key = make_cache_key("student_portal", student.school_id, f"courses:{student.id}")
+    cache.delete(cache_key)
     
     return enrolled_count
 

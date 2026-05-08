@@ -4,207 +4,140 @@
 {% block title %}My Learning Journey | Enrolled Courses{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-    <div class="content container-fluid">
+<div class="page-wrapper bg-light-faded">
+    <div class="content container-fluid px-lg-5">
 
         <!-- Header Section -->
-        <div class="page-header mb-4">
+        <div class="page-header border-0 mb-4 pt-4">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title text-primary"><i class="fas fa-graduation-cap me-2"></i>My Enrolled Courses</h3>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item active">Learning Hub</li>
-                        </ol>
-                    </nav>
+                    <h2 class="fw-black text-slate-900 mb-1">My Academic Path</h2>
+                    <p class="text-muted fw-medium mb-0">Overview of your current curriculum and enrolled subjects.</p>
+                </div>
+                <div class="col-auto">
+                    <span class="badge bg-white border text-primary px-3 py-2 rounded-pill shadow-sm">
+                        <i class="fas fa-calendar-alt me-2"></i>Academic Year 2026
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- Student Profile Overview -->
-        <div class="card border-0 shadow-sm mb-4 profile-hero">
+        <!-- Student Profile Hero -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
             <div class="card-body p-0">
                 <div class="row g-0">
-                    <div class="col-lg-3 col-md-4 text-center p-4 profile-avatar-side">
-                        <div class="avatar-wrapper mb-3">
-                            {% if student.student_image %}
-                                <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile" class="profile-img">
-                            {% elif student.user.profile_picture %}
-                                <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile" class="profile-img">
+                    <!-- Left Side: Profile -->
+                    <div class="col-lg-4 bg-faded-primary p-4 text-center border-end">
+                        <div class="position-relative d-inline-block mb-3">
+                            {% if student.student_image or student.user.profile_picture %}
+                                <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                                     class="rounded-circle border border-4 border-white shadow-sm"
+                                     style="width: 110px; height: 110px; object-fit: cover;">
                             {% else %}
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Student" class="profile-img">
+                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow-sm" style="width: 110px;">
                             {% endif %}
-                            <span class="status-indicator bg-success"></span>
+                            <div class="status-online-dot"></div>
                         </div>
-                        <h5 class="fw-bold mb-1">{{ student.user.get_full_name }}</h5>
-                        <span class="badge bg-primary-light text-primary px-3 rounded-pill">{{ student.student_id }}</span>
+                        <h4 class="fw-black text-dark mb-1">{{ student.user.get_full_name }}</h4>
+                        <p class="text-primary fw-bold small mb-0">{{ student.student_id }}</p>
                     </div>
-                    <div class="col-lg-9 col-md-8 p-4 profile-info-side">
-                        <div class="row h-100 align-items-center">
-                            <div class="col-md-4 border-end">
-                                <p class="text-muted small mb-1">Current Grade</p>
-                                <h6 class="fw-bold">{{ student.get_student_class_display }}</h6>
-                            </div>
-                            <div class="col-md-4 border-end">
-                                <p class="text-muted small mb-1">Total Subjects</p>
-                                <h6 class="fw-bold">{{ total_enrollments }} Courses</h6>
-                            </div>
-                            <div class="col-md-4">
-                                <p class="text-muted small mb-1">Promotion Status</p>
-                                <h6 class="fw-bold text-success">{{ student.get_promotion_status_display }}</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Quick Stats Row -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 stat-card">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="stat-icon bg-soft-primary me-3">
-                            <i class="fas fa-book-reader"></i>
+                    <!-- Right Side: Academic Stats -->
+                    <div class="col-lg-8 p-4 bg-white">
+                        <div class="row g-4 text-center text-lg-start">
+                            <div class="col-6 col-md-4">
+                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Class Level</span>
+                                <h6 class="fw-bold text-dark mb-0">{{ student.get_student_class_display }}</h6>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Enrollment Status</span>
+                                <span class="badge bg-success-light text-success rounded-pill px-3">Active Student</span>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Promotion Status</span>
+                                <h6 class="fw-bold text-success mb-0">{{ student.get_promotion_status_display }}</h6>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="mb-0 fw-bold">{{ total_enrollments }}</h4>
-                            <p class="text-muted small mb-0">Active Subjects</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 stat-card">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="stat-icon bg-soft-success me-3">
-                            <i class="fas fa-layer-group"></i>
-                        </div>
-                        <div>
-                            <h4 class="mb-0 fw-bold">{{ subjects_by_department|length }}</h4>
-                            <p class="text-muted small mb-0">Specialized Depts</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 stat-card">
-                    <div class="card-body d-flex align-items-center">
-                        <div class="stat-icon bg-soft-info me-3">
-                            <i class="fas fa-chalkboard"></i>
-                        </div>
-                        <div>
-                            <h4 class="mb-0 fw-bold">{{ student.get_student_class_display }}</h4>
-                            <p class="text-muted small mb-0">Current Level</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Curriculum Table -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 border-0">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0 fw-bold text-dark">Course Curriculum</h5>
-                    <span class="text-muted small">{{ student.get_student_class_display }} Track</span>
-                </div>
-            </div>
-            <div class="card-body">
-                {% if enrollments %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle custom-table mb-0 datatable">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="border-0">#</th>
-                                <th class="border-0">Subject</th>
-                                <th class="border-0">Department</th>
-                                <th class="border-0">Instructor</th>
-                                <th class="border-0 text-center">Status</th>
-                                <th class="border-0 text-end pe-4">Progress</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for enrollment in enrollments %}
-                            <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>
-                                    <div class="fw-bold text-dark">{{ enrollment.subject.name }}</div>
-                                    <span class="text-muted x-small">Enrolled: {{ enrollment.enrollment_date|date:"d M y" }}</span>
-                                </td>
-                                <td><span class="dept-label">{{ enrollment.subject.department.name }}</span></td>
-                                <td>
-                                    {% if enrollment.subject.teacher %}
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-xs me-2">
-                                                <img src="{% static 'assets/img/profiles/avatar-02.jpg' %}" alt="T" class="rounded-circle border">
-                                            </div>
-                                            <span class="small">{{ enrollment.subject.teacher.user.get_full_name }}</span>
-                                        </div>
-                                    {% else %}
-                                        <span class="text-muted x-small italic">Pending Assignment</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    {% if enrollment.is_active %}
-                                        <span class="badge bg-success-light text-success px-3 rounded-pill">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-danger-light text-danger px-3 rounded-pill">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end pe-4">
-                                    <a href="#" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                                        View Portal
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-5">
-                    <img src="{% static 'assets/img/empty-courses.svg' %}" alt="No Courses" class="mb-3" style="width: 150px; opacity: 0.6;">
-                    <h5 class="text-muted fw-bold">Academic Record Empty</h5>
-                    <p class="text-muted x-small">Your class curriculum hasn't been synchronized yet.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Dept Distribution & Policy Box -->
-        <div class="row mt-4 g-4">
-            <div class="col-lg-7">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white border-0 pt-4">
-                        <h6 class="fw-bold"><i class="fas fa-th-list me-2"></i>Subject Distribution</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            {% for dept in subjects_by_department %}
-                            <div class="col-md-4">
-                                <div class="dept-card p-3 text-center border rounded">
-                                    <div class="text-primary fw-bold fs-4 mb-1">{{ dept.count }}</div>
-                                    <div class="text-muted x-small text-uppercase fw-bold">{{ dept.subject__department__name }}</div>
+                        <hr class="my-4 opacity-50">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <div class="stat-icon-sm bg-faded-info text-info">
+                                    <i class="fas fa-info-circle"></i>
                                 </div>
                             </div>
-                            {% endfor %}
+                            <p class="small text-muted mb-0">Your curriculum is automatically managed based on your grade level. For elective changes, please visit the Registry.</p>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="card border-0 shadow-sm h-100 bg-soft-info border-start border-info border-4">
-                    <div class="card-body">
-                        <h6 class="fw-bold text-dark"><i class="fas fa-shield-alt me-2"></i>Enrollment Policy</h6>
-                        <ul class="mb-0 small text-muted lh-lg">
-                            <li><i class="fas fa-check-circle text-info me-2"></i>Automatic class-based curriculum sync.</li>
-                            <li><i class="fas fa-check-circle text-info me-2"></i>Real-time update on class reassignment.</li>
-                            <li><i class="fas fa-check-circle text-info me-2"></i>Contact Admin for elective variations.</li>
-                        </ul>
-                    </div>
-                </div>
+        </div>
+
+        <!-- Subject List Table -->
+        <div class="card border-0 shadow-sm rounded-4 mb-5">
+            <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-black text-dark mb-0">Course Curriculum</h5>
+                <div class="text-muted small fw-bold">{{ enrollments.count }} Total Subjects</div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light-faded">
+                        <tr class="text-uppercase x-small fw-black text-muted">
+                            <th class="ps-4">#</th>
+                            <th>Subject Name</th>
+                            <th>Department</th>
+                            <th>Lead Instructor</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in enrollments %}
+                        <tr>
+                            <td class="ps-4 text-muted small">{{ forloop.counter }}</td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ enrollment.subject.name }}</div>
+                                <div class="x-small text-muted">Code: {{ enrollment.subject.subject_code|default:"N/A" }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-faded-secondary text-dark rounded-pill fw-medium">
+                                    {{ enrollment.subject.department.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs bg-faded-primary text-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-user-tie x-small"></i>
+                                    </div>
+                                    <span class="small fw-bold">
+                                        {{ enrollment.subject.teacher.user.get_full_name|default:"TBA" }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {% if enrollment.is_active %}
+                                    <div class="d-flex align-items-center justify-content-center text-success small fw-bold">
+                                        <span class="pulse-dot me-2"></span> Active
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted small fw-bold">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">Open Portal</button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="py-4">
+                                    <i class="fas fa-book-open fa-3x text-muted opacity-25 mb-3"></i>
+                                    <h6 class="text-muted fw-bold">No subjects found for this session.</h6>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -212,29 +145,42 @@
 </div>
 
 <style>
-    /* Profile Hero Styling */
-    .profile-hero { overflow: hidden; border-radius: 15px; }
-    .profile-avatar-side { background: #f8f9fa; border-right: 1px solid #f0f0f0; }
-    .avatar-wrapper { position: relative; display: inline-block; }
-    .profile-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .status-indicator { position: absolute; bottom: 5px; right: 5px; width: 15px; height: 15px; border-radius: 50%; border: 2px solid #fff; }
+    /* Professional Layout */
+    .bg-light-faded { background-color: #f8fafc; }
+    .bg-faded-primary { background-color: rgba(79, 70, 229, 0.05); }
+    .bg-faded-info { background-color: rgba(14, 165, 233, 0.1); }
+    .bg-faded-secondary { background-color: #f1f5f9; }
+    .bg-success-light { background-color: #dcfce7; color: #15803d; }
 
-    /* Stat Cards */
-    .stat-card { border-radius: 12px; transition: 0.3s; }
-    .stat-card:hover { transform: translateY(-3px); }
-    .stat-icon { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 1.5rem; }
-    .bg-soft-primary { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
-    .bg-soft-success { background: rgba(25, 135, 84, 0.1); color: #198754; }
-    .bg-soft-info { background: rgba(13, 202, 240, 0.1); color: #0dcaf0; }
+    .fw-black { font-weight: 900; }
+    .x-small { font-size: 0.72rem; }
 
-    /* Table Styling */
-    .custom-table thead th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
-    .bg-success-light { background: rgba(25, 135, 84, 0.1); color: #198754; }
-    .dept-label { font-size: 0.8rem; background: #f0f2f5; padding: 4px 10px; border-radius: 5px; color: #495057; }
-    .avatar-xs { width: 25px; height: 25px; }
-    .x-small { font-size: 0.7rem; }
+    /* Icons & Avatars */
+    .stat-icon-sm { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9rem; }
+    .avatar-xs { width: 28px; height: 28px; }
 
-    .dept-card { transition: 0.2s; background: #fff; }
-    .dept-card:hover { background: #f8f9fa; border-color: #0d6efd !important; }
+    /* Status Indicators */
+    .status-online-dot {
+        position: absolute; bottom: 8px; right: 8px; width: 16px; height: 16px;
+        background: #22c55e; border: 3px solid #fff; border-radius: 50%;
+    }
+
+    .pulse-dot {
+        width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Table Polish */
+    .table thead th { border-top: none; }
+    .table tbody tr { transition: all 0.2s; }
+    .table tbody tr:hover { background-color: rgba(79, 70, 229, 0.02); }
 </style>
 {% endblock %}

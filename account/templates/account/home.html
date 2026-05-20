@@ -388,6 +388,87 @@
 
   <section id="pricing" class="py-24 bg-slate-50">
     <div class="max-w-7xl mx-auto px-6">
+      <div class="max-w-3xl">
+        <h2 class="text-4xl font-extrabold text-brand-dark mb-4">Simple Pricing for Every School Stage</h2>
+        <p class="text-lg text-slate-500">Pick a package based on your current size and operations. All plans are billed monthly and can be changed anytime.</p>
+      </div>
+
+      <div class="mt-8 mb-16 flex flex-wrap items-center gap-3 text-sm">
+        <span class="inline-flex items-center rounded-full bg-white border border-slate-200 px-4 py-2 font-semibold text-slate-700">Monthly Billing</span>
+        <span class="inline-flex items-center rounded-full bg-white border border-slate-200 px-4 py-2 font-semibold text-slate-700">Upgrade or downgrade anytime</span>
+        <span class="inline-flex items-center rounded-full bg-white border border-slate-200 px-4 py-2 font-semibold text-slate-700">Clear feature limits per plan</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {% for package in package_cards %}
+        <article class="{% if package.is_featured %}bg-brand-dark p-8 rounded-[2rem] shadow-2xl relative overflow-hidden text-white border border-brand-600{% else %}bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden text-slate-900 hover:shadow-lg transition-shadow{% endif %}">
+          {% if package.is_featured %}
+          <div class="absolute top-5 right-5 bg-brand-500 text-white px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide">Most Popular</div>
+          {% endif %}
+
+          <div class="pr-24">
+            <p class="text-xs font-bold uppercase tracking-wide {% if package.is_featured %}text-brand-200{% else %}text-brand-600{% endif %}">{{ package.name }} Plan</p>
+            <h3 class="text-2xl font-extrabold mt-2 {% if package.is_featured %}text-white{% else %}text-brand-dark{% endif %}">{{ package.name }}</h3>
+            <p class="mt-2 text-sm leading-relaxed {% if package.is_featured %}text-brand-100{% else %}text-slate-500{% endif %}">{{ package.summary }}</p>
+          </div>
+
+          <div class="flex items-end gap-2 mt-7">
+            <span class="text-4xl font-black {% if package.is_featured %}text-white{% else %}text-brand-dark{% endif %}">GHS {{ package.price|floatformat:0 }}</span>
+            <span class="text-sm font-semibold mb-1 {% if package.is_featured %}text-brand-100{% else %}text-slate-500{% endif %}">/{{ package.billing_unit }}</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-6 mb-7">
+            <div class="rounded-xl border {% if package.is_featured %}border-brand-600 bg-brand-700/40{% else %}border-slate-200 bg-slate-50{% endif %} px-3 py-3">
+              <p class="text-xs font-semibold uppercase tracking-wide {% if package.is_featured %}text-brand-200{% else %}text-slate-500{% endif %}">Students</p>
+              <p class="mt-1 text-xl font-extrabold">{% if package.max_students %}{{ package.max_students }}{% else %}-{% endif %}</p>
+            </div>
+            <div class="rounded-xl border {% if package.is_featured %}border-brand-600 bg-brand-700/40{% else %}border-slate-200 bg-slate-50{% endif %} px-3 py-3">
+              <p class="text-xs font-semibold uppercase tracking-wide {% if package.is_featured %}text-brand-200{% else %}text-slate-500{% endif %}">Teachers</p>
+              <p class="mt-1 text-xl font-extrabold">{% if package.max_teachers %}{{ package.max_teachers }}{% else %}-{% endif %}</p>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <p class="text-sm font-bold {% if package.is_featured %}text-brand-100{% else %}text-slate-700{% endif %}">Included Features</p>
+            <ul class="mt-4 space-y-3">
+              {% for feature in package.features %}
+              <li class="flex items-start gap-3 text-sm leading-relaxed {% if package.is_featured %}text-white{% else %}text-slate-600{% endif %}">
+                <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full {% if package.is_featured %}bg-brand-500/30 text-brand-100{% else %}bg-brand-100 text-brand-700{% endif %}">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.25 7.25a1 1 0 01-1.415 0L3.29 9.21a1 1 0 111.414-1.42l4.042 4.044 6.543-6.544a1 1 0 011.415 0z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+                <span>{{ feature }}</span>
+              </li>
+              {% empty %}
+              <li class="text-sm {% if package.is_featured %}text-brand-100{% else %}text-slate-500{% endif %}">Core school management tools included.</li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          {% if package.is_contact_sales %}
+            <a href="{% url 'account:register-school' %}?plan={{ package.name_key }}" class="block w-full rounded-2xl border-2 {% if package.is_featured %}border-white text-white hover:bg-white hover:text-brand-dark{% else %}border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white{% endif %} py-3.5 text-center font-bold transition-all">Contact Sales</a>
+          {% else %}
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'account:initiate-package' package.id %}" class="block text-center w-full py-3.5 rounded-2xl {% if package.is_featured %}bg-brand-500 text-white shadow-xl shadow-brand-500/20 hover:bg-brand-600{% else %}border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white{% endif %} font-bold transition-all">Get Started</a>
+            {% else %}
+              <button data-package-name="{{ package.name }}" data-plan-key="{{ package.name_key }}" data-package-url="{% url 'account:initiate-package' package.id %}" class="open-plan-modal w-full py-3.5 rounded-2xl {% if package.is_featured %}bg-brand-500 text-white shadow-xl shadow-brand-500/20 hover:bg-brand-600{% else %}border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white{% endif %} font-bold transition-all">
+                Get Started
+              </button>
+            {% endif %}
+          {% endif %}
+        </article>
+        {% empty %}
+        <div class="col-span-3 text-center py-10">
+          <p class="text-slate-500">No subscription packages are available at the moment. Please contact support.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {% comment %}<section id="pricing-legacy" class="hidden">
+    <div class="max-w-7xl mx-auto px-6">
       <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
         <div class="max-w-xl">
           <h2 class="text-4xl font-extrabold text-brand-dark mb-4">Fair Pricing, No Surprises</h2>
@@ -442,7 +523,7 @@
         {% endfor %}
       </div>
     </div>
-  </section>
+  </section>{% endcomment %}
 
   <footer id="contact" class="bg-brand-dark text-white pt-20 pb-10">
     <div class="max-w-7xl mx-auto px-6">

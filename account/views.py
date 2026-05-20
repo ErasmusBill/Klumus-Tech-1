@@ -50,6 +50,25 @@ try:
 except Exception:
     FREE_TRIAL_PAYSTACK_AMOUNT = Decimal("0.000")
 
+PACKAGE_FEATURE_LABELS = {
+    "attendance": "Attendance Tracking",
+    "email_support": "Email Support",
+    "basic_reporting": "Basic Reporting",
+    "sms_notifications": "SMS Notifications",
+    "finance_dashboard": "Finance Dashboard",
+    "priority_support": "Priority Support",
+    "multi_campus": "Multi-Campus Management",
+    "api_access": "API Access",
+    "dedicated_manager": "Dedicated Account Manager",
+}
+
+PACKAGE_PLAN_SUMMARY = {
+    "bronze": "Best for new schools getting started.",
+    "silver": "Best for growing schools with more operations.",
+    "gold": "Best for large schools with advanced needs.",
+    "enterprise": "Best for organizations needing custom support.",
+}
+
 
 def _is_trial_checkout(subscription):
     return bool(
@@ -86,6 +105,77 @@ def _as_bool(value):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
+
+def _humanize_feature_name(value):
+    text = str(value or "").replace("-", " ").replace("_", " ").strip()
+    return " ".join(text.split()).title()
+
+
+def _normalize_package_features(raw_features):
+    features = []
+
+    if not raw_features:
+        return features
+
+    if isinstance(raw_features, str):
+        raw_features = [part.strip() for part in raw_features.split(",") if part.strip()]
+
+    if isinstance(raw_features, dict):
+        for key, value in raw_features.items():
+            label = PACKAGE_FEATURE_LABELS.get(str(key), _humanize_feature_name(key))
+
+            if isinstance(value, bool):
+                if value:
+                    features.append(label)
+                continue
+
+            if value is None:
+                continue
+
+            if isinstance(value, (list, tuple, set)):
+                joined = ", ".join(str(item).strip() for item in value if str(item).strip())
+                if joined:
+                    features.append(f"{label}: {joined}")
+                continue
+
+            if isinstance(value, dict):
+                nested_items = []
+                for nested_key, nested_value in value.items():
+                    if nested_value in (None, "", False):
+                        continue
+                    nested_label = _humanize_feature_name(nested_key)
+                    if nested_value is True:
+                        nested_items.append(nested_label)
+                    else:
+                        nested_items.append(f"{nested_label} {nested_value}")
+                if nested_items:
+                    features.append(f"{label}: {', '.join(nested_items)}")
+                continue
+
+            normalized_value = str(value).strip()
+            if normalized_value and normalized_value.lower() not in {"false", "none", "null"}:
+                features.append(f"{label}: {normalized_value}")
+    elif isinstance(raw_features, (list, tuple, set)):
+        features.extend(_humanize_feature_name(item) for item in raw_features if str(item).strip())
+    else:
+        text = _humanize_feature_name(raw_features)
+        if text:
+            features.append(text)
+
+    deduped = []
+    seen = set()
+    for item in features:
+        normalized_item = " ".join(str(item).split()).strip()
+        if not normalized_item:
+            continue
+        key = normalized_item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(normalized_item)
+
+    return deduped
+
 def home(request):
     cache_key = make_cache_key("home", "public", "landing")
     if should_cache(request):
@@ -94,7 +184,34 @@ def home(request):
             return cached_response
 
     subscription = Subscription.objects.all()
-    packages = Package.objects.filter(is_active=True).order_by("price")
+    packages = list(Package.objects.filter(is_active=True).order_by("price"))
+    package_cards = []
+    for index, package in enumerate(packages):
+        package_name_key = (package.name or "").lower()
+        normalized_features = _normalize_package_features(package.features)
+        if not normalized_features:
+            normalized_features = package.formatted_features
+
+        duration = int(package.duration_days or 30)
+        billing_unit = "month" if duration in {28, 29, 30, 31} else f"{duration} days"
+
+        package_cards.append(
+            {
+                "id": package.id,
+                "name": package.get_name_display(),
+                "name_key": package_name_key,
+                "price": package.price,
+                "max_students": package.max_students,
+                "max_teachers": package.max_teachers,
+                "duration_days": duration,
+                "billing_unit": billing_unit,
+                "features": normalized_features,
+                "summary": PACKAGE_PLAN_SUMMARY.get(package_name_key, "Flexible plan for your school."),
+                "is_featured": package_name_key == "silver" or (index == 1 and len(packages) > 1),
+                "is_contact_sales": package_name_key in {"gold", "enterprise"},
+            }
+        )
+
     packages_by_name = {p.name: p for p in packages}
     response = render(
         request,
@@ -102,6 +219,7 @@ def home(request):
         {
             "subscription": subscription,
             "packages": packages,
+            "package_cards": package_cards,
             "packages_by_name": packages_by_name,
             "paystack_public_key": settings.PAYSTACK_PUBLIC_KEY,
         },

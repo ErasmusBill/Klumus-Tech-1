@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import login, authenticate,update_session_auth_hash,logout
 from django.urls import reverse
 import uuid
+import ast
 from .utils import (
     initialize_paystack_payment,
     verify_payment,
@@ -69,6 +70,8 @@ PACKAGE_PLAN_SUMMARY = {
     "enterprise": "Best for organizations needing custom support.",
 }
 
+MAX_RENDERED_PACKAGE_FEATURES = 12
+
 
 def _is_trial_checkout(subscription):
     return bool(
@@ -111,56 +114,129 @@ def _humanize_feature_name(value):
     return " ".join(text.split()).title()
 
 
-def _normalize_package_features(raw_features):
-    features = []
+def _parse_json_or_literal(text):
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            return parser(text)
+        except Exception:
+            continue
+    return None
 
-    if not raw_features:
-        return features
 
-    if isinstance(raw_features, str):
-        raw_features = [part.strip() for part in raw_features.split(",") if part.strip()]
+def _parse_structured_feature_value(value):
+    if not isinstance(value, str):
+        return value
 
-    if isinstance(raw_features, dict):
-        for key, value in raw_features.items():
-            label = PACKAGE_FEATURE_LABELS.get(str(key), _humanize_feature_name(key))
+    text = value.strip()
+    if not text:
+        return ""
 
-            if isinstance(value, bool):
-                if value:
-                    features.append(label)
+    parsed = _parse_json_or_literal(text)
+    if parsed is not None:
+        return parsed
+
+    for opener, closer in (("{", "}"), ("[", "]")):
+        start = text.find(opener)
+        end = text.rfind(closer)
+        if start > 0 and end > start:
+            prefix = text[:start].strip().rstrip(":- ")
+            literal = text[start : end + 1]
+            parsed_literal = _parse_json_or_literal(literal)
+            if parsed_literal is None:
+                continue
+            if prefix:
+                return {prefix: parsed_literal}
+            return parsed_literal
+
+    return text
+
+
+def _compact_feature_label(label):
+    segments = [segment.strip() for segment in str(label).split(":") if segment.strip()]
+    if not segments:
+        return ""
+    if len(segments) >= 3:
+        return ": ".join(segments[-2:])
+    if len(segments) == 2 and len(segments[0]) > 24:
+        return segments[1]
+    return ": ".join(segments)
+
+
+def _format_integer_display(value):
+    try:
+        return f"{int(Decimal(str(value))):,}"
+    except Exception:
+        return str(value)
+
+
+def _flatten_feature_items(value, parent_label=""):
+    items = []
+
+    if isinstance(value, dict):
+        for raw_key, raw_value in value.items():
+            key_label = PACKAGE_FEATURE_LABELS.get(str(raw_key), _humanize_feature_name(raw_key))
+            label = f"{parent_label}: {key_label}" if parent_label else key_label
+            parsed_value = _parse_structured_feature_value(raw_value)
+            display_label = _compact_feature_label(label)
+
+            if isinstance(parsed_value, bool):
+                if parsed_value:
+                    items.append(display_label or label)
                 continue
 
-            if value is None:
+            if parsed_value in (None, "", False):
                 continue
 
-            if isinstance(value, (list, tuple, set)):
-                joined = ", ".join(str(item).strip() for item in value if str(item).strip())
-                if joined:
-                    features.append(f"{label}: {joined}")
-                continue
-
-            if isinstance(value, dict):
-                nested_items = []
-                for nested_key, nested_value in value.items():
-                    if nested_value in (None, "", False):
-                        continue
-                    nested_label = _humanize_feature_name(nested_key)
-                    if nested_value is True:
-                        nested_items.append(nested_label)
-                    else:
-                        nested_items.append(f"{nested_label} {nested_value}")
+            if isinstance(parsed_value, (dict, list, tuple, set)):
+                nested_items = _flatten_feature_items(parsed_value, label)
                 if nested_items:
-                    features.append(f"{label}: {', '.join(nested_items)}")
+                    items.extend(nested_items)
+                else:
+                    items.append(label)
                 continue
 
-            normalized_value = str(value).strip()
-            if normalized_value and normalized_value.lower() not in {"false", "none", "null"}:
-                features.append(f"{label}: {normalized_value}")
-    elif isinstance(raw_features, (list, tuple, set)):
-        features.extend(_humanize_feature_name(item) for item in raw_features if str(item).strip())
+            normalized_value = str(parsed_value).strip()
+            if not normalized_value or normalized_value.lower() in {"false", "none", "null"}:
+                continue
+            items.append(f"{display_label or label}: {normalized_value}")
+        return items
+
+    if isinstance(value, (list, tuple, set)):
+        display_parent_label = _compact_feature_label(parent_label)
+        for entry in value:
+            parsed_entry = _parse_structured_feature_value(entry)
+            if isinstance(parsed_entry, (dict, list, tuple, set)):
+                items.extend(_flatten_feature_items(parsed_entry, parent_label))
+                continue
+
+            normalized_entry = str(parsed_entry).strip()
+            if not normalized_entry or normalized_entry.lower() in {"false", "none", "null"}:
+                continue
+
+            if parent_label:
+                items.append(f"{display_parent_label or parent_label}: {normalized_entry}")
+            else:
+                items.append(_humanize_feature_name(normalized_entry))
+        return items
+
+    normalized = str(value).strip()
+    if not normalized or normalized.lower() in {"false", "none", "null"}:
+        return items
+
+    if parent_label:
+        display_parent_label = _compact_feature_label(parent_label)
+        items.append(f"{display_parent_label or parent_label}: {normalized}")
     else:
-        text = _humanize_feature_name(raw_features)
-        if text:
-            features.append(text)
+        items.append(_humanize_feature_name(normalized))
+    return items
+
+
+def _normalize_package_features(raw_features):
+    if not raw_features:
+        return []
+
+    parsed_features = _parse_structured_feature_value(raw_features)
+    features = _flatten_feature_items(parsed_features)
 
     deduped = []
     seen = set()
@@ -174,10 +250,22 @@ def _normalize_package_features(raw_features):
         seen.add(key)
         deduped.append(normalized_item)
 
+    if len(deduped) > MAX_RENDERED_PACKAGE_FEATURES:
+        remaining = len(deduped) - MAX_RENDERED_PACKAGE_FEATURES
+        deduped = deduped[:MAX_RENDERED_PACKAGE_FEATURES]
+        deduped.append(f"And {remaining} more feature{'s' if remaining != 1 else ''}")
+
     return deduped
 
 def home(request):
-    cache_key = make_cache_key("home", "public", "landing")
+    latest_package_update = (
+        Package.objects.filter(is_active=True)
+        .order_by("-updated_at")
+        .values_list("updated_at", flat=True)
+        .first()
+    )
+    package_cache_token = latest_package_update.isoformat() if latest_package_update else "no-packages"
+    cache_key = make_cache_key("home", ["public", "landing", package_cache_token])
     if should_cache(request):
         cached_response = cache.get(cache_key)
         if cached_response:
@@ -201,8 +289,11 @@ def home(request):
                 "name": package.get_name_display(),
                 "name_key": package_name_key,
                 "price": package.price,
+                "price_display": _format_integer_display(package.price),
                 "max_students": package.max_students,
                 "max_teachers": package.max_teachers,
+                "max_students_display": _format_integer_display(package.max_students),
+                "max_teachers_display": _format_integer_display(package.max_teachers),
                 "duration_days": duration,
                 "billing_unit": billing_unit,
                 "features": normalized_features,

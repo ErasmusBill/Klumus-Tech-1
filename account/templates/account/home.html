@@ -413,18 +413,18 @@
           </div>
 
           <div class="flex items-end gap-2 mt-7">
-            <span class="text-4xl font-black {% if package.is_featured %}text-white{% else %}text-brand-dark{% endif %}">GHS {{ package.price|floatformat:0 }}</span>
+            <span class="text-4xl font-black {% if package.is_featured %}text-white{% else %}text-brand-dark{% endif %}">GHS {{ package.price_display }}</span>
             <span class="text-sm font-semibold mb-1 {% if package.is_featured %}text-brand-100{% else %}text-slate-500{% endif %}">/{{ package.billing_unit }}</span>
           </div>
 
           <div class="grid grid-cols-2 gap-3 mt-6 mb-7">
             <div class="rounded-xl border {% if package.is_featured %}border-brand-600 bg-brand-700/40{% else %}border-slate-200 bg-slate-50{% endif %} px-3 py-3">
               <p class="text-xs font-semibold uppercase tracking-wide {% if package.is_featured %}text-brand-200{% else %}text-slate-500{% endif %}">Students</p>
-              <p class="mt-1 text-xl font-extrabold">{% if package.max_students %}{{ package.max_students }}{% else %}-{% endif %}</p>
+              <p class="mt-1 text-xl font-extrabold">{% if package.max_students %}{{ package.max_students_display }}{% else %}-{% endif %}</p>
             </div>
             <div class="rounded-xl border {% if package.is_featured %}border-brand-600 bg-brand-700/40{% else %}border-slate-200 bg-slate-50{% endif %} px-3 py-3">
               <p class="text-xs font-semibold uppercase tracking-wide {% if package.is_featured %}text-brand-200{% else %}text-slate-500{% endif %}">Teachers</p>
-              <p class="mt-1 text-xl font-extrabold">{% if package.max_teachers %}{{ package.max_teachers }}{% else %}-{% endif %}</p>
+              <p class="mt-1 text-xl font-extrabold">{% if package.max_teachers %}{{ package.max_teachers_display }}{% else %}-{% endif %}</p>
             </div>
           </div>
 
@@ -432,13 +432,13 @@
             <p class="text-sm font-bold {% if package.is_featured %}text-brand-100{% else %}text-slate-700{% endif %}">Included Features</p>
             <ul class="mt-4 space-y-3">
               {% for feature in package.features %}
-              <li class="flex items-start gap-3 text-sm leading-relaxed {% if package.is_featured %}text-white{% else %}text-slate-600{% endif %}">
+              <li class="flex items-start gap-3 text-sm leading-relaxed break-words {% if package.is_featured %}text-white{% else %}text-slate-600{% endif %}">
                 <span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full {% if package.is_featured %}bg-brand-500/30 text-brand-100{% else %}bg-brand-100 text-brand-700{% endif %}">
                   <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.25 7.25a1 1 0 01-1.415 0L3.29 9.21a1 1 0 111.414-1.42l4.042 4.044 6.543-6.544a1 1 0 011.415 0z" clip-rule="evenodd" />
                   </svg>
                 </span>
-                <span>{{ feature }}</span>
+                <span class="whitespace-normal">{{ feature }}</span>
               </li>
               {% empty %}
               <li class="text-sm {% if package.is_featured %}text-brand-100{% else %}text-slate-500{% endif %}">Core school management tools included.</li>

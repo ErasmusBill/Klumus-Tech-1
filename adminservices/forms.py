@@ -42,6 +42,7 @@ class AddTeacherForm(forms.ModelForm):
     gender = forms.ChoiceField(
         choices=GENDER_CHOICES,
         required=True,
+
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     date_of_birth = forms.DateField(
@@ -63,7 +64,7 @@ class AddTeacherForm(forms.ModelForm):
     )
     class Meta:
         model = Teacher
-        fields = [
+        fields = [  
             "qualification",
             "specialization", 
             "experience_years",

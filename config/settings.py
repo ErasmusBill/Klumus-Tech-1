@@ -26,7 +26,9 @@ DEBUG = os.getenv("DEBUG", "False").strip().lower() in {"1", "true", "yes", "on"
 
 
 def _csv_env(name: str, default: str = "") -> list[str]:
-    raw_value = os.getenv(name, default)
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        raw_value = default
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
@@ -141,14 +143,9 @@ APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 
 
 def _db_ssl_required(app_env: str) -> bool:
-    # Check for an explicit override first
     explicit = os.getenv("DB_SSL_REQUIRE")
     if explicit is not None:
         return explicit.strip().lower() in {"1", "true", "yes", "on"}
-    # Only default to True if in production AND no explicit override exists
-    if app_env == "production":
-        # Note: If you are in Docker on a local/private network, you usually want False
-        return False
     return False
 
 
@@ -161,7 +158,6 @@ if DATABASE_URL:
         )
     }
 
-    # Final safety check: if the URL says disable, make sure Django honors it
     if "sslmode=disable" in DATABASE_URL:
         DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "disable"
 else:
@@ -284,10 +280,8 @@ if not csrf_origins and DOMAIN_URL:
 CSRF_TRUSTED_ORIGINS = csrf_origins
 
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False").strip().lower() in {"1", "true", "yes", "on"}
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true",
-                                                                                                         "yes", "on"}
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true", "yes",
-                                                                                                   "on"}
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true", "yes", "on"}
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", str(SECURE_SSL_REDIRECT)).strip().lower() in {"1", "true", "yes", "on"}
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
@@ -312,7 +306,6 @@ CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", _default_celery
     "1",
     "yes",
 )
-
 
 # ========================
 # LOGGING CONFIGURATION

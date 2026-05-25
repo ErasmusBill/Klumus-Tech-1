@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env.local first (developer overrides), then .env (shared defaults).
-# Neither file overwrites variables that are already set in the process env.
 load_dotenv(BASE_DIR / ".env.local")
 load_dotenv(BASE_DIR / ".env")
 
@@ -20,7 +18,6 @@ load_dotenv(BASE_DIR / ".env")
 # ---------------------------------------------------------------------------
 
 def _bool(name: str, default: bool = False) -> bool:
-    """Read a boolean environment variable."""
     value = os.getenv(name)
     if value is None:
         return default
@@ -28,13 +25,11 @@ def _bool(name: str, default: bool = False) -> bool:
 
 
 def _int(name: str, default: int) -> int:
-    """Read an integer environment variable."""
     value = os.getenv(name)
     return int(value.strip()) if value else default
 
 
 def _csv(name: str, default: str = "") -> list[str]:
-    """Read a comma-separated environment variable into a list of strings."""
     raw = os.getenv(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
 
@@ -43,45 +38,45 @@ def _csv(name: str, default: str = "") -> list[str]:
 # Core
 # ---------------------------------------------------------------------------
 
-SECRET_KEY: str = os.environ["SECRET_KEY"] if not _bool("DEBUG") else os.getenv("SECRET_KEY", "dev-only-secret-key")
-DEBUG: bool = _bool("DEBUG", default=False)
-APP_ENV: str = os.getenv("APP_ENV", "development").strip().lower()
+DEBUG = _bool("DEBUG", default=False)
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 
-ALLOWED_HOSTS: list[str] = _csv(
+if DEBUG:
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-insecure-secret-key")
+else:
+    SECRET_KEY = os.environ["SECRET_KEY"]
+
+ALLOWED_HOSTS = _csv(
     "ALLOWED_HOSTS",
     default="school.fruitfulyouth.org,fruitfulyouth.org,localhost,127.0.0.1",
 )
 
-DOMAIN_URL: str = os.getenv("DOMAIN_URL", "https://school.fruitfulyouth.org")
+DOMAIN_URL = os.getenv("DOMAIN_URL", "https://school.fruitfulyouth.org")
 APPEND_SLASH = True
 
 # ---------------------------------------------------------------------------
 # Application
 # ---------------------------------------------------------------------------
 
-DJANGO_APPS = [
+INSTALLED_APPS = [
+    # Admin UI (must be before django.contrib.admin)
     "jazzmin",
+    # Django core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-]
-
-LOCAL_APPS = [
+    # Local apps
     "account",
     "adminservices",
     "teacher",
     "student",
     "ai_predictor",
-]
-
-THIRD_PARTY_APPS = [
+    # Third-party
     "django_select2",
 ]
-
-INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
 
 # ---------------------------------------------------------------------------
 # Middleware
@@ -133,12 +128,11 @@ TEMPLATES = [
 _database_url = os.getenv("DATABASE_URL")
 
 if _database_url:
-    _ssl_require = _bool("DB_SSL_REQUIRE", default=False)
     DATABASES = {
         "default": dj_database_url.parse(
             _database_url,
             conn_max_age=600,
-            ssl_require=_ssl_require,
+            ssl_require=_bool("DB_SSL_REQUIRE", default=False),
         )
     }
     if "sslmode=disable" in _database_url:
@@ -182,11 +176,11 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = (
-    "django.contrib.staticfiles.storage.StaticFilesStorage"
-    if DEBUG
-    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
+
+if DEBUG:
+    STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+else:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -204,7 +198,9 @@ if _redis_url or APP_ENV == "production":
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": _redis_url or "redis://redis:6379/0",
-            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
         }
     }
 else:
@@ -224,14 +220,15 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-CSRF_TRUSTED_ORIGINS: list[str] = _csv("CSRF_TRUSTED_ORIGINS") or ([DOMAIN_URL] if DOMAIN_URL else [])
+_csrf_origins = _csv("CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = _csrf_origins if _csrf_origins else ([DOMAIN_URL] if DOMAIN_URL else [])
 
 SECURE_SSL_REDIRECT = _bool("SECURE_SSL_REDIRECT", default=False)
 SESSION_COOKIE_SECURE = _bool("SESSION_COOKIE_SECURE", default=SECURE_SSL_REDIRECT)
 CSRF_COOKIE_SECURE = _bool("CSRF_COOKIE_SECURE", default=SECURE_SSL_REDIRECT)
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ---------------------------------------------------------------------------
 # Email
@@ -263,8 +260,10 @@ else:
 # Celery
 # ---------------------------------------------------------------------------
 
-_celery_broker = os.getenv("CELERY_BROKER_URL") or _redis_url or (
-    "redis://redis:6379/0" if APP_ENV == "production" else "memory://"
+_celery_broker = (
+    os.getenv("CELERY_BROKER_URL")
+    or _redis_url
+    or ("redis://redis:6379/0" if APP_ENV == "production" else "memory://")
 )
 
 CELERY_BROKER_URL = _celery_broker
@@ -326,9 +325,25 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        **{
-            app: {"handlers": ["console"], "level": "INFO", "propagate": False}
-            for app in ("account", "adminservices", "teacher", "student")
+        "account": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "adminservices": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "teacher": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "student": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

@@ -178,15 +178,15 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 if not DEBUG:
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
-    WHITENOISE_MANIFEST_STRICT = False  # ✅ same level as STORAGES
+    if not DEBUG:
+        STORAGES = {
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "yourproject.storage.SkipSourceMapsStorage",  # ← your app name
+            },
+        }
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

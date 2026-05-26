@@ -1116,14 +1116,27 @@ class Fees(models.Model):
         """The total amount to be paid after discount"""
         return max(self.amount_required - self.discount, 0)
 
-    from decimal import Decimal
-
     @property
     def balance(self):
-        # Convert everything to Decimal to avoid the TypeError
+        """Amount still owed on this fee, never below zero."""
         total = Decimal(str(self.total_bill or 0))
         paid = Decimal(str(self.amount_paid or 0))
-        return total - paid
+        return max(total - paid, Decimal("0.00"))
+
+    @property
+    def overpaid_amount(self):
+        """Amount paid beyond the bill total."""
+        total = Decimal(str(self.total_bill or 0))
+        paid = Decimal(str(self.amount_paid or 0))
+        return max(paid - total, Decimal("0.00"))
+
+    @property
+    def is_paid_in_full(self):
+        return self.balance <= 0
+
+    @property
+    def is_overdue(self):
+        return self.balance > 0 and self.due_date and timezone.now().date() > self.due_date
 
     def save(self, *args, **kwargs):
         # 1. If a structure is linked, pull its data to populate the bill
@@ -1144,10 +1157,10 @@ class Fees(models.Model):
             self.status = 'paid'
             if not self.payment_date:
                 self.payment_date = timezone.now().date()
+        elif self.due_date and timezone.now().date() > self.due_date:
+            self.status = 'overdue'
         elif self.amount_paid > 0:
             self.status = 'partial'
-        elif timezone.now().date() > self.due_date:
-            self.status = 'overdue'
         else:
             self.status = 'unpaid'
 

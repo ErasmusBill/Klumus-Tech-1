@@ -4,71 +4,67 @@
 {% block title %}Fee Configurations | Kiddo Care{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
-
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">Standard Fee Structures</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Fee Configurations</li>
-          </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-          <a href="{% url 'adminservices:fee-configuration' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> New Structure
-          </a>
-        </div>
+<div class="admin-list-page">
+  <div class="admin-list-shell">
+    <div class="page-header admin-list-header">
+      <div class="admin-list-header-copy">
+        <h3 class="page-title">Standard Fee Structures</h3>
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Fee Configurations</li>
+        </ul>
+      </div>
+      <div class="admin-list-header-actions">
+        <span class="admin-list-chip">
+          <i class="fas fa-file-invoice-dollar"></i>
+          {{ structures|length|default:0 }} total
+        </span>
+        <a href="{% url 'adminservices:fee-configuration' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> New Structure
+        </a>
       </div>
     </div>
 
-    <div class="row">
-      <div class="col-sm-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover table-center mb-0">
-                <thead class="thead-light">
-                  <tr>
-                    <th>Academic Year</th>
-                    <th>Term</th>
-                    <th>Class Level</th>
-                    <th>Fee Category</th>
-                    <th>Standard Amount</th>
-                    <th class="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for struct in structures %}
-                  <tr>
-                    <td><strong>{{ struct.academic_year }}</strong></td>
-                    <td>{{ struct.get_term_display }}</td>
-                    <td><span class="badge badge-info">{{ struct.student_class }}</span></td>
-                    <td>{{ struct.get_fee_type_display }}</td>
-                    <td><h6 class="mb-0 text-dark font-weight-bold">₵{{ struct.amount|floatformat:2 }}</h6></td>
-                    <td class="text-right">
-                        <span class="text-muted"><i class="fas fa-check-circle text-success mr-1"></i> Active</span>
-                    </td>
-                  </tr>
-                  {% empty %}
-                  <tr>
-                    <td colspan="6" class="text-center py-5 text-muted">
-                      <i class="fas fa-file-invoice fa-3x mb-3 d-block"></i>
-                      No fee structures found. <br>
-                      <a href="{% url 'adminservices:fee-configuration' %}" class="mt-2 btn btn-sm btn-outline-primary">Add your first one</a>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    <div class="card card-table admin-list-card">
+      <div class="card-body">
+        <div class="table-responsive admin-list-table-wrap">
+          <table class="table table-hover table-center mb-0 admin-list-table">
+            <thead class="thead-light">
+              <tr>
+                <th>Academic Year</th>
+                <th>Term</th>
+                <th>Class Level</th>
+                <th>Fee Category</th>
+                <th>Standard Amount</th>
+                <th class="admin-list-actions-cell">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for struct in structures %}
+              <tr>
+                <td><strong>{{ struct.academic_year }}</strong></td>
+                <td>{{ struct.get_term_display }}</td>
+                <td><span class="badge badge-info">{{ struct.student_class }}</span></td>
+                <td>{{ struct.get_fee_type_display }}</td>
+                <td><h6 class="mb-0 text-dark font-weight-bold">&#8373;{{ struct.amount|floatformat:2 }}</h6></td>
+                <td class="admin-list-actions-cell">
+                  <span class="text-muted"><i class="fas fa-check-circle text-success mr-1"></i> Active</span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                  <i class="fas fa-file-invoice fa-3x mb-3 d-block"></i>
+                  No fee structures found. <br>
+                  <a href="{% url 'adminservices:fee-configuration' %}" class="mt-2 btn btn-sm btn-outline-primary">Add your first one</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 {% endblock %}

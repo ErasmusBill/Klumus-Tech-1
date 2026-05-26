@@ -551,7 +551,13 @@ class ClassFeeForm(forms.ModelForm):
         widgets = {
             'student_class': forms.Select(attrs={'class': 'form-control'}),
             'fee_type': forms.Select(attrs={'class': 'form-control'}),
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0.00'}),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Fetches automatically',
+                'step': '0.01',
+                'inputmode': 'decimal',
+                'autocomplete': 'off',
+            }),
             'academic_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2025/2026'}),
             'term': forms.Select(attrs={'class': 'form-control'}),
         }

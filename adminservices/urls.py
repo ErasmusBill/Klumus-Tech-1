@@ -25,6 +25,7 @@ urlpatterns = [
     path("student-detail/<uuid:student_id>",views.student_detail,name='student-detail'),
     path('add-fees/', views.add_fees, name='add-fees'),
     path('fee-configuration/', views.create_fee_structure, name='fee-configuration'),
+    path('fee-configuration/amount/', views.fetch_fee_structure_amount, name='fee-configuration-amount'),
     path('fee-configurations/all/', views.list_fee_structures, name='fee_structure_list'),
     path('list-fees/', views.list_fees, name='list-fees'),
     path('fees/<uuid:fee_id>/edit/', views.edit_fees, name='edit-fees'),

@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models import Q, Count
 from django.conf import settings
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from django.core.cache import cache
 
 from account.models import (
@@ -23,7 +24,7 @@ from .forms import (
 from .utils import *
 from .utils import send_announcement_via_email_and_sms
 from django.template.loader import render_to_string
-from django.http import HttpResponse    
+from django.http import HttpResponse, JsonResponse    
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -106,6 +107,8 @@ def admin_dashboard(request):
     students_count = Student.objects.filter(school=school).count()
     teachers_count = Teacher.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
+    published_announcements_count = Announcement.objects.filter(school=school, published=True).count()
+    academic_year = school.get_current_academic_year()
 
     # Student distribution by class
     class_map = dict(Student.CLASS_CHOICES)
@@ -121,6 +124,7 @@ def admin_dashboard(request):
     # Handle student search
     students = Student.objects.filter(school=school).select_related('user')
     search_query = None
+    search_results_count = None
 
     if request.method == "POST":
         search_query = request.POST.get("search")
@@ -133,17 +137,35 @@ def admin_dashboard(request):
             )
             if not students.exists():
                 messages.info(request, f"No students found matching '{search_query}'")
+            search_results_count = students.count()
         else:
             messages.error(request, "Please enter a search term")
 
+    recent_students = (
+        Student.objects.filter(school=school)
+        .select_related("user")
+        .order_by("-created_at")[:5]
+    )
+    recent_announcements = (
+        Announcement.objects.filter(school=school, published=True)
+        .select_related("author")
+        .order_by("-created_at")[:5]
+    )
+
     context = {
+        "school": school,
+        "academic_year": academic_year,
         "students_count": students_count,
         "departments_count": departments_count,
         "teachers_count": teachers_count,
+        "published_announcements_count": published_announcements_count,
         "students": students,
         "search_query": search_query,
+        "search_results_count": search_results_count,
         "distribution_labels": distribution_labels,
         "distribution_data": distribution_data,
+        "recent_students": recent_students,
+        "recent_announcements": recent_announcements,
     }
 
     response = render(request, 'adminservices/admin_dashboard.html', context)
@@ -165,7 +187,7 @@ def download_admin_report(request):
 
     students = Student.objects.filter(school=school).select_related("user")
     teachers = Teacher.objects.filter(school=school).select_related("user")
-    departments = Department.objects.filter(school=school)
+    departments = Department.objects.filter(school=school).order_by("name")
     subjects = Subject.objects.filter(school=school)
 
     response = HttpResponse(content_type="text/csv")
@@ -590,7 +612,7 @@ def list_departments(request):
         if cached_response:
             return cached_response
 
-    departments = Department.objects.filter(school=school)
+    departments = Department.objects.filter(school=school).order_by("name")
     paginator = Paginator(departments, 25)
     page_obj = paginator.get_page(page_number)
 
@@ -894,6 +916,13 @@ def create_fee_structure(request):
         messages.error(request, "Your account is not linked to a school.")
         return redirect("adminservices:admin-dashboard")
 
+    current_academic_year = school.get_current_academic_year()
+    fee_structures_count = ClassFee.objects.filter(school=school).count()
+    recent_structures = (
+        ClassFee.objects.filter(school=school)
+        .order_by("-academic_year", "student_class", "fee_type")[:6]
+    )
+
     if request.method == 'POST':
         # Change request.user.school to school
         form = ClassFeeForm(request.POST, school=school)
@@ -907,7 +936,78 @@ def create_fee_structure(request):
         # Change request.user.school to school
         form = ClassFeeForm(school=school)
 
-    return render(request, 'adminservices/fees_configuration.html', {'form': form})
+    return render(request, 'adminservices/fees_configuration.html', {
+        'form': form,
+        'school': school,
+        'current_academic_year': current_academic_year,
+        'fee_structures_count': fee_structures_count,
+        'recent_structures': recent_structures,
+    })
+
+
+@login_required(login_url='account:login')
+@require_GET
+def fetch_fee_structure_amount(request):
+    if request.user.role != "admin":
+        return JsonResponse({"found": False, "message": "Unauthorized."}, status=403)
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        return JsonResponse({"found": False, "message": "School context not found."}, status=400)
+
+    student_class = request.GET.get("student_class")
+    fee_type = request.GET.get("fee_type")
+
+    if not student_class or not fee_type:
+        return JsonResponse({
+            "found": False,
+            "message": "Select a class and fee type first.",
+        }, status=400)
+
+    class_fee = (
+        ClassFee.objects.filter(
+            school=school,
+            student_class=student_class,
+            fee_type=fee_type,
+        )
+        .order_by("-academic_year", "-term", "-id")
+        .first()
+    )
+
+    if class_fee:
+        return JsonResponse({
+            "found": True,
+            "amount": str(class_fee.amount),
+            "source": "class_fee",
+            "source_label": f"{class_fee.get_student_class_display()} - {class_fee.get_fee_type_display()}",
+            "academic_year": class_fee.academic_year,
+            "term": class_fee.get_term_display(),
+        })
+
+    fee_record = (
+        Fees.objects.filter(
+            school=school,
+            student_class=student_class,
+            fee_type=fee_type,
+        )
+        .order_by("-created_at", "-id")
+        .first()
+    )
+
+    if fee_record:
+        return JsonResponse({
+            "found": True,
+            "amount": str(fee_record.amount_required),
+            "source": "fee_record",
+            "source_label": f"{fee_record.get_fee_type_display()} bill",
+            "academic_year": fee_record.academic_year,
+            "term": fee_record.get_term_display(),
+        })
+
+    return JsonResponse({
+        "found": False,
+        "message": "No saved amount found for this class and fee type.",
+    })
 
 
 from django.utils import timezone

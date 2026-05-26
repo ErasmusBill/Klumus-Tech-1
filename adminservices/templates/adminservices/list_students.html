@@ -1,59 +1,232 @@
 {% extends "adminservices/base.html" %}
 {% load static media_tags %}
 
-{% block title %}Students{% endblock %}
+{% block title %}Students List{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
+  .student-page {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .student-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .student-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .student-header-copy {
+    min-width: 0;
+    flex: 1 1 320px;
+  }
+
+  .student-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1 1 240px;
+  }
+
+  .student-header-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .student-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .student-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+  }
+
+  .student-card .card-body {
+    padding: 0;
+  }
+
+  .student-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .student-table {
+    min-width: 1080px;
+    margin-bottom: 0;
+  }
+
+  .student-table th,
+  .student-table td {
+    vertical-align: middle;
+  }
+
+  .student-table th.student-actions-cell,
+  .student-table td.student-actions-cell {
+    white-space: nowrap;
+    width: 1%;
+    text-align: right;
+  }
+
+  .table-avatar {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
   .table-avatar a {
     color: #495057;
     text-decoration: none;
   }
+
   .table-avatar .avatar {
     border-radius: 50%;
     width: 31px;
     height: 31px;
     object-fit: cover;
+    flex: 0 0 auto;
   }
-  .btn-sm i {
+
+  .student-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    min-width: max-content;
+  }
+
+  .student-actions .btn,
+  .student-actions form {
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .student-actions .btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    line-height: 1;
+  }
+
+  .student-actions .btn i {
     font-size: 12px;
   }
-  .actions {
-    display: flex;
-    gap: 0.25rem;
+
+  .student-actions .btn-outline-primary,
+  .student-actions .btn-outline-secondary {
+    border-width: 1px;
+  }
+
+  .student-actions form button {
+    border: 0;
+  }
+
+  .student-pagination {
+    margin-top: 1rem;
+  }
+
+  .student-pagination .pagination {
+    margin-bottom: 0;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+
+  .student-pagination .page-link {
+    min-width: 38px;
+    text-align: center;
+  }
+
+  @media (max-width: 991.98px) {
+    .student-table {
+      min-width: 960px;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .student-header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .student-header-actions .btn {
+      flex: 1 1 0;
+      justify-content: center;
+    }
+
+    .student-chip {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .student-actions .btn {
+      width: 32px;
+      height: 32px;
+    }
+
+    .student-table {
+      min-width: 900px;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
-    
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">Students</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Students</li>
-          </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-          <a href="#" class="btn btn-outline-primary mr-2" id="download-btn" style="display:none;">
-            <i class="fas fa-download"></i> Download
-          </a>
-          <a href="{% url 'adminservices:add-student' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-          </a>
-        </div>
+<div class="student-page">
+  <div class="student-shell">
+    <div class="page-header student-header">
+      <div class="student-header-copy">
+        <h3 class="page-title">Students</h3>
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Students</li>
+        </ul>
+      </div>
+
+      <div class="student-header-actions">
+        <span class="student-chip">
+          <i class="fas fa-user-graduate"></i>
+          {{ page_obj.paginator.count|default:0 }} total
+        </span>
+        <a href="{% url 'adminservices:add-student' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add Student
+        </a>
       </div>
     </div>
 
-    <!-- Messages -->
     {% if messages %}
       {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -65,149 +238,137 @@
       {% endfor %}
     {% endif %}
 
-    <!-- Students Table -->
-    <div class="row">
-      <div class="col-sm-12">
-        <div class="card card-table">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover table-center mb-0 datatable">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Class</th>
-                    <th>DOB</th>
-                    <th>Parent Name</th>
-                    <th>Mobile Number</th>
-                    <th>Address</th>
-                    <th class="text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for student in page_obj %}
-                    <tr>
-                      <td>{{ student.student_id|slice:":8"|upper }}</td>
-                      <td>
-                        <h2 class="table-avatar">
-                          <a href="{% url 'adminservices:student-detail' student.id %}" class="avatar avatar-sm mr-2">
-                            {% if student.user.profile_picture %}
-                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
-                            {% elif student.student_image %}
-                              <img class="avatar-img rounded-circle" src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
-                            {% else %}
-                              <img class="avatar-img rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Default Avatar">
-                            {% endif %}
-                          </a>
-                          <a href="{% url 'adminservices:student-detail' student.id %}">
-                            {{ student.user.get_full_name }}
-                          </a>
-                        </h2>
-                      </td>
-                      <td>{{ student.get_student_class_display }}</td>
-                      <td>{{ student.user.date_of_birth|date:"d M Y" }}</td>
-                      <td>
-                        {{ student.parent.father_name }} / {{ student.parent.mother_name }}
-                      </td>
-                      <td>{{ student.user.phone_number|default:"N/A" }}</td>
-                      <td>{{ student.user.address|truncatechars:20 }}</td>
-                      <td class="text-right">
-                        <div class="actions">
-                          <!-- New: Print & Download Admission Form -->
-                          <a href="{% url 'adminservices:print-admission-form' student.id %}" 
-                             target="_blank" 
-                             class="btn btn-sm btn-outline-primary"
-                             title="Print Admission Form">
-                            🖨️
-                          </a>
-                          <a href="{% url 'adminservices:download-admission-form' student.id %}" 
-                             class="btn btn-sm btn-outline-secondary"
-                             title="Download Admission Form (PDF)">
-                            📄
-                          </a>
-
-                          <!-- Existing: Edit & Delete -->
-                          <a href="{% url 'adminservices:edit-student' student.id %}" 
-                             class="btn btn-sm bg-success-light"
-                             title="Edit">
-                            <i class="fas fa-pen"></i>
-                          </a>
-                          <form method="post" action="{% url 'adminservices:delete-student' student.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="btn btn-sm bg-danger-light"
-                                    onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name }}?');"
-                                    title="Delete">
-                              <i class="fas fa-trash"></i>
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td colspan="8" class="text-center">No students found.</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination -->
-            {% if page_obj.has_other_pages %}
-              <div class="pagination mt-4">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
-                    </li>
-                  {% endif %}
-                  {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                      <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                      </li>
-                    {% else %}
-                      <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                      </li>
-                    {% endif %}
-                  {% endfor %}
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
-                    </li>
-                  {% endif %}
-                </ul>
-              </div>
-            {% endif %}
-          </div>
+    <div class="card card-table student-card">
+      <div class="card-body">
+        <div class="table-responsive student-table-wrap">
+          <table class="table table-hover table-center datatable student-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>DOB</th>
+                <th>Parent Name</th>
+                <th>Mobile Number</th>
+                <th>Address</th>
+                <th class="student-actions-cell">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in page_obj %}
+                <tr>
+                  <td>{{ student.student_id|slice:":8"|upper }}</td>
+                  <td>
+                    <h2 class="table-avatar">
+                      <a href="{% url 'adminservices:student-detail' student.id %}" class="avatar avatar-sm mr-2">
+                        {% if student.user.profile_picture %}
+                          <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
+                        {% elif student.student_image %}
+                          <img class="avatar-img rounded-circle" src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
+                        {% else %}
+                          <img class="avatar-img rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Default Avatar">
+                        {% endif %}
+                      </a>
+                      <a href="{% url 'adminservices:student-detail' student.id %}">
+                        {{ student.user.get_full_name|default:student.user.username }}
+                      </a>
+                    </h2>
+                  </td>
+                  <td>{{ student.get_student_class_display }}</td>
+                  <td>{{ student.user.date_of_birth|date:"d M Y"|default:"N/A" }}</td>
+                  <td>
+                    {{ student.parent.father_name|default:"N/A" }} / {{ student.parent.mother_name|default:"N/A" }}
+                  </td>
+                  <td>{{ student.user.phone_number|default:"N/A" }}</td>
+                  <td>{{ student.user.address|default:"N/A"|truncatechars:20 }}</td>
+                  <td class="student-actions-cell">
+                    <div class="student-actions">
+                      <a href="{% url 'adminservices:print-admission-form' student.id %}"
+                         target="_blank"
+                         class="btn btn-sm btn-outline-primary"
+                         title="Print Admission Form"
+                         aria-label="Print Admission Form">
+                        <i class="fas fa-print"></i>
+                      </a>
+                      <a href="{% url 'adminservices:download-admission-form' student.id %}"
+                         class="btn btn-sm btn-outline-secondary"
+                         title="Download Admission Form"
+                         aria-label="Download Admission Form">
+                        <i class="fas fa-download"></i>
+                      </a>
+                      <a href="{% url 'adminservices:edit-student' student.id %}"
+                         class="btn btn-sm bg-success-light"
+                         title="Edit"
+                         aria-label="Edit">
+                        <i class="fas fa-pen"></i>
+                      </a>
+                      <form method="post" action="{% url 'adminservices:delete-student' student.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btn btn-sm bg-danger-light"
+                                onclick="return confirm('Are you sure you want to delete {{ student.user.get_full_name|default:student.user.username }}?');"
+                                title="Delete"
+                                aria-label="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center">No students found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+
+        {% if page_obj.has_other_pages %}
+          <div class="student-pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                </li>
+              {% endif %}
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% else %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                </li>
+              {% endif %}
+            </ul>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
-
-  <!-- Footer -->
-  <footer>
-    <p>Copyright © {{ year }} {{ request.user.managed_school.name }}. All rights reserved.</p>
-  </footer>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
-  $(document).ready(function () {
+  $(function () {
     $('.datatable').DataTable({
-      "pageLength": 10,
-      "order": [[1, "asc"]],
-      "columnDefs": [
-        { "orderable": false, "targets": [-1] } // Disable sorting on Action column
+      pageLength: 10,
+      order: [[1, 'asc']],
+      autoWidth: false,
+      columnDefs: [
+        { orderable: false, targets: [-1] }
       ]
     });
   });
-
-  // Optional: Hide download button if not implemented
-  document.getElementById('download-btn')?.remove();
 </script>
 {% endblock %}

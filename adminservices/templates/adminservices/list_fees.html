@@ -4,46 +4,60 @@
 {% block title %}Fees Collection | Finance{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
-  .table-avatar a { color: #495057; text-decoration: none; display: flex; align-items: center; }
-  .avatar-img { border-radius: 50%; width: 31px; height: 31px; object-fit: cover; }
-  .badge { font-size: 11px; padding: 5px 10px; font-weight: 600; text-transform: uppercase; border-radius: 4px; }
-  .summary-card { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-  .text-amount { font-family: 'Courier New', Courier, monospace; font-weight: 700; }
+  .summary-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .summary-card .card-body {
+    padding: 1.25rem;
+  }
+
+  .text-amount {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   .status-paid { background: #d1fae5; color: #065f46; }
   .status-partial { background: #fef3c7; color: #92400e; }
   .status-unpaid { background: #fee2e2; color: #991b1b; }
+  .status-overdue { background: #fca5a5; color: #7f1d1d; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
-
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">Finance & Fees</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Collections</li>
-          </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-          <a href="{% url 'adminservices:fee-configuration' %}" class="btn btn-outline-primary mr-2">
-            <i class="fas fa-cog"></i> Setup Fee Structure
-          </a>
-          <a href="{% url 'adminservices:add-fees' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> New Invoice
-          </a>
-        </div>
+<div class="admin-list-page">
+  <div class="admin-list-shell">
+    <div class="page-header admin-list-header">
+      <div class="admin-list-header-copy">
+        <h3 class="page-title">Finance &amp; Fees</h3>
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Collections</li>
+        </ul>
+      </div>
+      <div class="admin-list-header-actions">
+        <span class="admin-list-chip">
+          <i class="fas fa-file-invoice-dollar"></i>
+          {{ page_obj.paginator.count|default:0 }} invoices
+        </span>
+        <a href="{% url 'adminservices:fee-configuration' %}" class="btn btn-outline-primary">
+          <i class="fas fa-cog"></i> Fee Structure
+        </a>
+        <a href="{% url 'adminservices:add-fees' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> New Invoice
+        </a>
       </div>
     </div>
 
-    <div class="row mb-4">
+    <div class="row">
       <div class="col-md-12">
-        <div class="card summary-card bg-indigo-900 text-white" style="background: #1e293b;">
+        <div class="card summary-card bg-dark text-white" style="background: #1e293b;">
           <div class="card-body">
             <h5 class="card-title text-white mb-4"><i class="fas fa-chart-pie mr-2"></i> Class-wise Collection Summary</h5>
             <div class="table-responsive">
@@ -60,9 +74,9 @@
                   {% for summary in class_summaries %}
                   <tr>
                     <td class="font-weight-bold">{{ summary.student_class }}</td>
-                    <td class="text-amount">₵{{ summary.total_billed|floatformat:2 }}</td>
-                    <td class="text-amount text-success">₵{{ summary.total_paid|floatformat:2 }}</td>
-                    <td class="text-amount text-warning">₵{{ summary.total_owing|floatformat:2 }}</td>
+                    <td class="text-amount">&#8373;{{ summary.total_billed|floatformat:2 }}</td>
+                    <td class="text-amount text-success">&#8373;{{ summary.total_paid|floatformat:2 }}</td>
+                    <td class="text-amount text-warning">&#8373;{{ summary.total_owing|floatformat:2 }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -73,88 +87,145 @@
       </div>
     </div>
 
-    <div class="row">
-      <div class="col-sm-12">
-        <div class="card card-table shadow-sm">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover table-center mb-0 datatable">
-                <thead>
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Fee Type</th>
-                    <th>Billed (₵)</th>
-                    <th>Paid (₵)</th>
-                    <th>Balance (₵)</th>
-                    <th>Status</th>
-                    <th class="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for fee in page_obj %}
-                    <tr>
-                      <td><span class="text-muted text-xs">{{ fee.student.student_id|upper }}</span></td>
-                      <td>
-                        <h2 class="table-avatar">
-                          <a href="{% url 'adminservices:student-detail' fee.student.id %}" class="avatar avatar-sm mr-2">
-                             <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="">
-                          </a>
-                          <a href="{% url 'adminservices:student-detail' fee.student.id %}">
-                            {{ fee.student.user.get_full_name }}
-                            <small class="d-block text-muted">{{ fee.student_class }}</small>
-                          </a>
-                        </h2>
-                      </td>
-                      <td>
-                        {{ fee.get_fee_type_display }}
-                        <small class="d-block text-indigo-600 font-weight-bold">{{ fee.get_term_display }}</small>
-                      </td>
-                      <td class="text-amount">₵{{ fee.total_bill|floatformat:2 }}</td>
-                      <td class="text-amount text-success">₵{{ fee.amount_paid|floatformat:2 }}</td>
-                      <td class="text-amount text-danger">₵{{ fee.balance|floatformat:2 }}</td>
-                      <td>
-                        {% if fee.status == 'paid' %}
-                          <span class="badge status-paid">Fully Paid</span>
-                        {% elif fee.status == 'partial' %}
-                          <span class="badge status-partial">Partial</span>
-                        {% else %}
-                          <span class="badge status-unpaid">Unpaid</span>
-                        {% endif %}
-                      </td>
-                      <td class="text-right">
-                        <div class="dropdown dropdown-action">
-                          <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-                          <div class="dropdown-menu dropdown-menu-right">
-                              <a class="dropdown-item" href="{% url 'adminservices:edit-fees' fee.id %}"><i class="fas fa-pen mr-2"></i> Edit/Record Payment</a>
-                              <a class="dropdown-item" href="{% url 'adminservices:print-fee-receipt' fee.id %}" target="_blank"><i class="fas fa-print mr-2"></i> Print Receipt</a>
-                              <a class="dropdown-item text-danger" href="{% url 'adminservices:delete-fees' fee.id %}"><i class="fas fa-trash mr-2"></i> Delete</a>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
         </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="card card-table admin-list-card">
+      <div class="card-body">
+        <div class="table-responsive admin-list-table-wrap">
+          <table class="table table-hover table-center mb-0 datatable admin-list-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Fee Type</th>
+                <th>Billed (&#8373;)</th>
+                <th>Paid (&#8373;)</th>
+                <th>Balance (&#8373;)</th>
+                <th>Status</th>
+                <th class="admin-list-actions-cell">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fee in page_obj %}
+                <tr>
+                  <td><span class="text-muted text-xs">{{ fee.student.student_id|upper }}</span></td>
+                  <td>
+                    <h2 class="table-avatar">
+                      <a href="{% url 'adminservices:student-detail' fee.student.id %}" class="avatar avatar-sm mr-2">
+                        <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ fee.student.user.get_full_name }}">
+                      </a>
+                      <a href="{% url 'adminservices:student-detail' fee.student.id %}">
+                        {{ fee.student.user.get_full_name|default:fee.student.user.username }}
+                        <small class="d-block text-muted">{{ fee.student_class }}</small>
+                      </a>
+                    </h2>
+                  </td>
+                  <td>
+                    {{ fee.get_fee_type_display }}
+                    <small class="d-block text-indigo-600 font-weight-bold">{{ fee.get_term_display }}</small>
+                  </td>
+                  <td class="text-amount">&#8373;{{ fee.total_bill|floatformat:2 }}</td>
+                  <td class="text-amount text-success">&#8373;{{ fee.amount_paid|floatformat:2 }}</td>
+                  <td class="text-amount text-danger">&#8373;{{ fee.balance|floatformat:2 }}</td>
+                  <td>
+                    {% if fee.status == 'paid' %}
+                      <span class="badge status-paid">Fully Paid</span>
+                    {% elif fee.status == 'overdue' %}
+                      <span class="badge status-overdue">Overdue</span>
+                    {% elif fee.status == 'partial' %}
+                      <span class="badge status-partial">Partial</span>
+                    {% else %}
+                      <span class="badge status-unpaid">Unpaid</span>
+                    {% endif %}
+                  </td>
+                  <td class="admin-list-actions-cell">
+                    <div class="admin-list-actions">
+                      <a href="{% url 'adminservices:edit-fees' fee.id %}"
+                         class="btn btn-sm bg-success-light"
+                         title="Edit / Record Payment"
+                         aria-label="Edit / Record Payment">
+                        <i class="fas fa-pen"></i>
+                      </a>
+                      <a href="{% url 'adminservices:print-fee-receipt' fee.id %}"
+                         target="_blank"
+                         class="btn btn-sm btn-outline-primary"
+                         title="Print Receipt"
+                         aria-label="Print Receipt">
+                        <i class="fas fa-print"></i>
+                      </a>
+                      <form method="post" action="{% url 'adminservices:delete-fees' fee.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btn btn-sm bg-danger-light"
+                                onclick="return confirm('Delete this fee record?');"
+                                title="Delete"
+                                aria-label="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center">No fee records found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+          <div class="admin-list-pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                </li>
+              {% endif %}
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% else %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                </li>
+              {% endif %}
+            </ul>
+          </div>
+        {% endif %}
       </div>
     </div>
-
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
-  $(document).ready(function () {
+  $(function () {
     $('.datatable').DataTable({
-      "pageLength": 25,
-      "order": [[1, "asc"]],
-      "columnDefs": [
-        { "orderable": false, "targets": [7] }
+      pageLength: 15,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [-1] }
       ]
     });
   });

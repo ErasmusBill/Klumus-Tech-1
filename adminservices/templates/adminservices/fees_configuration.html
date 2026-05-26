@@ -1,300 +1,739 @@
 {% extends "adminservices/base.html" %}
 {% load static %}
 
-{% block title %}Setup Fee Structure | Kiddo Care Admin{% endblock %}
+{% block title %}Fee Configuration | Kiddo Care Admin{% endblock %}
 
 {% block extra_css %}
 <style>
-  :root {
-    --primary-indigo: #6366f1;
-    --primary-hover: #4f46e5;
-    --dark-slate: #0f172a;
-    --bg-slate: #f8fafc;
-    --glass-white: rgba(255, 255, 255, 0.9);
+  .fee-config-page {
+    padding: 24px 0 40px;
   }
 
-  .page-wrapper {
-    background: radial-gradient(circle at top right, #eef2ff, #f8fafc);
-    padding: 60px 20px;
-    min-height: 100vh;
+  .fee-config-shell {
+    max-width: 1360px;
   }
 
-  /* Main Card with Glass Effect */
-  .setup-card {
-    background: var(--glass-white);
-    backdrop-filter: blur(10px);
-    padding: 0;
-    border-radius: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease;
+  .fee-config-header {
+    margin-bottom: 20px;
   }
 
-  /* Sophisticated Header */
-  .card-header-custom {
-    padding: 50px 50px 20px 50px;
-    background: linear-gradient(to bottom, rgba(99, 102, 241, 0.03), transparent);
-    border-radius: 2rem 2rem 0 0;
+  .fee-config-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
   }
 
-  .badge-finance {
-    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-    color: white;
-    padding: 6px 16px;
-    border-radius: 100px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+  .fee-config-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
   }
 
-  .setup-header h4 {
-    font-weight: 900;
-    color: var(--dark-slate);
-    font-size: 1.8rem;
-    letter-spacing: -0.02em;
+  .fee-config-card,
+  .fee-config-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
   }
 
-  /* Form Section Enhancements */
-  .form-section {
-    background: white;
-    padding: 30px;
-    border-radius: 1.5rem;
-    margin-bottom: 30px;
-    border: 1px solid #f1f5f9;
-    transition: all 0.3s ease;
+  .fee-config-card .card-body {
+    padding: 24px;
   }
 
-  .form-section:hover {
-    border-color: #e2e8f0;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.02);
+  .fee-config-panel .card-body {
+    padding: 20px;
   }
 
-  .section-label {
+  .fee-config-section {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 18px;
+    background: #fff;
+  }
+
+  .fee-config-section + .fee-config-section {
+    margin-top: 16px;
+  }
+
+  .fee-config-section-head {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 25px;
+    margin-bottom: 16px;
   }
 
-  .step-number {
-    width: 28px;
-    height: 28px;
-    background: var(--dark-slate);
-    color: white;
-    display: flex;
+  .fee-config-step {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #fff;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 800;
+    flex: 0 0 auto;
   }
 
-  .section-title {
-    font-size: 0.9rem;
+  .fee-config-section-title {
+    margin: 0;
+    font-size: 0.86rem;
     font-weight: 800;
-    color: var(--dark-slate);
-    text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+
+  .fee-config-grid {
+    row-gap: 18px;
+  }
+
+  .fee-config-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .fee-config-field .form-control,
+  .fee-config-field .form-select {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    padding: 0.75rem 0.9rem;
+    font-weight: 600;
+    box-shadow: none;
+  }
+
+  .fee-config-field .form-control:focus,
+  .fee-config-field .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .fee-config-field .input-group {
+    flex-wrap: nowrap;
+  }
+
+  .fee-config-field .input-group-text {
+    border-radius: 8px 0 0 8px;
+    border: 1px solid #cbd5e1;
+    border-right: 0;
+    background: #f8fafc;
+    color: #0f172a;
+    font-weight: 800;
+    min-height: 48px;
+    padding-inline: 14px;
+  }
+
+  .fee-config-field .input-group .form-control {
+    border-radius: 0 8px 8px 0;
+  }
+
+  .fee-config-field .invalid-feedback {
+    display: block;
+    margin-top: 6px;
+    color: #dc3545;
+    font-size: 0.82rem;
+  }
+
+  .fee-config-field .field-help {
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: #64748b;
+  }
+
+  .fee-config-source-note {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.82rem;
+    color: #475569;
+  }
+
+  .fee-config-source-note.is-ready {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+  }
+
+  .fee-config-source-note.is-warn {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+  }
+
+  .fee-config-source-note.is-error {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #991b1b;
+  }
+
+  .fee-config-field.field-has-error .form-control,
+  .fee-config-field.field-has-error .form-select,
+  .fee-config-field.field-has-error .input-group-text {
+    border-color: #dc3545;
+  }
+
+  .fee-config-alert {
+    border-radius: 8px;
+    border: 1px solid transparent;
+  }
+
+  .fee-config-alert ul {
+    margin-bottom: 0;
+    padding-left: 1rem;
+  }
+
+  .fee-config-alert .btn-close {
+    box-shadow: none;
+  }
+
+  .fee-config-sidebar {
+    position: sticky;
+    top: 24px;
+  }
+
+  .fee-config-sidebar-block + .fee-config-sidebar-block {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .fee-config-sidebar-title {
+    margin: 0 0 8px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+
+  .fee-config-sidebar-note {
+    margin: 0;
+    color: #475569;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .fee-config-stat {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .fee-config-stat-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
     margin: 0;
   }
 
-  /* Inputs Styling */
-  label {
-    font-weight: 700;
-    color: #475569;
-    font-size: 0.85rem;
-    margin-bottom: 10px;
+  .fee-config-stat-label {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: #64748b;
   }
 
-  .form-control, .form-select {
-    height: 52px;
-    border-radius: 12px;
-    border: 2px solid #f1f5f9;
-    padding: 0 18px;
-    font-weight: 600;
-    color: var(--dark-slate);
-    transition: all 0.2s ease-in-out;
-  }
-
-  .form-control:focus, .form-select:focus {
-    border-color: var(--primary-indigo);
-    background: #fff;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  }
-
-  .input-group-text {
-    background: #f8fafc;
-    border: 2px solid #f1f5f9;
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-    color: var(--primary-indigo);
-    font-weight: 800;
-  }
-
-  .input-group .form-control {
-    border-radius: 0 12px 12px 0;
-  }
-
-  /* Action Buttons */
-  .btn-create {
-    height: 55px;
-    background: var(--dark-slate);
-    color: white;
-    border-radius: 14px;
-    font-weight: 700;
-    font-size: 1rem;
-    border: none;
-    width: 100%;
+  .fee-config-recent-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fee-config-recent-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff;
+  }
+
+  .fee-config-recent-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .fee-config-recent-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .fee-config-recent-meta {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #64748b;
+  }
+
+  .fee-config-recent-amount {
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+
+  .fee-config-recent-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .fee-config-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .fee-config-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .fee-config-actions .btn {
+    min-width: 170px;
+    border-radius: 8px;
+    height: 44px;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  .btn-create:hover {
-    background: #000;
-    transform: scale(1.02);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    color: white;
-  }
-
-  .btn-cancel {
-    color: #94a3b8;
+    gap: 8px;
     font-weight: 700;
-    text-decoration: none;
-    transition: all 0.2s;
+  }
+
+  .fee-config-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8fafc;
+    color: #64748b;
     font-size: 0.9rem;
   }
 
-  .btn-cancel:hover { color: #ef4444; }
+  @media (max-width: 991.98px) {
+    .fee-config-sidebar {
+      position: static;
+    }
 
-  /* Interactive Tooltip */
-  .help-box {
-    background: #f0f9ff;
-    border-left: 4px solid #0ea5e9;
-    padding: 20px;
-    border-radius: 0 16px 16px 0;
-    margin-bottom: 35px;
+    .fee-config-card .card-body,
+    .fee-config-panel .card-body {
+      padding: 20px;
+    }
   }
 
-  /* Micro-animations */
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  @media (max-width: 575.98px) {
+    .fee-config-page {
+      padding-top: 16px;
+    }
+
+    .fee-config-card .card-body,
+    .fee-config-panel .card-body {
+      padding: 16px;
+    }
+
+    .fee-config-section {
+      padding: 16px;
+    }
+
+    .fee-config-actions {
+      flex-direction: column;
+    }
+
+    .fee-config-actions .btn {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .fee-config-recent-top {
+      flex-direction: column;
+    }
   }
-  .form-section { animation: slideIn 0.5s ease forwards; }
-  .form-section:nth-child(2) { animation-delay: 0.2s; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="container">
+<div class="fee-config-page">
+  <div class="fee-config-shell container-fluid px-3 px-lg-4">
+    <div class="page-header admin-list-header fee-config-header">
+      <div class="admin-list-header-copy">
+        <h3 class="page-title">Fee Structure Configuration</h3>
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:fee_structure_list' %}">Fee Structures</a></li>
+          <li class="breadcrumb-item active">Create Structure</li>
+        </ul>
 
-    <div class="row justify-content-center">
-      <div class="col-xl-8 col-lg-10">
+        <div class="fee-config-meta">
+          <span class="fee-config-chip">
+            <i class="fas fa-school"></i>
+            {{ school.name|default:"School" }}
+          </span>
+          <span class="fee-config-chip">
+            <i class="fas fa-calendar-alt"></i>
+            {{ current_academic_year|default:"Current academic year" }}
+          </span>
+          <span class="fee-config-chip">
+            <i class="fas fa-layer-group"></i>
+            {{ fee_structures_count|default:0 }} configured
+          </span>
+        </div>
+      </div>
 
-        <div class="setup-card">
-          <div class="card-header-custom text-center">
-            <span class="badge-finance">SYSTEM CONFIGURATION</span>
-            <div class="setup-header mt-3">
-              <h4>Fee Structure Setup</h4>
-              <p>Define standard billing rates across your school departments.</p>
+      <div class="admin-list-header-actions">
+        <a href="{% url 'adminservices:fee_structure_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-list"></i>
+          View Structures
+        </a>
+      </div>
+    </div>
+
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          {% if message.tags == "error" %}
+            <div class="alert alert-danger alert-dismissible fade show fee-config-alert" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-          </div>
-
-          <div class="card-body px-5 pb-5">
-            <div class="help-box d-flex align-items-center">
-              <div class="me-3">
-                <span style="font-size: 1.5rem;">💡</span>
-              </div>
-              <div>
-                <span class="fw-bold d-block text-info" style="font-size: 0.75rem; text-transform: uppercase;">Pro Tip</span>
-                <span class="text-muted" style="font-size: 0.9rem;">Changes here only affect <strong>new</strong> fee entries. Existing bills remain unchanged.</span>
-              </div>
+          {% else %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show fee-config-alert" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
 
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger fee-config-alert" role="alert">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="row g-4 align-items-start">
+      <div class="col-xl-8">
+        <div class="card fee-config-card">
+          <div class="card-body">
             <form method="post" novalidate>
               {% csrf_token %}
 
-              <div class="form-section">
-                <div class="section-label">
-                  <div class="step-number">1</div>
-                  <h6 class="section-title">Timeline & Period</h6>
+              <div class="fee-config-section">
+                <div class="fee-config-section-head">
+                  <div class="fee-config-step">1</div>
+                  <h4 class="fee-config-section-title">Timeline and term</h4>
                 </div>
-                <div class="row g-4">
-                  <div class="col-md-6">
-                    <label>Academic Year</label>
-                    {{ form.academic_year }}
-                  </div>
-                  <div class="col-md-6">
-                    <label>Term / Semester</label>
-                    {{ form.term }}
-                  </div>
-                </div>
-              </div>
 
-              <div class="form-section">
-                <div class="section-label">
-                  <div class="step-number">2</div>
-                  <h6 class="section-title">Billing Scope</h6>
-                </div>
-                <div class="row g-4">
+                <div class="row fee-config-grid">
                   <div class="col-md-6">
-                    <label>Target Student Class</label>
-                    {{ form.student_class }}
+                    <div class="fee-config-field {% if form.academic_year.errors %}field-has-error{% endif %}">
+                      <label for="{{ form.academic_year.id_for_label }}">Academic Year</label>
+                      {{ form.academic_year }}
+                      <div class="field-help">Use the year this structure applies to.</div>
+                      {% for error in form.academic_year.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                      {% endfor %}
+                    </div>
                   </div>
+
                   <div class="col-md-6">
-                    <label>Fee Classification</label>
-                    {{ form.fee_type }}
-                  </div>
-                  <div class="col-12">
-                    <label>Standard Rate (GHS)</label>
-                    <div class="input-group">
-                      <span class="input-group-text">₵</span>
-                      {{ form.amount }}
+                    <div class="fee-config-field {% if form.term.errors %}field-has-error{% endif %}">
+                      <label for="{{ form.term.id_for_label }}">Term / Semester</label>
+                      {{ form.term }}
+                      <div class="field-help">Pick the term being billed.</div>
+                      {% for error in form.term.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                      {% endfor %}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="row align-items-center mt-5">
-                <div class="col-md-4 text-center text-md-start">
-                  <a href="{% url 'adminservices:list-fees' %}" class="btn-cancel">
-                    <i class="fas fa-times-circle me-1"></i> Discard Changes
-                  </a>
+              <div class="fee-config-section">
+                <div class="fee-config-section-head">
+                  <div class="fee-config-step">2</div>
+                  <h4 class="fee-config-section-title">Billing scope</h4>
                 </div>
-                <div class="col-md-8 text-center text-md-end mt-4 mt-md-0">
-                  <div class="d-inline-block w-100" style="max-width: 350px;">
-                    <button type="submit" class="btn btn-create">
-                      <i class="fas fa-check-double"></i> Save Configuration
-                    </button>
+
+                <div class="row fee-config-grid">
+                  <div class="col-md-6">
+                    <div class="fee-config-field {% if form.student_class.errors %}field-has-error{% endif %}">
+                      <label for="{{ form.student_class.id_for_label }}">Student Class</label>
+                      {{ form.student_class }}
+                      <div class="field-help">Select the class level that should receive this rate.</div>
+                      {% for error in form.student_class.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="fee-config-field {% if form.fee_type.errors %}field-has-error{% endif %}">
+                      <label for="{{ form.fee_type.id_for_label }}">Fee Type</label>
+                      {{ form.fee_type }}
+                      <div class="field-help">Choose the fee category being configured.</div>
+                      {% for error in form.fee_type.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="fee-config-field {% if form.amount.errors %}field-has-error{% endif %}">
+                      <label for="{{ form.amount.id_for_label }}">Standard Amount</label>
+                      <div class="input-group">
+                        <span class="input-group-text">&#8373;</span>
+                        {{ form.amount }}
+                      </div>
+                      <div class="field-help">This amount is fetched from saved fee data for the selected class and fee type.</div>
+                      <div id="feeAmountStatus" class="fee-config-source-note">
+                        Select a class and fee type to fetch the amount automatically.
+                      </div>
+                      {% for error in form.amount.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                      {% endfor %}
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <div class="fee-config-actions">
+                <a href="{% url 'adminservices:fee_structure_list' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left"></i>
+                  Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i>
+                  Save Structure
+                </button>
               </div>
             </form>
           </div>
         </div>
+      </div>
 
-        <div class="text-center mt-4">
-          <small class="text-muted">Security Policy: All financial configurations are logged by {{ school.name }}.</small>
+      <div class="col-xl-4">
+        <div class="card fee-config-panel fee-config-sidebar">
+          <div class="card-body">
+            <div class="fee-config-sidebar-block">
+              <h4 class="fee-config-sidebar-title">What this does</h4>
+              <p class="fee-config-sidebar-note">
+                This form creates a reusable fee template for a specific class, term, and academic year.
+                The structure is used when generating student bills, so keep the values consistent.
+              </p>
+            </div>
+
+            <div class="fee-config-sidebar-block">
+              <div class="fee-config-stat">
+                <div>
+                  <p class="fee-config-stat-value">{{ fee_structures_count|default:0 }}</p>
+                  <p class="fee-config-stat-label">Configured fee structures</p>
+                </div>
+                <span class="fee-config-chip">
+                  <i class="fas fa-layer-group"></i>
+                  Active
+                </span>
+              </div>
+            </div>
+
+            <div class="fee-config-sidebar-block">
+              <h4 class="fee-config-sidebar-title">Helpful links</h4>
+              <div class="d-grid gap-2">
+                <a href="{% url 'adminservices:fee_structure_list' %}" class="btn btn-outline-primary">
+                  <i class="fas fa-table"></i>
+                  View all structures
+                </a>
+                <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-file-invoice-dollar"></i>
+                  Review student fees
+                </a>
+              </div>
+            </div>
+
+            <div class="fee-config-sidebar-block">
+              <h4 class="fee-config-sidebar-title">Recent structures</h4>
+              {% if recent_structures %}
+                <ul class="fee-config-recent-list">
+                  {% for struct in recent_structures %}
+                    <li class="fee-config-recent-item">
+                      <div class="fee-config-recent-top">
+                        <div>
+                          <p class="fee-config-recent-title">{{ struct.get_student_class_display }}</p>
+                          <p class="fee-config-recent-meta">
+                            {{ struct.get_fee_type_display }} &middot; {{ struct.get_term_display }}
+                          </p>
+                        </div>
+                        <div class="fee-config-recent-amount">
+                          &#8373;{{ struct.amount|floatformat:2 }}
+                        </div>
+                      </div>
+
+                      <div class="fee-config-recent-tags">
+                        <span class="fee-config-tag">
+                          <i class="fas fa-calendar-alt"></i>
+                          {{ struct.academic_year }}
+                        </span>
+                        <span class="fee-config-tag">
+                          <i class="fas fa-tag"></i>
+                          {{ struct.get_fee_type_display }}
+                        </span>
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="fee-config-empty">
+                  No fee structures have been added for this school yet.
+                </div>
+              {% endif %}
+            </div>
+          </div>
         </div>
-
       </div>
     </div>
-
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  $(document).ready(function() {
-      // Dynamic class assignment
-      $('select').addClass('form-select');
-      $('input[type="number"]').addClass('form-control').attr('placeholder', '0.00');
+  document.addEventListener('DOMContentLoaded', function () {
+    const amountUrl = "{% url 'adminservices:fee-configuration-amount' %}";
+    const studentClassField = document.getElementById("{{ form.student_class.id_for_label }}");
+    const feeTypeField = document.getElementById("{{ form.fee_type.id_for_label }}");
+    const amountField = document.getElementById("{{ form.amount.id_for_label }}");
+    const statusBox = document.getElementById('feeAmountStatus');
+
+    if (amountField) {
+      amountField.dataset.autoFilled = '0';
+      amountField.addEventListener('input', function () {
+        amountField.dataset.autoFilled = '0';
+      });
+    }
+
+    function setStatus(message, state) {
+      if (!statusBox) return;
+      statusBox.textContent = message;
+      statusBox.classList.remove('is-ready', 'is-warn', 'is-error');
+      if (state) {
+        statusBox.classList.add(state);
+      }
+    }
+
+    function setAmountReadonly(isReadonly) {
+      if (!amountField) return;
+      amountField.readOnly = isReadonly;
+      amountField.classList.toggle('bg-light', isReadonly);
+    }
+
+    async function fetchAmount() {
+      const studentClass = studentClassField ? studentClassField.value : '';
+      const feeType = feeTypeField ? feeTypeField.value : '';
+
+      if (!studentClass || !feeType) {
+        if (amountField && amountField.dataset.autoFilled === '1') {
+          amountField.value = '';
+        }
+        if (amountField) {
+          amountField.dataset.autoFilled = '0';
+        }
+        setAmountReadonly(false);
+        setStatus('Select a class and fee type to fetch the amount automatically.');
+        return;
+      }
+
+      setStatus('Fetching amount from saved fee records...', 'is-warn');
+
+      try {
+        const params = new URLSearchParams({
+          student_class: studentClass,
+          fee_type: feeType,
+        });
+
+        const response = await fetch(`${amountUrl}?${params.toString()}`, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.found && data.amount) {
+          amountField.value = data.amount;
+          amountField.dataset.autoFilled = '1';
+          setAmountReadonly(true);
+          setStatus(
+            `Amount fetched from ${data.source_label}${data.academic_year ? ` (${data.academic_year}${data.term ? `, ${data.term}` : ''})` : ''}.`,
+            'is-ready'
+          );
+        } else {
+          if (amountField && amountField.dataset.autoFilled === '1') {
+            amountField.value = '';
+          }
+          if (amountField) {
+            amountField.dataset.autoFilled = '0';
+          }
+          setAmountReadonly(false);
+          setStatus(data.message || 'No saved amount found for this combination.', 'is-error');
+        }
+      } catch (error) {
+        if (amountField && amountField.dataset.autoFilled === '1') {
+          amountField.value = '';
+        }
+        if (amountField) {
+          amountField.dataset.autoFilled = '0';
+        }
+        setAmountReadonly(false);
+        setStatus('Could not fetch an amount right now.', 'is-error');
+      }
+    }
+
+    if (studentClassField) {
+      studentClassField.addEventListener('change', fetchAmount);
+    }
+
+    if (feeTypeField) {
+      feeTypeField.addEventListener('change', fetchAmount);
+    }
+
+    if (studentClassField && feeTypeField && studentClassField.value && feeTypeField.value) {
+      fetchAmount();
+    }
   });
 </script>
 {% endblock %}

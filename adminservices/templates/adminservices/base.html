@@ -10,14 +10,31 @@
     <link rel="stylesheet" href="{% static 'assets/plugins/bootstrap/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    {% block extra_css %}{% endblock %}
 
     <style>
         :root {
-            --sidebar-width: 240px;
-            --primary-color: #6366f1;
+            --sidebar-width: 320px;
+            --sidebar-collapsed-width: 78px;
+            --header-height: 60px;
+            --primary-color: #2563eb;
         }
 
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; overflow-x: hidden; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        body.menu-opened {
+            overflow: hidden;
+        }
+
+        .main-wrapper {
+            min-height: 100vh;
+            background: #f8fafc;
+        }
 
         /* Layout Fix: Prevents content from hiding under sidebar */
         .page-wrapper {
@@ -26,32 +43,248 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: 60px; /* Header height */
+            padding-top: var(--header-height);
+            background: transparent;
         }
 
         .content-container {
             flex: 1;
-            padding: 30px;
+            width: 100%;
+            padding: 24px;
             position: relative;
         }
 
         /* Sidebar Styling */
-        .sidebar { background: #ffffff; border-right: 1px solid #f1f5f9; width: var(--sidebar-width); }
-        .sidebar-menu li a { border-radius: 12px; margin: 4px 15px; font-weight: 600; transition: all 0.2s; color: #64748b; }
-        .sidebar-menu li a:hover, .sidebar-menu li.active a { background: #f1f5f9 !important; color: var(--primary-color) !important; }
-        .menu-title { padding: 25px 25px 10px !important; text-transform: uppercase; font-size: 11px !important; letter-spacing: 1px; color: #94a3b8 !important; font-weight: 800; }
-
-        /* Header & User UI */
-        .header { background: #fff; border-bottom: 1px solid #f1f5f9; }
-        .user-img img { border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-
-        /* Responsive Sidebar Logic */
-        .mini-sidebar .page-wrapper { margin-left: 70px; }
-        @media (max-width: 991.98px) {
-            .page-wrapper { margin-left: 0 !important; }
+        .sidebar {
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
         }
 
-        footer { padding: 20px 30px; background: #fff; border-top: 1px solid #f1f5f9; text-align: center; color: #94a3b8; font-size: 13px; }
+        .sidebar-menu li a {
+            border-radius: 12px;
+            margin: 4px 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #475569;
+        }
+
+        .sidebar-menu li a:hover,
+        .sidebar-menu li.active a {
+            background: #eff6ff !important;
+            color: var(--primary-color) !important;
+        }
+
+        .menu-title {
+            padding: 25px 25px 10px !important;
+            text-transform: uppercase;
+            font-size: 11px !important;
+            letter-spacing: 1px;
+            color: #94a3b8 !important;
+            font-weight: 800;
+        }
+
+        /* Header & User UI */
+        .header {
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid #e2e8f0;
+            backdrop-filter: blur(14px);
+        }
+
+        .header .header-left .logo {
+            color: inherit;
+            min-width: 0;
+            text-decoration: none !important;
+        }
+
+        .header .header-left .logo:hover,
+        .header .header-left .logo:focus {
+            text-decoration: none !important;
+        }
+
+        .school-brand-name {
+            display: block;
+            max-width: 100%;
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: 0.015em;
+            text-transform: none;
+            color: #0f172a;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .user-img img { border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+        /* Shared Listing Layout */
+        .admin-list-page {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .admin-list-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .admin-list-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-list-header-copy {
+            min-width: 0;
+            flex: 1 1 320px;
+        }
+
+        .admin-list-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            flex: 1 1 260px;
+        }
+
+        .admin-list-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #fff;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .admin-list-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.05);
+            overflow: hidden;
+        }
+
+        .admin-list-card .card-body {
+            padding: 0;
+        }
+
+        .admin-list-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .admin-list-table {
+            min-width: 960px;
+            margin-bottom: 0;
+        }
+
+        .admin-list-table th,
+        .admin-list-table td {
+            vertical-align: middle;
+        }
+
+        .admin-list-actions-cell {
+            white-space: nowrap;
+            width: 1%;
+            text-align: right;
+        }
+
+        .admin-list-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+            min-width: max-content;
+        }
+
+        .admin-list-actions .btn,
+        .admin-list-actions form {
+            display: inline-flex;
+            flex: 0 0 auto;
+            margin: 0;
+        }
+
+        .admin-list-actions .btn {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            line-height: 1;
+        }
+
+        .admin-list-actions .btn i {
+            font-size: 12px;
+        }
+
+        .admin-list-actions .btn-outline-primary,
+        .admin-list-actions .btn-outline-secondary {
+            border-width: 1px;
+        }
+
+        .admin-list-pagination {
+            margin-top: 1rem;
+        }
+
+        .admin-list-pagination .pagination {
+            margin-bottom: 0;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .admin-list-pagination .page-link {
+            min-width: 38px;
+            text-align: center;
+        }
+
+        /* Responsive Sidebar Logic */
+        .mini-sidebar .page-wrapper { margin-left: var(--sidebar-collapsed-width); }
+        @media (max-width: 991.98px) {
+            .page-wrapper { margin-left: 0 !important; }
+            .content-container { padding: 18px 16px 22px; }
+        }
+
+        @media (max-width: 575.98px) {
+            .content-container { padding: 14px 12px 18px; }
+            .school-brand-name { font-size: 0.9rem; }
+            .admin-list-header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .admin-list-header-actions .btn {
+                flex: 1 1 0;
+                justify-content: center;
+            }
+
+            .admin-list-chip {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .admin-list-table {
+                min-width: 900px;
+            }
+        }
+
+        footer {
+            padding: 20px 30px;
+            background: #fff;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -59,10 +292,10 @@
     <div class="main-wrapper">
         <div class="header">
             <div class="header-left">
-                <a href="/" class="logo d-flex align-items-center gap-2">
-                    <h2 class="font-extrabold text-indigo-600 tracking-tighter" style="font-size: 1.3rem; margin-top: 0; font-weight: 800;">
-                        {% if request.user.managed_school %}{{ request.user.managed_school.name|upper }}{% else %}KIDDO CARE{% endif %}
-                    </h2>
+                <a href="/" class="logo d-flex align-items-center">
+                    <span class="school-brand-name">
+                        {% if request.user.managed_school %}{{ request.user.managed_school.name|title }}{% else %}Kiddo Care{% endif %}
+                    </span>
                 </a>
             </div>
 
@@ -222,7 +455,7 @@
             </div>
 
             <footer>
-                <p>Copyright © {{ year|default:"2026" }} {{ request.user.managed_school.name|default:"KiddoCore" }}. All rights reserved.</p>
+                <p>Copyright &copy; {{ year|default:"2026" }} {{ request.user.managed_school.name|default:"KiddoCore" }}. All rights reserved.</p>
             </footer>
         </div>
     </div>
@@ -232,5 +465,6 @@
     <script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
     <script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
     <script src="{% static 'assets/js/script.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

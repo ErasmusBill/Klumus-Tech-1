@@ -7,31 +7,62 @@
 
 <style>
   :root {
-    --bg: #f6f5f0;
+    --bg: #f6f7fb;
     --surface: #ffffff;
-    --border: #e8e5de;
-    --text-primary: #1a1814;
-    --text-secondary: #706b60;
-    --text-muted: #a09a8e;
+    --border: #e5e7eb;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
     --accent-blue: #2563eb;
     --accent-amber: #d97706;
     --accent-emerald: #059669;
     --accent-rose: #e11d48;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-    --card-shadow-hover: 0 4px 12px rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.08);
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 10px 24px rgba(15, 23, 42, 0.05);
+    --shadow-hover: 0 8px 22px rgba(15, 23, 42, 0.08), 0 18px 42px rgba(15, 23, 42, 0.08);
   }
 
   * { box-sizing: border-box; }
 
-  body, .page-wrapper { font-family: 'DM Sans', sans-serif; background: var(--bg); }
+  .dashboard-page {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary);
+    background: var(--bg);
+  }
+
+  .dashboard-shell {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    min-width: 0;
+  }
 
   .dash-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
     flex-wrap: wrap;
+  }
+
+  .dash-header-copy {
+    min-width: 0;
+    flex: 1 1 420px;
+  }
+
+  .dash-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    margin-bottom: 0.5rem;
   }
 
   .dash-title {
@@ -40,69 +71,133 @@
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.02em;
-    margin: 0 0 0.15rem;
+    margin: 0 0 0.2rem;
   }
 
   .dash-subtitle {
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     font-weight: 400;
     margin: 0;
+    line-height: 1.5;
   }
 
-  /* ---------- KPI CARDS ---------- */
+  .dash-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1 1 280px;
+  }
+
+  .dash-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 36px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .qa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 48px;
+    padding: 0.65rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .qa-btn.primary {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+  }
+  .qa-btn.primary:hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+
+  .qa-btn.secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border-color: var(--border);
+  }
+  .qa-btn.secondary:hover { background: #f8fafc; color: var(--text-primary); border-color: #cbd5e1; }
+
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
 
-  @media (max-width: 768px) { .kpi-grid { grid-template-columns: 1fr; } }
-
   .kpi-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-    box-shadow: var(--card-shadow);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
     cursor: default;
     position: relative;
     overflow: hidden;
+    min-width: 0;
   }
-
-  .kpi-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 1.25rem 1.25rem 0 0;
-  }
-
-  .kpi-card.blue::after  { background: var(--accent-blue); }
-  .kpi-card.amber::after { background: var(--accent-amber); }
-  .kpi-card.green::after { background: var(--accent-emerald); }
 
   .kpi-card:hover {
-    box-shadow: var(--card-shadow-hover);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
   }
 
+  .kpi-card.blue { border-top: 3px solid var(--accent-blue); }
+  .kpi-card.amber { border-top: 3px solid var(--accent-amber); }
+  .kpi-card.green { border-top: 3px solid var(--accent-emerald); }
+  .kpi-card.rose { border-top: 3px solid var(--accent-rose); }
+
   .kpi-icon {
-    width: 48px; height: 48px;
-    border-radius: 0.875rem;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
     flex-shrink: 0;
   }
 
-  .kpi-card.blue  .kpi-icon { background: #eff6ff; color: var(--accent-blue); }
+  .kpi-card.blue .kpi-icon { background: #eff6ff; color: var(--accent-blue); }
   .kpi-card.amber .kpi-icon { background: #fffbeb; color: var(--accent-amber); }
   .kpi-card.green .kpi-icon { background: #ecfdf5; color: var(--accent-emerald); }
+  .kpi-card.rose .kpi-icon { background: #fff1f2; color: var(--accent-rose); }
+
+  .kpi-card > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
   .kpi-value {
     font-family: 'Syne', sans-serif;
@@ -114,8 +209,8 @@
   }
 
   .kpi-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -123,40 +218,44 @@
 
   .kpi-link {
     margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.75rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     text-decoration: none;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
     white-space: nowrap;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
   }
-  .kpi-link:hover { background: var(--bg); color: var(--text-primary); }
+  .kpi-link:hover { background: var(--bg); color: var(--text-primary); border-color: #cbd5e1; }
 
-  /* ---------- CHARTS SECTION ---------- */
   .charts-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
 
-  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
-
   .chart-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    padding: 1.5rem;
-    box-shadow: var(--card-shadow);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    min-width: 0;
   }
 
   .chart-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   .chart-card-title {
@@ -165,73 +264,178 @@
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
+    min-width: 0;
   }
 
   .chart-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     color: var(--text-muted);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 0.2rem 0.65rem;
-    letter-spacing: 0.06em;
+    padding: 0.28rem 0.7rem;
+    letter-spacing: 0.04em;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
   }
-  .chart-badge:hover { color: var(--text-primary); }
+  .chart-badge:hover { color: var(--text-primary); background: #eef2ff; border-color: #cbd5e1; }
 
-  .chart-wrap-bar   { position: relative; height: 220px; }
-  .chart-wrap-donut { position: relative; height: 180px; }
+  .chart-wrap-bar { position: relative; height: 240px; }
+  .chart-wrap-donut { position: relative; height: 220px; }
 
-  /* ---------- AI BANNER ---------- */
-  .ai-banner {
-    background: var(--text-primary);
-    border-radius: 1.5rem;
-    padding: 2rem 2.5rem;
+  .activity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .recent-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--border);
+    min-width: 0;
+  }
+
+  .recent-item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .recent-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 2rem;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--accent-blue);
+    border: 1px solid var(--border);
+  }
+
+  .recent-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .recent-title {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.35;
+    margin-bottom: 0.2rem;
+    word-break: break-word;
+  }
+
+  .recent-subtitle {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .recent-meta {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .recent-body {
+    margin: 0.35rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.83rem;
+    line-height: 1.65;
+    word-break: break-word;
+  }
+
+  .priority-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .priority-low { background: #eef2ff; color: #4338ca; }
+  .priority-medium { background: #ecfeff; color: #0f766e; }
+  .priority-high { background: #fffbeb; color: #b45309; }
+  .priority-urgent { background: #fff1f2; color: #be123c; }
+
+  .recent-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    margin-top: 0.3rem;
+  }
+
+  .recent-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .ai-banner {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
     flex-wrap: wrap;
     margin-bottom: 0.5rem;
     position: relative;
     overflow: hidden;
   }
 
-  .ai-banner::before {
-    content: '';
-    position: absolute;
-    top: -60px; right: -60px;
-    width: 240px; height: 240px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(99,102,241,0.25), transparent 70%);
-    pointer-events: none;
-  }
-
-  .ai-banner::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; left: 20%;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%);
-    pointer-events: none;
+  .ai-copy {
+    flex: 1 1 320px;
+    min-width: 220px;
+    position: relative;
+    z-index: 1;
   }
 
   .ai-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(99,102,241,0.2);
-    border: 1px solid rgba(99,102,241,0.4);
-    color: #a5b4fc;
-    font-size: 0.65rem;
+    background: rgba(37, 99, 235, 0.18);
+    border: 1px solid rgba(37, 99, 235, 0.35);
+    color: #bfdbfe;
+    font-size: 0.68rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     border-radius: 999px;
-    padding: 0.25rem 0.75rem;
+    padding: 0.28rem 0.75rem;
     margin-bottom: 0.75rem;
     text-decoration: none;
   }
@@ -248,10 +452,10 @@
   }
 
   .ai-desc {
-    color: rgba(255,255,255,0.5);
-    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.9rem;
     margin: 0;
-    max-width: 480px;
+    max-width: 520px;
     line-height: 1.6;
   }
 
@@ -263,61 +467,46 @@
     gap: 0.5rem;
     position: relative;
     z-index: 1;
+    min-width: 0;
   }
 
-  /* ---------- QUICK ACTIONS ---------- */
-  .quick-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .qa-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.75rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-    border: 1.5px solid transparent;
-    transition: all 0.15s;
-    cursor: pointer;
-  }
-
-  .qa-btn.primary {
-    background: var(--accent-blue);
+  .ai-action-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #fff;
-    border-color: var(--accent-blue);
+    border: none;
+    border-radius: 0.875rem;
+    padding: 0.75rem 1.5rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
   }
-  .qa-btn.primary:hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 
-  .qa-btn.secondary {
-    background: var(--surface);
-    color: var(--text-primary);
-    border-color: var(--border);
+  .ai-action-btn:hover { opacity: 0.95; }
+
+  .ai-action-note {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.42);
   }
-  .qa-btn.secondary:hover { background: var(--bg); color: var(--text-primary); border-color: #c8c3b8; }
 
-  /* ---------- RESULT AREA ---------- */
   #result {
     margin-top: 1.25rem;
-    color: rgba(255,255,255,0.85);
+    color: rgba(15, 23, 42, 0.88);
     font-size: 0.9rem;
     line-height: 1.7;
     min-height: 0;
   }
 
   #result:not(:empty) {
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 0.875rem;
-    padding: 1rem 1.25rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    box-shadow: var(--shadow);
   }
 
-  /* ---------- EMPTY STATE ---------- */
   .empty-chart {
     display: flex;
     flex-direction: column;
@@ -331,27 +520,117 @@
 
   .empty-chart i { font-size: 1.5rem; opacity: 0.4; }
 
-  /* ---------- TOOLTIP HINT ---------- */
   .stat-hint {
     font-size: 0.72rem;
     color: var(--text-muted);
     margin-top: 0.25rem;
   }
 
-  /* Scrollbar polish */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #d1ccc3; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  @media (max-width: 991.98px) {
+    .dash-header {
+      align-items: flex-start;
+    }
+
+    .dash-meta {
+      justify-content: flex-start;
+    }
+
+    .quick-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ai-banner {
+      padding: 1.25rem;
+    }
+
+    .ai-action {
+      margin-left: 0;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .ai-action-btn {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .dash-title {
+      font-size: 1.6rem;
+    }
+
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .activity-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .chart-card {
+      padding: 1rem;
+    }
+
+    .kpi-card {
+      padding: 1rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .dash-chip {
+      width: 100%;
+      justify-content: flex-start;
+      white-space: normal;
+    }
+
+    .quick-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .kpi-link {
+      margin-left: 0;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .chart-wrap-bar { height: 260px; }
+    .chart-wrap-donut { height: 240px; }
+
+    .ai-banner {
+      padding: 1rem;
+    }
+  }
 </style>
 
-<div class="page-wrapper px-4 py-4">
-  <div class="content container-fluid" style="max-width: 1200px; margin: 0 auto;">
+<div class="dashboard-page">
+  <div class="dashboard-shell">
 
     <!-- ===== HEADER ===== -->
     <div class="dash-header">
-      <div>
-        <h1 class="dash-title">School Analytics</h1>
-        <p class="dash-subtitle">Real-time overview of enrollment and faculty metrics</p>
+      <div class="dash-header-copy">
+        <div class="dash-kicker"><i class="fas fa-school"></i> Administration overview</div>
+        <h1 class="dash-title">{{ school.name|default:"KiddoCore" }} Dashboard</h1>
+        <p class="dash-subtitle">
+          Academic year {{ academic_year }} | {{ school.location|default:"Location not set" }}
+        </p>
+      </div>
+      <div class="dash-meta" aria-label="Quick summary">
+        <span class="dash-chip"><i class="fas fa-user-graduate"></i> {{ students_count }} students</span>
+        <span class="dash-chip"><i class="fas fa-chalkboard-teacher"></i> {{ teachers_count }} teachers</span>
+        <span class="dash-chip"><i class="fas fa-bullhorn"></i> {{ published_announcements_count }} live notices</span>
       </div>
     </div>
 
@@ -362,6 +641,34 @@
         {{ message }}
       </div>
       {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if search_query %}
+    <div class="chart-card mb-4">
+      <div class="chart-card-header">
+        <h2 class="chart-card-title">
+          <i class="fas fa-search me-2" style="color:var(--accent-blue);font-size:0.85rem;"></i>
+          Search results for "{{ search_query }}"
+        </h2>
+        <span class="chart-badge">{{ search_results_count|default:0 }} matches</span>
+      </div>
+      <div class="recent-list">
+        {% for student in students|slice:":6" %}
+        <div class="recent-item">
+          <div class="recent-avatar"><i class="fas fa-user-graduate"></i></div>
+          <div class="recent-copy">
+            <span class="recent-title">{{ student.user.get_full_name|default:student.user.username }}</span>
+            <span class="recent-subtitle">
+              {{ student.get_student_class_display }} | Admission {{ student.admission_number|default:student.student_id }}
+            </span>
+          </div>
+          <span class="recent-meta">{{ student.created_at|timesince }} ago</span>
+        </div>
+        {% empty %}
+        <div class="py-3 text-muted small">No students matched this search.</div>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
 
@@ -390,7 +697,7 @@
           <div class="kpi-label">Total Students</div>
           <div class="stat-hint">Enrolled this term</div>
         </div>
-        <a href="{% url 'adminservices:list-students' %}" class="kpi-link">View all →</a>
+        <a href="{% url 'adminservices:list-students' %}" class="kpi-link">View all <i class="fas fa-arrow-right"></i></a>
       </div>
       <div class="kpi-card amber">
         <div class="kpi-icon"><i class="fas fa-chalkboard-teacher"></i></div>
@@ -399,7 +706,7 @@
           <div class="kpi-label">Active Teachers</div>
           <div class="stat-hint">Currently on staff</div>
         </div>
-        <a href="{% url 'adminservices:list-teachers' %}" class="kpi-link">View all →</a>
+        <a href="{% url 'adminservices:list-teachers' %}" class="kpi-link">View all <i class="fas fa-arrow-right"></i></a>
       </div>
       <div class="kpi-card green">
         <div class="kpi-icon"><i class="fas fa-building"></i></div>
@@ -408,7 +715,16 @@
           <div class="kpi-label">Departments</div>
           <div class="stat-hint">Across all faculties</div>
         </div>
-        <a href="{% url 'adminservices:list-departments' %}" class="kpi-link">View all →</a>
+        <a href="{% url 'adminservices:list-departments' %}" class="kpi-link">View all <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="kpi-card rose">
+        <div class="kpi-icon"><i class="fas fa-bullhorn"></i></div>
+        <div>
+          <div class="kpi-value">{{ published_announcements_count }}</div>
+          <div class="kpi-label">Live Notices</div>
+          <div class="stat-hint">Published updates</div>
+        </div>
+        <a href="{% url 'adminservices:announcement_list' %}" class="kpi-link">View all <i class="fas fa-arrow-right"></i></a>
       </div>
     </div>
 
@@ -435,19 +751,71 @@
       </div>
     </div>
 
+    <div class="activity-grid">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h2 class="chart-card-title"><i class="fas fa-user-graduate me-2" style="color:var(--accent-emerald);font-size:0.85rem;"></i>Recent Students</h2>
+          <a href="{% url 'adminservices:list-students' %}" class="chart-badge">View all</a>
+        </div>
+        <div class="recent-list">
+          {% for student in recent_students %}
+          <div class="recent-item">
+            <div class="recent-avatar"><i class="fas fa-user-graduate"></i></div>
+            <div class="recent-copy">
+              <span class="recent-title">{{ student.user.get_full_name|default:student.user.username }}</span>
+              <span class="recent-subtitle">
+                {{ student.get_student_class_display }} | Admission {{ student.admission_number|default:student.student_id }}
+              </span>
+            </div>
+            <span class="recent-meta">{{ student.created_at|timesince }} ago</span>
+          </div>
+          {% empty %}
+          <div class="py-3 text-muted small">No students have been added yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h2 class="chart-card-title"><i class="fas fa-bullhorn me-2" style="color:var(--accent-amber);font-size:0.85rem;"></i>Latest Notices</h2>
+          <a href="{% url 'adminservices:announcement_list' %}" class="chart-badge">View all</a>
+        </div>
+        <div class="recent-list">
+          {% for announcement in recent_announcements %}
+          <div class="recent-item">
+            <div class="recent-avatar"><i class="fas fa-bullhorn"></i></div>
+            <div class="recent-copy">
+              <span class="recent-title">{{ announcement.title }}</span>
+              <div class="recent-badges">
+                <span class="priority-pill priority-{{ announcement.priority }}">{{ announcement.get_priority_display }}</span>
+                <span class="recent-subtitle">{{ announcement.get_target_audience_display }}</span>
+              </div>
+              <p class="recent-body">{{ announcement.content|truncatewords:20 }}</p>
+              <div class="recent-footer">
+                <span>{{ announcement.created_at|timesince }} ago</span>
+                <span>{% if announcement.author %}{{ announcement.author.get_full_name|default:announcement.author.username }}{% else %}Admin{% endif %}</span>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="py-3 text-muted small">No published notices yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
     <!-- ===== AI BANNER ===== -->
     <div class="ai-banner">
-      <div style="flex:1; min-width: 220px; position:relative; z-index:1;">
+      <div class="ai-copy">
         <a href="{% url 'ai_predictor:ai_dashboard' %}" class="ai-badge"><i class="fas fa-brain"></i> KiddoAI Neural Engine</a>
         <h2 class="ai-title">Predict Student Success</h2>
         <p class="ai-desc">Use machine learning to identify students who may need extra support this term. Get personalized intervention recommendations instantly.</p>
       </div>
       <div class="ai-action">
-        <button onclick="runPrediction()" id="aiBtn"
-          style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:0.875rem; padding:0.75rem 1.75rem; font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; cursor:pointer; transition:opacity 0.2s; white-space:nowrap;">
+        <button onclick="runPrediction()" id="aiBtn" class="ai-action-btn">
           <i class="fas fa-bolt me-2"></i> Run Analysis
         </button>
-        <span style="font-size:0.7rem; color:rgba(255,255,255,0.3);">Processes in under 3 seconds</span>
+        <span class="ai-action-note">Processes in under 3 seconds</span>
       </div>
     </div>
 

@@ -1,50 +1,34 @@
-<!-- adminservices/templates/adminservices/list_subjects.html -->
 {% extends "adminservices/base.html" %}
 {% load static %}
 
 {% block title %}Subjects{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
-<style>
-  .table-avatar a {
-    color: #495057;
-    text-decoration: none;
-  }
-  .badge {
-    font-size: 12px;
-    padding: 6px 12px;
-    font-weight: 500;
-  }
-</style>
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">Subjects</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active">Subjects</li>
-          </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-          <a href="#" class="btn btn-outline-primary mr-2" style="display:none;">
-            <i class="fas fa-download"></i> Download
-          </a>
-          <a href="{% url 'adminservices:add-subject' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-          </a>
-        </div>
+<div class="admin-list-page">
+  <div class="admin-list-shell">
+    <div class="page-header admin-list-header">
+      <div class="admin-list-header-copy">
+        <h3 class="page-title">Subjects</h3>
+        <ul class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item active">Subjects</li>
+        </ul>
+      </div>
+      <div class="admin-list-header-actions">
+        <span class="admin-list-chip">
+          <i class="fas fa-book-reader"></i>
+          {{ page_obj.paginator.count|default:0 }} total
+        </span>
+        <a href="{% url 'adminservices:add-subject' %}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add Subject
+        </a>
       </div>
     </div>
 
-    <!-- Messages -->
     {% if messages %}
       {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -56,106 +40,118 @@
       {% endfor %}
     {% endif %}
 
-    <!-- Subjects Table -->
-    <div class="row">
-      <div class="col-sm-12">
-        <div class="card card-table">
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover table-center mb-0 datatable">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Teacher</th>
-                    <th>Department</th>
-                    <th>Class</th>
-                    <th class="text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for subject in page_obj %}
-                    <tr>
-                      <td>{{ subject.id|slice:":8"|upper }}</td>
-                      <td><h2><a href="{% url 'adminservices:subject-detail' subject.id %}">{{ subject.name }}</a></h2></td>
-                      <td>{{ subject.teacher.user.get_full_name }}</td>
-                      <td>{{ subject.department.name }}</td>
-                      <td>{{ subject.subject_class }}</td>
-                      <td class="text-right">
-                        <div class="actions">
-                          <a href="{% url 'adminservices:edit-subject' subject.id %}" class="btn btn-sm bg-success-light mr-2">
-                            <i class="fas fa-pen"></i>
-                          </a>
-                          <form method="post" action="{% url 'adminservices:delete-subject' subject.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="btn btn-sm bg-danger-light"
-                                    onclick="return confirm('Are you sure you want to delete {{ subject.name }}?');">
-                              <i class="fas fa-trash"></i>
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td colspan="5" class="text-center">No subjects found.</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination -->
-            {% if page_obj.has_other_pages %}
-              <div class="pagination mt-4">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
-                    </li>
-                  {% endif %}
-                  {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                      <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                      </li>
+    <div class="card card-table admin-list-card">
+      <div class="card-body">
+        <div class="table-responsive admin-list-table-wrap">
+          <table class="table table-hover table-center mb-0 datatable admin-list-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Teacher</th>
+                <th>Department</th>
+                <th>Class</th>
+                <th class="admin-list-actions-cell">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for subject in page_obj %}
+                <tr>
+                  <td>{{ subject.id|slice:":8"|upper }}</td>
+                  <td>
+                    <h2 class="table-avatar">
+                      <a href="{% url 'adminservices:subject-detail' subject.id %}">
+                        {{ subject.name }}
+                      </a>
+                    </h2>
+                  </td>
+                  <td>
+                    {% if subject.teacher %}
+                      {{ subject.teacher.user.get_full_name|default:subject.teacher.user.username }}
                     {% else %}
-                      <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                      </li>
+                      N/A
                     {% endif %}
-                  {% endfor %}
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
-                    </li>
-                  {% endif %}
-                </ul>
-              </div>
-            {% endif %}
-          </div>
+                  </td>
+                  <td>{{ subject.department.name|default:"N/A" }}</td>
+                  <td>{{ subject.get_subject_class_display|default:subject.subject_class }}</td>
+                  <td class="admin-list-actions-cell">
+                    <div class="admin-list-actions">
+                      <a href="{% url 'adminservices:subject-detail' subject.id %}"
+                         class="btn btn-sm btn-outline-primary"
+                         title="View"
+                         aria-label="View">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'adminservices:edit-subject' subject.id %}"
+                         class="btn btn-sm bg-success-light"
+                         title="Edit"
+                         aria-label="Edit">
+                        <i class="fas fa-pen"></i>
+                      </a>
+                      <form method="post" action="{% url 'adminservices:delete-subject' subject.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btn btn-sm bg-danger-light"
+                                onclick="return confirm('Are you sure you want to delete {{ subject.name }}?');"
+                                title="Delete"
+                                aria-label="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center">No subjects found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+
+        {% if page_obj.has_other_pages %}
+          <div class="admin-list-pagination">
+            <ul class="pagination justify-content-center">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                </li>
+              {% endif %}
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                  </li>
+                {% else %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                </li>
+              {% endif %}
+            </ul>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
-
-  <!-- Footer -->
-  <footer>
-    <p>Copyright © {{ year }} {{ request.user.managed_school.name }}. All rights reserved.</p>
-  </footer>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
-  $(document).ready(function () {
+  $(function () {
     $('.datatable').DataTable({
-      "pageLength": 10,
-      "order": [[1, "asc"]],
-      "columnDefs": [
-        { "orderable": false, "targets": [-1] } // Disable sorting on Action column
+      pageLength: 10,
+      order: [[1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: [-1] }
       ]
     });
   });

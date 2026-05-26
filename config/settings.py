@@ -183,13 +183,10 @@ if not DEBUG:
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            # This custom storage class tells WhiteNoise not to crash on missing source maps
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-
-    # Add this line right below your STORAGES setting:
-    WHITENOISE_MANIFEST_STRICT = False
+    WHITENOISE_MANIFEST_STRICT = False  # ✅ same level as STORAGES
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

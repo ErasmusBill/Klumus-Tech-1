@@ -184,7 +184,7 @@ if not DEBUG:
                 "BACKEND": "django.core.files.storage.FileSystemStorage",
             },
             "staticfiles": {
-                "BACKEND": "yourproject.storage.SkipSourceMapsStorage",  # ← your app name
+                "BACKEND": "config.storage.SkipSourceMapsStorage",  # ← your app name
             },
         }
 

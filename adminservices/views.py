@@ -9,13 +9,15 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count
 from django.conf import settings
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.core.cache import cache
 
 from account.models import (
     Teacher, CustomUser, Department, School,
-    Student, Parent, Fees, Subject, Announcement, Notification, ClassFee
+    Student, Parent, Fees, Subject, Announcement, Notification, ClassFee,
+    Attendance, Timetable, Leave
 )
 from .forms import (
     AddTeacherForm, AddDepartmentForm, AddStudentForm,
@@ -537,29 +539,90 @@ def delete_teacher(request, teacher_id):
 @login_required
 def teacher_detail(request, teacher_id):
     """View teacher details"""
-    
     if request.user.role not in ["admin", "teacher"]:
         messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-teachers")
-  
+
+    teacher_profile = getattr(request.user, "teacher_profile", None)
+
     if request.user.role == "admin":
         try:
             school = request.user.managed_school
         except School.DoesNotExist:
             messages.error(request, "You are an admin but have no school assigned.")
-            return redirect("dashboard") 
-
-
+            return redirect("adminservices:admin-dashboard")
+        back_url = reverse("adminservices:list-teachers")
+        back_label = "Teachers"
+        show_edit_button = True
+        show_salary = True
     elif request.user.role == "teacher":
-        try:
-            school = request.user.teacher_profile.school
-        except Teacher.DoesNotExist:
+        if not teacher_profile:
             messages.error(request, "Teacher profile not found.")
-            return redirect("dashboard")
+            return redirect("teacher:teacher-dashboard")
 
-    teacher = get_object_or_404(Teacher, id=teacher_id, school=school)
+        if teacher_profile.id != teacher_id:
+            messages.error(request, "You can only view your own profile.")
+            return redirect("adminservices:teacher-detail", teacher_id=teacher_profile.id)
+
+        school = teacher_profile.school
+        back_url = reverse("teacher:teacher-dashboard")
+        back_label = "Dashboard"
+        show_edit_button = False
+        show_salary = False
+    else:
+        messages.error(request, "You are not authorized to perform this action")
+        return redirect("adminservices:list-teachers")
+
+    teacher = get_object_or_404(
+        Teacher.objects.select_related("user", "department", "school"),
+        id=teacher_id,
+        school=school,
+    )
+
+    subjects_qs = teacher.subjects.select_related("department").order_by("-created_at")
+    timetables_qs = teacher.timetables.select_related("subject", "department").order_by("day_of_week", "start_time")
+    attendance_qs = teacher.attendance.select_related("marked_by").order_by("-date", "-created_at")
+    leaves_qs = teacher.leaves.select_related("approved_by").order_by("-created_at")
+
+    subject_count = subjects_qs.count()
+    timetable_count = timetables_qs.count()
+    class_count = timetables_qs.values("student_class").distinct().count()
+    attendance_total = attendance_qs.count()
+    present_count = attendance_qs.filter(status="present").count()
+    absent_count = attendance_qs.filter(status="absent").count()
+    late_count = attendance_qs.filter(status="late").count()
+    excused_count = attendance_qs.filter(status="excused").count()
+    sick_count = attendance_qs.filter(status="sick").count()
+    attendance_rate = round((present_count / attendance_total) * 100, 1) if attendance_total else 0
+    leave_count = leaves_qs.count()
+    pending_leave_count = leaves_qs.filter(status="pending").count()
+    approved_leave_count = leaves_qs.filter(status="approved").count()
     
-    return render(request, "adminservices/teacher_detail_edit.html", {"teacher": teacher})
+    return render(request, "adminservices/teacher_detail.html", {
+        "teacher": teacher,
+        "school": school,
+        "back_url": back_url,
+        "back_label": back_label,
+        "show_edit_button": show_edit_button,
+        "show_salary": show_salary,
+        "subject_count": subject_count,
+        "timetable_count": timetable_count,
+        "class_count": class_count,
+        "attendance_total": attendance_total,
+        "attendance_rate": attendance_rate,
+        "present_count": present_count,
+        "absent_count": absent_count,
+        "late_count": late_count,
+        "excused_count": excused_count,
+        "sick_count": sick_count,
+        "leave_count": leave_count,
+        "pending_leave_count": pending_leave_count,
+        "approved_leave_count": approved_leave_count,
+        "recent_subjects": subjects_qs[:6],
+        "recent_timetables": timetables_qs[:8],
+        "recent_attendance": attendance_qs[:6],
+        "recent_leaves": leaves_qs[:5],
+    })
 
 @login_required(login_url='account:login')
 def add_department(request):

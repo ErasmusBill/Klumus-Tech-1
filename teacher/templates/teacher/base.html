@@ -63,7 +63,7 @@
                     <a href="{% url 'teacher:teacher-dashboard' %}" class="logo">
                         <h2 class="school-brand-name">
                             {% if school %}
-                                {{ school.name }}
+                                {{ teacher.school.name }}
                             {% else %}
                                 KIDDO CARE
                             {% endif %}

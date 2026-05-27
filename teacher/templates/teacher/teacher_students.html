@@ -4,7 +4,7 @@
 {% block title %}My Students{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
   .table-avatar a {
     color: #495057;
@@ -49,8 +49,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
+<div class="teacher-page-shell">
 
     <!-- Page Header -->
     <div class="page-header">
@@ -132,7 +131,7 @@
     <!-- Students Table -->
     <div class="row">
       <div class="col-sm-12">
-        <div class="card card-table">
+        <div class="card card-table teacher-list-card">
           <div class="card-header">
             <h5 class="card-title">Student List</h5>
           </div>
@@ -187,7 +186,7 @@
                         <small class="text-muted">{{ student.phone }}</small>
                       </td>
                       <td class="text-right">
-                        <div class="actions">
+                        <div class="teacher-table-actions">
                           <a href="{% url 'teacher:view-result' student.id %}" 
                              class="btn btn-sm bg-info-light mr-2"
                              title="View Results"
@@ -213,12 +212,11 @@
         </div>
       </div>
     </div>
-  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
   $(document).ready(function () {
     $('.datatable').DataTable({

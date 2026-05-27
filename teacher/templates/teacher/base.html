@@ -17,6 +17,8 @@
             align-items: center;
             min-height: 60px;
             line-height: normal;
+            max-width: 260px;
+            text-decoration: none;
         }
 
         .header .header-left .school-brand-name {
@@ -31,12 +33,54 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: clip;
+            word-break: break-word;
+        }
+
+        .teacher-action-row,
+        .teacher-table-actions,
+        .card .actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .teacher-action-row .btn,
+        .teacher-table-actions .btn,
+        .card .actions .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .teacher-list-card .card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .teacher-list-card .card-title {
+            margin-bottom: 0;
+        }
+
+        .teacher-page-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
         }
 
         /* Responsive header tweaks */
         @media (max-width: 991.98px) {
             .top-nav-search { display: none; }
-            .header .header-left .logo { display: none !important; }
+            .header .header-left .logo {
+                display: flex !important;
+                max-width: 180px;
+            }
             .header .header-left .school-brand-name {
                 font-size: 1rem;
                 max-width: 160px;
@@ -59,11 +103,11 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                {% with school=request.user.teacher_profile.school %}
+                {% with teacher_profile=request.user.teacher_profile %}
                     <a href="{% url 'teacher:teacher-dashboard' %}" class="logo">
                         <h2 class="school-brand-name">
-                            {% if school %}
-                                {{ teacher.school.name }}
+                            {% if teacher_profile and teacher_profile.school and teacher_profile.school.name %}
+                                {{ teacher_profile.school.name }}
                             {% else %}
                                 KIDDO CARE
                             {% endif %}

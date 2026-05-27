@@ -4,7 +4,7 @@
 {% block title %}{{ subject_name }} - Students{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/datatables.min.css' %}">
+<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
   .table-avatar a {
     color: #495057;
@@ -41,8 +41,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-  <div class="content container-fluid">
+<div class="teacher-page-shell">
     
     <!-- Page Header -->
     <div class="page-header">
@@ -97,7 +96,7 @@
     <!-- Students Table -->
     <div class="row">
       <div class="col-sm-12">
-        <div class="card card-table">
+        <div class="card card-table teacher-list-card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
             <h5 class="card-title mb-0">Students List</h5>
             <span class="badge badge-primary badge-pill">{{ subject_name }}</span>
@@ -144,7 +143,7 @@
                         <small class="text-muted">{{ student.mobile_number }}</small>
                       </td>
                       <td class="text-right">
-                        <div class="actions">
+                        <div class="teacher-table-actions">
                           <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" 
                              class="btn btn-sm bg-info-light mr-2"
                              title="Enter Results"
@@ -182,12 +181,11 @@
         </div>
       </div>
     </div>
-  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'plugins/datatables/datatables.min.js' %}"></script>
+<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
   $(document).ready(function () {
     $('.datatable').DataTable({

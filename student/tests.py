@@ -1,3 +1,10 @@
-from django.test import TestCase
+from django.contrib.staticfiles import finders
+from django.test import SimpleTestCase
 
-# Create your tests here.
+
+class StudentStaticAssetTests(SimpleTestCase):
+    def test_empty_assignments_illustration_exists(self):
+        self.assertIsNotNone(
+            finders.find("assets/img/no-tasks.svg"),
+            "Expected student empty-state illustration to exist at static/assets/img/no-tasks.svg.",
+        )

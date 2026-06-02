@@ -1,0 +1,12 @@
+<svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">No tasks</title>
+  <desc id="desc">A simple empty clipboard illustration for empty assignment states.</desc>
+  <rect x="56" y="28" width="128" height="124" rx="16" fill="#F4F7FB" stroke="#C9D4E5" stroke-width="4"/>
+  <rect x="88" y="18" width="64" height="24" rx="10" fill="#E3EAF4" stroke="#C9D4E5" stroke-width="4"/>
+  <rect x="78" y="58" width="84" height="10" rx="5" fill="#D6DFEC"/>
+  <rect x="78" y="80" width="68" height="10" rx="5" fill="#D6DFEC"/>
+  <rect x="78" y="102" width="76" height="10" rx="5" fill="#D6DFEC"/>
+  <circle cx="170" cy="104" r="28" fill="#EAF4FF"/>
+  <path d="M156 104L166 114L186 94" stroke="#4A90E2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M62 146C80 158 104 164 120 164C141 164 160 159 178 149" stroke="#D6DFEC" stroke-width="6" stroke-linecap="round"/>
+</svg>

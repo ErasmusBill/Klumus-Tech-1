@@ -1,0 +1,12 @@
+<svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">No billing history</title>
+  <desc id="desc">A simple invoice illustration for empty financial records.</desc>
+  <rect x="58" y="24" width="124" height="132" rx="16" fill="#F4F7FB" stroke="#C9D4E5" stroke-width="4"/>
+  <rect x="82" y="48" width="76" height="12" rx="6" fill="#D6DFEC"/>
+  <rect x="82" y="72" width="96" height="10" rx="5" fill="#D6DFEC"/>
+  <rect x="82" y="92" width="84" height="10" rx="5" fill="#D6DFEC"/>
+  <rect x="82" y="112" width="54" height="10" rx="5" fill="#D6DFEC"/>
+  <path d="M154 102C154 88.7452 164.745 78 178 78C191.255 78 202 88.7452 202 102C202 115.255 191.255 126 178 126C164.745 126 154 115.255 154 102Z" fill="#EAF4FF"/>
+  <path d="M169 102L175 108L189 94" stroke="#4A90E2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M68 146C86 158 104 164 120 164C140 164 159 159 177 149" stroke="#D6DFEC" stroke-width="6" stroke-linecap="round"/>
+</svg>

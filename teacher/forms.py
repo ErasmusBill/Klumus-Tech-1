@@ -126,14 +126,73 @@ class AttendanceForm(forms.ModelForm):
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
-    def __init__(self, school=None, *args, **kwargs):
+    def __init__(self, school=None, teacher=None, *args, **kwargs):
+        self.school = school
+        self.teacher_profile = teacher
         super().__init__(*args, **kwargs)
+
+        self.restricted_to_class_teacher = bool(self.teacher_profile and self.teacher_profile.can_take_attendance)
+        self.assigned_class = self.teacher_profile.class_teacher_class if self.restricted_to_class_teacher else None
+        self.assigned_class_display = (
+            self.teacher_profile.get_class_teacher_class_display()
+            if self.restricted_to_class_teacher and self.teacher_profile
+            else None
+        )
+
         if school:
-            self.fields['student'].queryset = Student.objects.filter(school=school, is_active=True).select_related('user')  # type: ignore
-            self.fields['teacher'].queryset = Teacher.objects.filter(school=school, is_active=True).select_related('user')  # type: ignore
+            student_queryset = Student.objects.filter(school=school, is_active=True).select_related('user')  # type: ignore
+            teacher_queryset = Teacher.objects.filter(school=school, is_active=True).select_related('user')  # type: ignore
         else:
-            self.fields['student'].queryset = Student.objects.none()  # type: ignore
+            student_queryset = Student.objects.none()  # type: ignore
+            teacher_queryset = Teacher.objects.none()  # type: ignore
+
+        if self.restricted_to_class_teacher:
+            student_queryset = student_queryset.filter(student_class=self.assigned_class)
+            self.fields['attendance_type'].choices = [('student', 'Student')]
+            self.fields['attendance_type'].initial = 'student'
+            self.fields['attendance_type'].required = False
+            self.fields['attendance_type'].widget = forms.HiddenInput()
+            self.fields['teacher'].required = False
+            self.fields['teacher'].widget = forms.HiddenInput()
             self.fields['teacher'].queryset = Teacher.objects.none()  # type: ignore
+            self.fields['student'].required = True
+            self.fields['class_attendance'].required = False
+            self.fields['class_attendance'].initial = self.assigned_class
+            self.fields['class_attendance'].widget = forms.HiddenInput()
+            if self.assigned_class_display:
+                self.fields['student'].help_text = f"Attendance is restricted to {self.assigned_class_display}."
+
+        self.fields['student'].queryset = student_queryset  # type: ignore
+        if not self.restricted_to_class_teacher:
+            self.fields['teacher'].queryset = teacher_queryset  # type: ignore
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if self.teacher_profile and not self.teacher_profile.can_take_attendance:
+            raise forms.ValidationError("Only class teachers assigned to a class can record attendance.")
+
+        attendance_type = cleaned_data.get('attendance_type')
+        student = cleaned_data.get('student')
+        teacher = cleaned_data.get('teacher')
+
+        if self.restricted_to_class_teacher:
+            cleaned_data['attendance_type'] = 'student'
+            cleaned_data['teacher'] = None
+            cleaned_data['class_attendance'] = self.assigned_class
+            if student and self.assigned_class and student.student_class != self.assigned_class:
+                self.add_error('student', f"Select a student from {self.assigned_class_display}.")
+            elif not student and 'student' not in self.errors:
+                self.add_error('student', "Select a student from your assigned class.")
+        else:
+            if attendance_type == 'student':
+                cleaned_data['teacher'] = None
+                if not student and 'student' not in self.errors:
+                    self.add_error('student', 'Select a student for student attendance.')
+            elif attendance_type == 'teacher':
+                cleaned_data['student'] = None
+                if not teacher and 'teacher' not in self.errors:
+                    self.add_error('teacher', 'Select a teacher for staff attendance.')
             
 
 

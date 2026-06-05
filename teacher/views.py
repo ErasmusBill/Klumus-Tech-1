@@ -24,6 +24,20 @@ from adminservices.utils import create_bulk_in_app_notifications, create_in_app_
 from account.cache_utils import make_cache_key, should_cache
 
 
+def _get_attendance_teacher(request):
+    try:
+        teacher = request.user.teacher_profile
+    except Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found.")
+        return None, redirect("account:login")
+
+    if not teacher.can_take_attendance:
+        messages.error(request, "Only class teachers assigned to a class can take attendance.")
+        return None, redirect("teacher:teacher-dashboard")
+
+    return teacher, None
+
+
 def teacher_dashboard(request):
     if not request.user.is_authenticated or request.user.role != "teacher":
         messages.error(request, "You are not authorized to access this page.")
@@ -36,7 +50,11 @@ def teacher_dashboard(request):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
-    cache_key = make_cache_key("teacher_portal", school.id, f"dashboard:{teacher.id}")
+    cache_key = make_cache_key(
+        "teacher_portal",
+        school.id,
+        f"dashboard:{teacher.id}:{teacher.is_class_teacher}:{teacher.class_teacher_class or 'none'}",
+    )
     if should_cache(request):
         cached_response = cache.get(cache_key)
         if cached_response:
@@ -97,7 +115,11 @@ def my_subjects(request):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
-    cache_key = make_cache_key("teacher_portal", school.id, f"my-subjects:{teacher.id}")
+    cache_key = make_cache_key(
+        "teacher_portal",
+        school.id,
+        f"my-subjects:{teacher.id}:{teacher.is_class_teacher}:{teacher.class_teacher_class or 'none'}",
+    )
     if should_cache(request):
         cached_response = cache.get(cache_key)
         if cached_response:
@@ -468,15 +490,14 @@ def mark_attendance(request):
         messages.error(request,"You are not authorized to perform this action")
         return redirect("account:login")
     
-    try:
-        teacher = request.user.teacher_profile
-        school = teacher.school
-    except Teacher.DoesNotExist:
-        messages.error(request, "Techer with this profile does not exits")
-        return redirect("account:login")
+    teacher, response = _get_attendance_teacher(request)
+    if response:
+        return response
+
+    school = teacher.school
     
     if request.method == 'POST':
-        form = AttendanceForm(school=school, data=request.POST)
+        form = AttendanceForm(school=school, teacher=teacher, data=request.POST)
         if form.is_valid():
             attendance = form.save(commit=False)
             attendance.marked_by = teacher.user
@@ -503,7 +524,7 @@ def mark_attendance(request):
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = AttendanceForm(school=school)
+        form = AttendanceForm(school=school, teacher=teacher)
 
     return render(request, 'teacher/add_attendance.html', {'form': form, 'title': 'Add Attendance'})
 
@@ -515,11 +536,12 @@ def attendance_update(request, attendance_id):
 
 
     school = None
+    teacher = None
     if user.role == "teacher":
-        try:
-            school = user.teacher_profile.school
-        except Teacher.DoesNotExist:
-            raise Http404
+        teacher, response = _get_attendance_teacher(request)
+        if response:
+            return response
+        school = teacher.school
     elif user.role == "admin":
         try:
             school = user.managed_school
@@ -533,9 +555,15 @@ def attendance_update(request, attendance_id):
         raise Http404
     if attendance.teacher and attendance.teacher.school != school:
         raise Http404
+    if teacher and (
+        attendance.attendance_type != "student"
+        or attendance.class_attendance != teacher.class_teacher_class
+        or (attendance.student and attendance.student.student_class != teacher.class_teacher_class)
+    ):
+        raise Http404
 
     if request.method == 'POST':
-        form = AttendanceForm(school=school, data=request.POST, instance=attendance)
+        form = AttendanceForm(school=school, teacher=teacher, data=request.POST, instance=attendance)
         if form.is_valid():
             updated = form.save(commit=False)
             if updated.attendance_type == 'student':
@@ -548,7 +576,7 @@ def attendance_update(request, attendance_id):
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = AttendanceForm(school=school, instance=attendance)
+        form = AttendanceForm(school=school, teacher=teacher, instance=attendance)
 
     return render(request, 'teacher/add_attendance.html', {'form': form, 'title': 'Edit Attendance'})
 
@@ -559,8 +587,12 @@ def attendance_delete(request, attendance_id):
     user = request.user
 
     school = None
+    teacher = None
     if user.role == "teacher":
-        school = getattr(user, 'teacher_profile', None) and user.teacher_profile.school
+        teacher, response = _get_attendance_teacher(request)
+        if response:
+            return response
+        school = teacher.school
     elif user.role == "admin":
         school = getattr(user, 'managed_school', None)
 
@@ -569,6 +601,12 @@ def attendance_delete(request, attendance_id):
 
     if (attendance.student and attendance.student.school != school) or \
        (attendance.teacher and attendance.teacher.school != school):
+        raise Http404
+    if teacher and (
+        attendance.attendance_type != "student"
+        or attendance.class_attendance != teacher.class_teacher_class
+        or (attendance.student and attendance.student.student_class != teacher.class_teacher_class)
+    ):
         raise Http404
 
     if request.method == 'POST':
@@ -592,13 +630,16 @@ def attendance_list(request):
         attendances = Attendance.objects.filter(student__school=school) | Attendance.objects.filter(teacher__school=school)
         
     elif user.role == "teacher":
-        try:
-            school = user.teacher_profile.school
-        except Teacher.DoesNotExist:
-            messages.error(request, "Teacher profile not found.")
-            return redirect("account:login")
-        attendances = Attendance.objects.filter(student__school=school) | Attendance.objects.filter(
-            teacher__school=school)
+        teacher, response = _get_attendance_teacher(request)
+        if response:
+            return response
+        school = teacher.school
+        attendances = Attendance.objects.filter(
+            student__school=school,
+            attendance_type="student",
+            class_attendance=teacher.class_teacher_class,
+            student__student_class=teacher.class_teacher_class,
+        )
     elif user.role == "student":
         attendances = Attendance.objects.filter(student__user=user)
     else:
@@ -607,7 +648,10 @@ def attendance_list(request):
 
     attendances = attendances.select_related('student__user', 'teacher__user', 'marked_by').order_by('-date')
     if user.role in {"admin", "teacher"} and school:  # type: ignore[name-defined]
-        cache_key = make_cache_key("teacher_portal", school.id, f"attendance:{user.id}")
+        cache_suffix = f"attendance:{user.id}"
+        if user.role == "teacher":
+            cache_suffix = f"attendance:{user.id}:{teacher.class_teacher_class}:{teacher.is_class_teacher}"
+        cache_key = make_cache_key("teacher_portal", school.id, cache_suffix)
         if should_cache(request):
             cached_response = cache.get(cache_key)
             if cached_response:

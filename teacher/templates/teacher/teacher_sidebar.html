@@ -50,30 +50,32 @@
           </a>
         </li>
 
-        <!-- Attendance Management -->
-        <li class="submenu {% if 'attendance' in request.resolver_match.url_name %}active open{% endif %}">
-          <a href="#">
-            <i class="fas fa-clipboard-check"></i> <span>Attendance</span> 
-            <span class="menu-arrow"></span>
-          </a>
-          <ul>
-            <li class="{% if request.resolver_match.url_name == 'mark-attendance' %}active{% endif %}">
-              <a href="{% url 'teacher:mark-attendance' %}">
-                <i class="fas fa-edit"></i> Take Attendance
-              </a>
-            </li>
-            <li class="{% if request.resolver_match.url_name == 'attendance-list' %}active{% endif %}">
-              <a href="{% url 'teacher:attendance-list' %}">
-                <i class="fas fa-list"></i> View Records
-              </a>
-            </li>
-            <li class="{% if request.resolver_match.url_name == 'attendance-update' or request.resolver_match.url_name == 'attendance-delete' %}active{% endif %}">
-              <a href="{% url 'teacher:attendance-list' %}">
-                <i class="fas fa-cog"></i> Manage Attendance
-              </a>
-            </li>
-          </ul>
-        </li>
+        {% if teacher_is_class_teacher %}
+          <!-- Attendance Management -->
+          <li class="submenu {% if 'attendance' in request.resolver_match.url_name %}active open{% endif %}">
+            <a href="#">
+              <i class="fas fa-clipboard-check"></i> <span>Attendance</span> 
+              <span class="menu-arrow"></span>
+            </a>
+            <ul>
+              <li class="{% if request.resolver_match.url_name == 'mark-attendance' %}active{% endif %}">
+                <a href="{% url 'teacher:mark-attendance' %}">
+                  <i class="fas fa-edit"></i> Take Attendance
+                </a>
+              </li>
+              <li class="{% if request.resolver_match.url_name == 'attendance-list' %}active{% endif %}">
+                <a href="{% url 'teacher:attendance-list' %}">
+                  <i class="fas fa-list"></i> View Records
+                </a>
+              </li>
+              <li class="{% if request.resolver_match.url_name == 'attendance-update' or request.resolver_match.url_name == 'attendance-delete' %}active{% endif %}">
+                <a href="{% url 'teacher:attendance-list' %}">
+                  <i class="fas fa-cog"></i> Manage Attendance
+                </a>
+              </li>
+            </ul>
+          </li>
+        {% endif %}
 
         <!-- Results & Grades Management -->
         <li class="submenu {% if 'result' in request.resolver_match.url_name or 'bulk-grades' in request.resolver_match.url_name %}active open{% endif %}">

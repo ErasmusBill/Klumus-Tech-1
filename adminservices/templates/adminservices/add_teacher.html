@@ -232,6 +232,32 @@
                   </div>
                   <div class="col-12 col-sm-6">
                     <div class="form-group">
+                      <label class="d-block">Class Teacher?</label>
+                      <div class="form-check form-switch mt-2">
+                        {{ form.is_class_teacher }}
+                        <label class="form-check-label ms-2" for="{{ form.is_class_teacher.id_for_label }}">
+                          Assign this teacher to take attendance
+                        </label>
+                      </div>
+                      {% if form.is_class_teacher.errors %}
+                        <div class="text-danger mt-1">{{ form.is_class_teacher.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                      <label>Attendance Class</label>
+                      {{ form.class_teacher_class }}
+                      {% if form.class_teacher_class.help_text %}
+                        <small class="form-text text-muted d-block mt-1">{{ form.class_teacher_class.help_text }}</small>
+                      {% endif %}
+                      {% if form.class_teacher_class.errors %}
+                        <div class="text-danger mt-1">{{ form.class_teacher_class.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-12 col-sm-6">
+                    <div class="form-group">
                       <label>Username</label>
                       {{ form.username }}
                       {% if form.username.errors %}

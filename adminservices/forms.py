@@ -73,7 +73,9 @@ class AddTeacherForm(forms.ModelForm):
             "employment_type",
             "salary",
             "bio",
-            "image" 
+            "image",
+            "is_class_teacher",
+            "class_teacher_class"
         ]
         widgets = {
             "qualification": forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., BSc, MSc, PhD'}),
@@ -85,6 +87,8 @@ class AddTeacherForm(forms.ModelForm):
             "salary": forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Salary'}),
             "bio": forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Brief biography'}),
             "image": forms.FileInput(attrs={'class': 'form-control'}),
+            "is_class_teacher": forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            "class_teacher_class": forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -143,6 +147,10 @@ class AddTeacherForm(forms.ModelForm):
             self.fields['department'].queryset = Department.objects.none()
             self.fields['department'].widget.attrs['disabled'] = True
 
+        self.fields['is_class_teacher'].required = False
+        self.fields['class_teacher_class'].required = False
+        self.fields['class_teacher_class'].help_text = "Required only when this teacher will take attendance."
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if not email:
@@ -186,6 +194,18 @@ class AddTeacherForm(forms.ModelForm):
             if age_at_hire < 18:
                 raise forms.ValidationError("Teacher must be at least 18 years old at hire date.")
         return hire_date
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_class_teacher = cleaned_data.get("is_class_teacher")
+        class_teacher_class = cleaned_data.get("class_teacher_class")
+
+        if is_class_teacher and not class_teacher_class:
+            self.add_error("class_teacher_class", "Select the class assigned to this class teacher.")
+        if not is_class_teacher:
+            cleaned_data["class_teacher_class"] = None
+
+        return cleaned_data
 
     def save(self, commit=True):
         """

@@ -72,9 +72,11 @@
               <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" class="btn btn-primary btn-sm">
                 <i class="fas fa-edit"></i> Enter Grades
               </a>
-              <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-clipboard-check"></i> Attendance
-              </a>
+              {% if teacher_is_class_teacher %}
+                <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-secondary btn-sm">
+                  <i class="fas fa-clipboard-check"></i> Attendance
+                </a>
+              {% endif %}
               {% comment %} <a href="#" class="btn btn-outline-info btn-sm">
                 <i class="fas fa-tasks"></i> Assignments
               </a> {% endcomment %}

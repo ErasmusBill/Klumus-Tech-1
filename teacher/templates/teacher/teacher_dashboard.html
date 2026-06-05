@@ -209,9 +209,11 @@
                     <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary mb-2">
                         <i class="fas fa-plus-circle me-2"></i>Create Assignment
                     </a>
-                    <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-primary mb-2">
-                        <i class="fas fa-clipboard-check me-2"></i>Take Attendance
-                    </a>
+                    {% if teacher_is_class_teacher %}
+                      <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-primary mb-2">
+                          <i class="fas fa-clipboard-check me-2"></i>Take Attendance
+                      </a>
+                    {% endif %}
                     <a href="{% url 'teacher:my-subjects' %}" class="btn btn-outline-success mb-2">
                         <i class="fas fa-book-reader me-2"></i>My Subjects
                     </a>

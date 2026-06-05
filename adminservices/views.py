@@ -302,6 +302,8 @@ def add_teacher(request):
                         department=form.cleaned_data.get('department'),
                         salary=form.cleaned_data.get('salary'),
                         bio=form.cleaned_data.get('bio', ''),
+                        is_class_teacher=form.cleaned_data.get('is_class_teacher', False),
+                        class_teacher_class=form.cleaned_data.get('class_teacher_class') if form.cleaned_data.get('is_class_teacher') else None,
                         is_active=True
                     )
                     

@@ -19,6 +19,20 @@ def generate_generalized_integer():
     return get_random_string(length=50)
 
 
+ATTENDANCE_CLASS_CHOICES = [
+    ("CRECHE", "Creche"),
+    ("NURSERY_1", "Nursery 1"),
+    ("NURSERY_2", "Nursery 2"),
+    ("KINDERGARTEN", "Kindergarten"),
+    ("UPPER_PRIMARY_4", "Upper Primary 4"),
+    ("UPPER_PRIMARY_5", "Upper Primary 5"),
+    ("UPPER_PRIMARY_6", "Upper Primary 6"),
+    ("JHS_1", "JHS 1"),
+    ("JHS_2", "JHS 2"),
+    ("JHS_3", "JHS 3"),
+]
+
+
 class CustomUser(AbstractUser):
     """Extended user model with role-based access"""
     ROLE_CHOICES = [
@@ -531,8 +545,16 @@ class Teacher(models.Model):
     qualification = models.CharField(max_length=255, blank=True)
     specialization = models.CharField(max_length=255, blank=True)
     experience_years = models.PositiveIntegerField(default=0)
-    image = models.ImageField(upload_to="teacher_images/", blank=True, null=True) 
-    
+    image = models.ImageField(upload_to="teacher_images/", blank=True, null=True)
+    is_class_teacher = models.BooleanField(default=False)
+    class_teacher_class = models.CharField(
+        max_length=50,
+        choices=ATTENDANCE_CLASS_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Class this teacher is responsible for taking attendance."
+      )
+      
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, default="full_time")
     hire_date = models.DateField(default=timezone.now)
     salary = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
@@ -551,7 +573,11 @@ class Teacher(models.Model):
     def __str__(self):
         dept = self.department.name if self.department else "No Dept"
         return f"{self.user.get_full_name()} ({dept})"
-    
+
+    @property
+    def can_take_attendance(self) -> bool:
+        return bool(self.is_class_teacher and self.class_teacher_class)
+     
 class Subject(models.Model):
     """Subject model"""
     CLASS_CHOICES = [
@@ -1186,18 +1212,7 @@ class Attendance(models.Model):
         ("excused", "Excused"),
         ("sick", "Sick Leave"),
     ]
-    CLASS_CHOICES = [
-        ("CRECHE", "Creche"),
-        ("NURSERY_1", "Nursery 1"),
-        ("NURSERY_2", "Nursery 2"),
-        ("KINDERGARTEN", "Kindergarten"),
-        ("UPPER_PRIMARY_4", "Upper Primary 4"),
-        ("UPPER_PRIMARY_5", "Upper Primary 5"),
-        ("UPPER_PRIMARY_6", "Upper Primary 6"),
-        ("JHS_1", "JHS 1"),
-        ("JHS_2", "JHS 2"),
-        ("JHS_3", "JHS 3"),
-    ]
+    CLASS_CHOICES = ATTENDANCE_CLASS_CHOICES
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     attendance_type = models.CharField(max_length=20, choices=ATTENDANCE_TYPE_CHOICES)

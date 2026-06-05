@@ -94,7 +94,8 @@ class CustomUserAdmin(admin.ModelAdmin):
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ("user", "school", "department")
+    list_display = ("user", "school", "department", "is_class_teacher", "class_teacher_class")
+    list_filter = ("school", "department", "is_class_teacher", "is_active")
     search_fields = ("user__first_name", "user__last_name")
 
 

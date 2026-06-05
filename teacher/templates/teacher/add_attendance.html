@@ -47,18 +47,43 @@
                         <form method="post" id="attendanceForm" class="needs-validation" novalidate>
                             {% csrf_token %}
 
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger rounded-2xl border-0 shadow-sm mb-4">
+                                    {% for error in form.non_field_errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            {% if form.restricted_to_class_teacher %}
+                                <div class="alert alert-info rounded-2xl border-0 shadow-sm mb-4">
+                                    <i class="fas fa-user-shield me-2"></i>
+                                    Attendance is restricted to {{ form.assigned_class_display }}.
+                                </div>
+                                <div class="d-none">
+                                    {{ form.attendance_type }}
+                                    {{ form.teacher }}
+                                    {{ form.class_attendance }}
+                                </div>
+                            {% endif %}
+
                             <div class="row g-5">
                                 <div class="col-lg-6">
                                     <div class="section-label mb-4">
                                         <span class="badge bg-indigo-50 text-indigo-600 rounded-pill px-3 py-2 font-bold uppercase tracking-wider text-[10px]">1. Target Information</span>
                                     </div>
 
-                                    <div class="form-group mb-4">
-                                        <label class="form-label font-bold text-slate-700">Person Type</label>
-                                        <div class="input-group-modern">
-                                            {{ form.attendance_type }}
+                                    {% if not form.restricted_to_class_teacher %}
+                                        <div class="form-group mb-4">
+                                            <label class="form-label font-bold text-slate-700">Person Type</label>
+                                            <div class="input-group-modern">
+                                                {{ form.attendance_type }}
+                                            </div>
+                                            {% if form.attendance_type.errors %}
+                                                <div class="text-danger mt-1 small">{{ form.attendance_type.errors }}</div>
+                                            {% endif %}
                                         </div>
-                                    </div>
+                                    {% endif %}
 
                                     <div class="form-group mb-4" id="student-field">
                                         <label class="form-label font-bold text-slate-700">Find Student</label>
@@ -88,17 +113,28 @@
                                                 </button>
                                             </div>
                                         </div>
+                                        {% if form.student.errors %}
+                                            <div class="text-danger mt-2 small">{{ form.student.errors }}</div>
+                                        {% endif %}
                                     </div>
 
-                                    <div class="form-group mb-4" id="teacher-field">
-                                        <label class="form-label font-bold text-slate-700">Select Staff</label>
-                                        {{ form.teacher }}
-                                    </div>
+                                    {% if not form.restricted_to_class_teacher %}
+                                        <div class="form-group mb-4" id="teacher-field">
+                                            <label class="form-label font-bold text-slate-700">Select Staff</label>
+                                            {{ form.teacher }}
+                                            {% if form.teacher.errors %}
+                                                <div class="text-danger mt-1 small">{{ form.teacher.errors }}</div>
+                                            {% endif %}
+                                        </div>
 
-                                    <div class="form-group">
-                                        <label class="form-label font-bold text-slate-700">Subject / Class Context</label>
-                                        {{ form.class_attendance }}
-                                    </div>
+                                        <div class="form-group">
+                                            <label class="form-label font-bold text-slate-700">Subject / Class Context</label>
+                                            {{ form.class_attendance }}
+                                            {% if form.class_attendance.errors %}
+                                                <div class="text-danger mt-1 small">{{ form.class_attendance.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </div>
 
                                 <div class="col-lg-6">
@@ -215,14 +251,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const hiddenIdInput = document.getElementById('id_student');
     const selectedDisplay = document.getElementById('selectedStudent');
 
+    if (!typeSelect || !studentField || !searchInput || !resultsOverlay || !resultsList || !hiddenIdInput || !selectedDisplay) {
+        return;
+    }
+
     // Toggle logic based on "Person Type"
     function toggleFields() {
         if (typeSelect.value === 'student') {
             studentField.style.display = 'block';
-            teacherField.style.display = 'none';
+            if (teacherField) {
+                teacherField.style.display = 'none';
+            }
         } else {
             studentField.style.display = 'none';
-            teacherField.style.display = 'block';
+            if (teacherField) {
+                teacherField.style.display = 'block';
+            }
             clearSelection();
         }
     }

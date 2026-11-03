@@ -5,6 +5,16 @@ import uuid
 from django.db import migrations, models
 
 
+def is_valid_uuid(val):
+    if not val:
+        return False
+    try:
+        uuid.UUID(str(val).strip())
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def seed_default_classes(apps, schema_editor):
     SchoolClass = apps.get_model('account', 'SchoolClass')
     db_alias = schema_editor.connection.alias
@@ -32,6 +42,108 @@ def seed_default_classes(apps, schema_editor):
             name=name,
             defaults={'code': code, 'order': order, 'is_active': True}
         )
+
+
+def migrate_existing_class_data(apps, schema_editor):
+    SchoolClass = apps.get_model('account', 'SchoolClass')
+    db_alias = schema_editor.connection.alias
+    connection = schema_editor.connection
+
+    classes = list(SchoolClass.objects.using(db_alias).all())
+    if not classes:
+        return
+
+    mapping = {}
+    for c in classes:
+        c_uuid = str(c.id)
+        if c.code:
+            mapping[c.code.strip().upper()] = c_uuid
+            mapping[c.code.strip()] = c_uuid
+        if c.name:
+            mapping[c.name.strip().upper()] = c_uuid
+            mapping[c.name.strip()] = c_uuid
+
+    aliases = {
+        "KINDERGARTEN": mapping.get("KINDERGARTEN_1"),
+        "KINDERGARTEN 1": mapping.get("KINDERGARTEN_1"),
+        "KINDERGARTEN 2": mapping.get("KINDERGARTEN_2"),
+        "UPPER_PRIMARY_1": mapping.get("PRIMARY_1"),
+        "UPPER_PRIMARY_2": mapping.get("PRIMARY_2"),
+        "UPPER_PRIMARY_3": mapping.get("PRIMARY_3"),
+        "UPPER_PRIMARY_4": mapping.get("PRIMARY_4"),
+        "UPPER_PRIMARY_5": mapping.get("PRIMARY_5"),
+        "UPPER_PRIMARY_6": mapping.get("PRIMARY_6"),
+        "PRIMARY 1": mapping.get("PRIMARY_1"),
+        "PRIMARY 2": mapping.get("PRIMARY_2"),
+        "PRIMARY 3": mapping.get("PRIMARY_3"),
+        "PRIMARY 4": mapping.get("PRIMARY_4"),
+        "PRIMARY 5": mapping.get("PRIMARY_5"),
+        "PRIMARY 6": mapping.get("PRIMARY_6"),
+        "JHS 1": mapping.get("JHS_1"),
+        "JHS 2": mapping.get("JHS_2"),
+        "JHS 3": mapping.get("JHS_3"),
+        "NURSERY 1": mapping.get("NURSERY_1"),
+        "NURSERY 2": mapping.get("NURSERY_2"),
+    }
+    for k, v in aliases.items():
+        if v and k not in mapping:
+            mapping[k] = v
+
+    fallback_uuid = mapping.get("PRIMARY_1") or mapping.get("JHS_1") or str(classes[0].id)
+
+    # Tables, original CharField column names, and nullability
+    targets = [
+        ('account_assignment', 'student_class', False),
+        ('account_attendance', 'class_attendance', True),
+        ('account_classfee', 'student_class', True),
+        ('account_fees', 'student_class', True),
+        ('account_promotionhistory', 'from_class', False),
+        ('account_promotionhistory', 'to_class', False),
+        ('account_student', 'previous_class', True),
+        ('account_student', 'promoted_to', True),
+        ('account_student', 'student_class', False),
+        ('account_subject', 'subject_class', False),
+        ('account_teacher', 'class_teacher_class', True),
+        ('account_timetable', 'student_class', False),
+    ]
+
+    with connection.cursor() as cursor:
+        existing_tables = set(connection.introspection.table_names(cursor))
+        for table, col, nullable in targets:
+            if table not in existing_tables:
+                continue
+
+            cols = [col_info.name for col_info in connection.introspection.get_table_description(cursor, table)]
+            target_col = None
+            if col in cols:
+                target_col = col
+            elif f"{col}_id" in cols:
+                target_col = f"{col}_id"
+
+            if not target_col:
+                continue
+
+            # In nullable columns, normalize empty strings or '0' to NULL; in non-null columns use fallback
+            if nullable:
+                cursor.execute(f'UPDATE "{table}" SET "{target_col}" = NULL WHERE "{target_col}" = \'\' OR "{target_col}" = \'0\'')
+            else:
+                cursor.execute(f'UPDATE "{table}" SET "{target_col}" = %s WHERE "{target_col}" IS NULL OR "{target_col}" = \'\' OR "{target_col}" = \'0\'', [fallback_uuid])
+
+            # Migrate distinct existing string codes/names to valid UUIDs
+            cursor.execute(f'SELECT DISTINCT "{target_col}" FROM "{table}" WHERE "{target_col}" IS NOT NULL')
+            rows = cursor.fetchall()
+            for (val,) in rows:
+                if val is None or is_valid_uuid(val):
+                    continue
+                val_clean = str(val).strip()
+                target_uuid = mapping.get(val_clean) or mapping.get(val_clean.upper())
+                if not target_uuid:
+                    target_uuid = None if nullable else fallback_uuid
+
+                if target_uuid:
+                    cursor.execute(f'UPDATE "{table}" SET "{target_col}" = %s WHERE "{target_col}" = %s', [target_uuid, val])
+                else:
+                    cursor.execute(f'UPDATE "{table}" SET "{target_col}" = NULL WHERE "{target_col}" = %s', [val])
 
 
 class Migration(migrations.Migration):
@@ -62,6 +174,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(seed_default_classes, reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(migrate_existing_class_data, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='assignment',
             name='student_class',

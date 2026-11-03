@@ -14,8 +14,8 @@ class Command(BaseCommand):
             try:
                 connection = connections["default"]
                 connection.cursor()
-            except OperationalError:
-                self.stdout.write("Database unavailable, retrying in 1 second.")
+            except OperationalError as e:
+                self.stdout.write(f"Database unavailable ({e}), retrying in 1 second.")
                 sleep(1)
                 continue
 

@@ -585,9 +585,9 @@ def notifications_list(request):
 
     base_template = "student/base.html"
     wrap_in_page = True
-    if request.user.role == "admin":
+    if request.user.role == "admin" or request.user.is_superuser or request.user.is_staff:
         base_template = "adminservices/base.html"
-        wrap_in_page = True
+        wrap_in_page = False
     elif request.user.role == "teacher":
         base_template = "teacher/base.html"
         wrap_in_page = False
@@ -652,6 +652,24 @@ def change_password(request):
     if not request.user.is_authenticated:
         raise PermissionDenied("You are not authorized to perform this action")
 
+    base_template = "student/base.html"
+    wrap_in_page = True
+    dashboard_url = "student:student-dashboard"
+    if request.user.role == "admin":
+        base_template = "adminservices/base.html"
+        wrap_in_page = True
+        dashboard_url = "adminservices:admin-dashboard"
+    elif request.user.role == "teacher":
+        base_template = "teacher/base.html"
+        wrap_in_page = False
+        dashboard_url = "teacher:teacher-dashboard"
+
+    context = {
+        "base_template": base_template,
+        "wrap_in_page": wrap_in_page,
+        "dashboard_url": dashboard_url,
+    }
+
     if request.method == "POST":
         user = request.user
         form = ChangePasswordForm(request.POST)
@@ -659,35 +677,31 @@ def change_password(request):
             current_password = form.cleaned_data['current_password']
             new_password = form.cleaned_data['new_password']
             confirm_password = form.cleaned_data['confirm_password']
-            
-            
-            if not current_password or not new_password or not confirm_password:
-                messages.error(request,"All fields are required")
-                return redirect("account:change-password")
 
-           
+            if not current_password or not new_password or not confirm_password:
+                messages.error(request, "All fields are required.")
+                context["form"] = form
+                return render(request, "account/change_password.html", context)
+
             if not user.check_password(current_password):
                 messages.error(request, "Your current password is incorrect.")
-                return render(request, "account/change_password.html", {"form": form})
+                context["form"] = form
+                return render(request, "account/change_password.html", context)
 
-        
             user.set_password(new_password)
             user.save()
 
-          
-            update_session_auth_hash(request,user)
+            update_session_auth_hash(request, user)
             messages.success(request, "Your password has been changed successfully.")
-            
-            if request.user.role == "admin":
-                return redirect("adminservices:admin-dashboard")
-            elif request.user.role == "teacher":
-                return redirect("teacher:teacher-dashboard")  
-            elif request.user.role == "student":
-                return redirect("student:student-dashboard")
+            return redirect(dashboard_url)
+        else:
+            context["form"] = form
+            return render(request, "account/change_password.html", context)
     else:
         form = ChangePasswordForm()
+        context["form"] = form
 
-    return render(request, "account/change_password.html", {"form": form})
+    return render(request, "account/change_password.html", context)
 
 
 @require_http_methods(["GET", "POST"])

@@ -45,7 +45,7 @@
         </li>
 
         <li class="{% if request.resolver_match.url_name == 'timetable' %}active{% endif %}">
-          <a href="#">
+          <a href="{% url 'teacher:timetable' %}">
             <i class="fas fa-table"></i> <span>Class Schedule</span>
           </a>
         </li>

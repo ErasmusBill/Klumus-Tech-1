@@ -6,7 +6,7 @@ from .models import (
     Announcement, CustomUser, Department, Enrollment, Fees,
     Package, Parent, ResultSheet, School, SchoolOnboardingRequest,
     Student, Subject, Teacher, Subscription, Transaction,
-    SubscriptionHistory, ClassFee
+    SubscriptionHistory, ClassFee, SchoolClass
 )
 
 
@@ -19,6 +19,14 @@ def clear_portal_cache(student):
 
 
 # --- ADMIN CLASSES ---
+
+@admin.register(SchoolClass)
+class SchoolClassAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "school", "order", "is_active", "created_at")
+    list_filter = ("school", "is_active")
+    search_fields = ("name", "code")
+    ordering = ("school", "order", "name")
+
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):

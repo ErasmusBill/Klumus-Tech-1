@@ -1,312 +1,538 @@
 {% extends 'student/base.html' %}
 {% load static media_tags %}
 
-{% block title %}{{ student.user.get_full_name }} | Academic Transcript{% endblock %}
+{% block title %}Academic Performance &amp; Report Card | {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
-<div class="page-wrapper bg-light-faded">
-    <div class="content container-fluid px-lg-5">
+<div class="page-wrapper" style="background-color: #f8fafc; min-height: 100vh;">
+  <div class="content container-fluid px-lg-4 py-4">
 
-        <!-- Page Header -->
-        <div class="page-header border-0 mb-4 pt-4">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h3 class="page-title fw-black text-slate-900"><i class="fas fa-file-invoice me-2 text-primary"></i>Academic Performance</h3>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item active">Result Sheet</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="col-auto">
-                    <button onclick="window.print()" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
-                        <i class="fas fa-print me-2"></i>Generate PDF
-                    </button>
-                </div>
-            </div>
+    <!-- Header Section (Screen Only) -->
+    <div class="page-header mb-4 border-0 no-print">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <h3 class="page-title mb-1 font-weight-bold" style="color: #0f172a; letter-spacing: -0.01em;">
+            <i class="fas fa-award text-primary mr-2"></i>Academic Performance &amp; Transcript
+          </h3>
+          <ul class="breadcrumb mb-0 bg-transparent p-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}" class="text-primary font-weight-semibold">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'student:enrolled-courses' %}" class="text-secondary font-weight-semibold">Courses</a></li>
+            <li class="breadcrumb-item active text-muted">Grades &amp; Results</li>
+          </ul>
         </div>
-
-        <!-- Student ID Card Section -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-            <div class="card-body p-0">
-                <div class="row g-0">
-                    <div class="col-md-auto bg-primary-faded p-4 text-center">
-                        <div class="avatar-box">
-                            {% if student.student_image or student.user.profile_picture %}
-                                <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
-                                     class="rounded-4 shadow-sm border border-4 border-white mb-2" style="width: 120px; height: 120px; object-fit: cover;">
-                            {% else %}
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-4 mb-2" style="width: 120px;">
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md p-4">
-                        <div class="d-flex flex-wrap justify-content-between align-items-start">
-                            <div>
-                                <h4 class="fw-black text-dark mb-1">{{ student.user.get_full_name }}</h4>
-                                <span class="badge-pill-primary mb-3 d-inline-block">{{ student.school.name }}</span>
-                            </div>
-                            <div class="text-md-end mt-2 mt-md-0">
-                                <div class="x-small text-muted fw-bold text-uppercase">Academic Status</div>
-                                <div class="fw-black text-success">{{ student.get_promotion_status_display }}</div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-2">
-                            <div class="col-6 col-md-3">
-                                <label class="x-small text-muted fw-bold text-uppercase d-block">Student ID</label>
-                                <span class="fw-bold text-dark">{{ student.student_id }}</span>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <label class="x-small text-muted fw-bold text-uppercase d-block">Admission No</label>
-                                <span class="fw-bold text-dark">{{ student.admission_number }}</span>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <label class="x-small text-muted fw-bold text-uppercase d-block">Current Class</label>
-                                <span class="fw-bold text-dark">{{ student.get_student_class_display }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-md-5 text-md-right mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+          <button type="button" onclick="window.print()" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold shadow-sm mr-2">
+            <i class="fas fa-print mr-1"></i> Print Report Card
+          </button>
+          <a href="{% url 'student:student-detail' %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold shadow-sm">
+            <i class="fas fa-user-graduate mr-1"></i> My Dossier
+          </a>
         </div>
-
-        <!-- Statistics Dashboard -->
-        {% if result_summary %}
-        <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="stat-card-modern">
-                    <div class="icon-box bg-soft-blue"><i class="fas fa-book-open"></i></div>
-                    <div class="ms-3">
-                        <h3 class="mb-0 fw-black">{{ result_summary.total_subjects }}</h3>
-                        <p class="text-muted small mb-0">Enrolled Subjects</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card-modern">
-                    <div class="icon-box bg-soft-green"><i class="fas fa-chart-line"></i></div>
-                    <div class="ms-3">
-                        <h3 class="mb-0 fw-black">{{ result_summary.average_percentage|floatformat:1 }}%</h3>
-                        <p class="text-muted small mb-0">Cumulative Average</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card-modern">
-                    <div class="icon-box bg-soft-orange"><i class="fas fa-medal"></i></div>
-                    <div class="ms-3">
-                        <h3 class="mb-0 fw-black">A</h3>
-                        <p class="text-muted small mb-0">Standing Grade</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Filter Controls -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 no-print">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="x-small fw-black text-muted text-uppercase mb-2">Select Academic Year</label>
-                        <select name="academic_year" class="form-select border-0 bg-light-faded rounded-pill">
-                            <option value="">All Academic Years</option>
-                            {% for result in results %}
-                                <option value="{{ result.academic_year }}">{{ result.academic_year }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="x-small fw-black text-muted text-uppercase mb-2">Select Term</label>
-                        <select name="term" class="form-select border-0 bg-light-faded rounded-pill">
-                            <option value="">All Terms</option>
-                            <option value="1">First Term</option>
-                            <option value="2">Second Term</option>
-                            <option value="3">Third Term</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-dark rounded-pill px-4 w-100 fw-bold">Filter Results</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Results Display -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-            <div class="card-header bg-white border-0 py-4 px-4">
-                <h5 class="fw-black text-dark mb-0"><i class="fas fa-graduation-cap me-2 text-primary"></i>Grade Transcript</h5>
-            </div>
-            <div class="card-body p-0">
-                {% if results %}
-                    {% regroup results by academic_year as year_results %}
-                    {% for year in year_results %}
-                        <div class="bg-light-faded py-2 px-4 border-y">
-                            <span class="x-small fw-black text-muted text-uppercase">Academic Session:</span>
-                            <span class="ms-2 fw-black text-dark fs-6">{{ year.grouper }}</span>
-                        </div>
-
-                        {% regroup year.list by term as term_results %}
-                        {% for term_group in term_results %}
-                            <div class="p-4">
-                                <h6 class="fw-black text-primary mb-3">{{ term_group.grouper|capfirst }} Term Portfolio</h6>
-                                <div class="table-responsive rounded-4 border">
-                                    <table class="table table-hover align-middle mb-0 result-table">
-                                        <thead class="bg-light text-muted x-small fw-black text-uppercase">
-                                            <tr>
-                                                <th class="ps-4">Subject</th>
-                                                <th>Class (20%)</th>
-                                                <th>Mid (30%)</th>
-                                                <th>Exams (50%)</th>
-                                                <th>Total/100</th>
-                                                <th>Grade</th>
-                                                <th class="pe-4">Remarks</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for result in term_group.list %}
-                                            <tr>
-                                                <td class="ps-4">
-                                                    <div class="fw-bold text-dark">{{ result.subject.name }}</div>
-                                                    {% if result.teacher_comment %}
-                                                        <span class="x-small text-muted italic d-block mt-1">"{{ result.teacher_comment }}"</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-slate-600 fw-bold">{{ result.class_score }}</td>
-                                                <td class="text-slate-600 fw-bold">{{ result.mid_semester }}</td>
-                                                <td class="text-slate-600 fw-bold">{{ result.end_of_term_exams }}</td>
-                                                <td class="fw-black text-primary fs-6">{{ result.total_marks }}</td>
-                                                <td>
-                                                    <span class="badge-grade
-                                                        {% if result.grade|first == 'A' %}bg-success
-                                                        {% elif result.grade|first == 'B' %}bg-info
-                                                        {% elif result.grade|first == 'C' %}bg-warning
-                                                        {% else %}bg-danger{% endif %}">
-                                                        {{ result.grade }}
-                                                    </span>
-                                                </td>
-                                                <td class="pe-4">
-                                                    <span class="x-small fw-black text-uppercase
-                                                        {% if result.remark == 'excellent' %}text-success
-                                                        {% elif result.remark == 'failed' %}text-danger
-                                                        {% else %}text-muted{% endif %}">
-                                                        {{ result.get_remark_display }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                        <tfoot class="bg-light-faded border-top-0">
-                                            <tr>
-                                                <td colspan="4" class="ps-4 fw-black text-dark text-end py-3">Term Average Performance:</td>
-                                                <td colspan="3" class="pe-4 py-3">
-                                                    <span class="h5 fw-black text-primary mb-0">88.5%</span>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center py-5">
-                        <div class="mb-4">
-                            <i class="fas fa-folder-open text-muted fa-4x opacity-25"></i>
-                        </div>
-                        <h5 class="fw-bold text-muted">No academic records found for this period.</h5>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Performance Chart -->
-        {% if results %}
-        <div class="card border-0 shadow-sm rounded-4 no-print mb-5">
-            <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-black text-dark mb-0"><i class="fas fa-chart-area me-2 text-primary"></i>Subject Mastery Visualization</h5>
-                <span class="x-small fw-bold text-muted bg-light px-3 py-1 rounded-pill">Percentage Distribution</span>
-            </div>
-            <div class="card-body">
-                <canvas id="performanceChart" height="100"></canvas>
-            </div>
-        </div>
-        {% endif %}
+      </div>
     </div>
+
+    <!-- Official Report Card Header (Print & Screen) -->
+    <div class="card student-dossier-card mb-4 shadow-sm border-0 rounded-4 overflow-hidden">
+      <div class="card-body p-4">
+        <div class="row align-items-center">
+          <div class="col-auto text-center mr-md-3 mb-3 mb-md-0">
+            <div class="avatar-wrap">
+              {% if student.student_image %}
+                <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" class="avatar-img rounded-circle shadow-sm border border-3 border-white">
+              {% elif student.user.profile_picture %}
+                <img src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" class="avatar-img rounded-circle shadow-sm border border-3 border-white">
+              {% else %}
+                <div class="avatar-fallback rounded-circle font-weight-bold shadow-sm border border-3 border-white">
+                  {{ student.user.initials }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+              <div>
+                <h4 class="font-weight-bold text-dark mb-1">{{ student.user.get_full_name }}</h4>
+                <div class="small text-muted">
+                  <span class="mr-3"><i class="fas fa-school text-primary mr-1"></i>{{ student.school.name }}</span>
+                  <span><i class="fas fa-map-marker-alt text-muted mr-1"></i>{{ student.school.location|default:"Main Campus" }}</span>
+                </div>
+              </div>
+              <div class="text-md-right">
+                <span class="badge badge-success-soft font-weight-bold px-3 py-1 small">
+                  <i class="fas fa-check-circle mr-1"></i>{{ student.get_promotion_status_display }}
+                </span>
+              </div>
+            </div>
+
+            <div class="row g-2 pt-2 border-top mt-2">
+              <div class="col-6 col-md-3">
+                <span class="d-block text-muted text-uppercase font-weight-bold" style="font-size: 0.68rem;">Student ID</span>
+                <span class="font-weight-bold text-dark">{{ student.student_id|default:student.admission_number }}</span>
+              </div>
+              <div class="col-6 col-md-3">
+                <span class="d-block text-muted text-uppercase font-weight-bold" style="font-size: 0.68rem;">Admission No.</span>
+                <span class="font-weight-bold text-primary">{{ student.admission_number }}</span>
+              </div>
+              <div class="col-6 col-md-3">
+                <span class="d-block text-muted text-uppercase font-weight-bold" style="font-size: 0.68rem;">Class Enrolled</span>
+                <span class="font-weight-bold text-dark">{{ student.get_student_class_display }}</span>
+              </div>
+              <div class="col-6 col-md-3">
+                <span class="d-block text-muted text-uppercase font-weight-bold" style="font-size: 0.68rem;">Gender</span>
+                <span class="font-weight-bold text-dark">{{ student.user.get_gender_display|default:student.user.gender|default:"Not set" }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 High-Level Performance KPIs (Screen Only) -->
+    <div class="row mb-4 no-print">
+      <!-- 1. Cumulative Average -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Cumulative Average</span>
+              <div class="metric-icon bg-soft-primary text-primary">
+                <i class="fas fa-chart-line"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ result_summary.average_percentage }}%</h2>
+              <span class="badge {% if result_summary.average_percentage >= 70 %}badge-success-soft{% elif result_summary.average_percentage >= 50 %}badge-warning-soft{% else %}badge-danger-soft{% endif %} ml-2 small font-weight-bold">
+                {{ result_summary.standing_grade }}
+              </span>
+            </div>
+            <small class="text-muted mt-2 d-block text-truncate" title="{{ result_summary.standing_remark }}">
+              {{ result_summary.standing_remark }}
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Standing Letter Grade -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Academic Standing</span>
+              <div class="metric-icon bg-soft-success text-success">
+                <i class="fas fa-medal"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-success mb-0 font-weight-bold">Grade {{ result_summary.standing_grade }}</h2>
+            </div>
+            <small class="text-muted mt-2 d-block">Overall Performance Tier</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Distinctions -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Top Distinctions</span>
+              <div class="metric-icon bg-soft-indigo text-indigo">
+                <i class="fas fa-star"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-indigo mb-0 font-weight-bold">{{ result_summary.distinctions_count }}</h2>
+              <span class="badge badge-primary-soft ml-2 small font-weight-bold">A Grades</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Subjects with 80%+ mastery</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Total Graded Papers -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Evaluated Courses</span>
+              <div class="metric-icon bg-soft-orange text-orange">
+                <i class="fas fa-book-reader"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ result_summary.total_subjects }}</h2>
+              <span class="badge badge-light border text-muted ml-2 small font-weight-bold">Courses</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Recorded across sessions</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar (Screen Only) -->
+    <div class="card filter-panel-card mb-4 shadow-sm border-0 no-print">
+      <div class="card-body p-3">
+        <form method="GET" action="{% url 'student:view-result' student.id %}" class="row g-2 align-items-center">
+          <div class="col-lg-5 col-md-5 mb-2 mb-md-0">
+            <label class="small font-weight-bold text-muted text-uppercase mb-1" style="font-size: 0.68rem;">Academic Year</label>
+            <select name="academic_year" class="form-control custom-select rounded-pill">
+              <option value="">All Academic Sessions</option>
+              {% for year in available_years %}
+                <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>
+                  {{ year }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-lg-4 col-md-4 mb-2 mb-md-0">
+            <label class="small font-weight-bold text-muted text-uppercase mb-1" style="font-size: 0.68rem;">Academic Term</label>
+            <select name="term" class="form-control custom-select rounded-pill">
+              <option value="">All Terms</option>
+              <option value="1" {% if selected_term == "1" %}selected{% endif %}>First Term (Term 1)</option>
+              <option value="2" {% if selected_term == "2" %}selected{% endif %}>Second Term (Term 2)</option>
+              <option value="3" {% if selected_term == "3" %}selected{% endif %}>Third Term (Term 3)</option>
+            </select>
+          </div>
+
+          <div class="col-lg-3 col-md-3 d-flex align-items-end mt-2 mt-md-0">
+            <button type="submit" class="btn btn-primary rounded-pill font-weight-bold px-4 mr-2 shadow-xs">
+              <i class="fas fa-filter mr-1"></i> Filter
+            </button>
+            {% if selected_year or selected_term %}
+              <a href="{% url 'student:view-result' student.id %}" class="btn btn-outline-secondary rounded-pill font-weight-bold px-3">
+                <i class="fas fa-redo-alt mr-1"></i> Reset
+              </a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Detailed Grouped Term Reports -->
+    {% if grouped_reports %}
+      {% for group in grouped_reports %}
+      <div class="card term-report-card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+        <!-- Term Group Header -->
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <h5 class="font-weight-bold text-dark mb-0">
+              <i class="fas fa-calendar-alt text-primary mr-2"></i>{{ group.term_label }} &bull; {{ group.academic_year }}
+            </h5>
+            <small class="text-muted">Recorded academic performance dossier</small>
+          </div>
+          <div class="d-flex align-items-center flex-wrap gap-2">
+            <span class="badge badge-light border text-muted px-3 py-1 font-weight-bold small mr-2">
+              {{ group.subject_count }} Subject{{ group.subject_count|pluralize }}
+            </span>
+            <span class="badge badge-primary-soft font-weight-bold px-3 py-1 small">
+              Term Average: <strong>{{ group.term_average }}%</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Grade Table -->
+        <div class="table-responsive">
+          <table class="table grade-transcript-table mb-0 align-middle">
+            <thead>
+              <tr>
+                <th style="min-width: 220px;">Subject &amp; Instructor Remark</th>
+                <th class="text-center" style="width: 110px;">Class Score<br><small class="text-muted font-weight-normal">(Max 20)</small></th>
+                <th class="text-center" style="width: 110px;">Mid-Sem<br><small class="text-muted font-weight-normal">(Max 30)</small></th>
+                <th class="text-center" style="width: 110px;">End of Term<br><small class="text-muted font-weight-normal">(Max 50)</small></th>
+                <th class="text-center" style="width: 110px;">Total Mark<br><small class="text-muted font-weight-normal">(100%)</small></th>
+                <th class="text-center" style="width: 90px;">Grade</th>
+                <th class="text-center" style="width: 130px;">Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for res in group.results %}
+              <tr>
+                <td>
+                  <div class="font-weight-bold text-dark">{{ res.subject.name }}</div>
+                  {% if res.teacher_comment %}
+                    <small class="text-muted d-block font-italic mt-1" style="max-width: 320px;">
+                      <i class="far fa-comment-alt mr-1 text-primary"></i>"{{ res.teacher_comment }}"
+                    </small>
+                  {% endif %}
+                </td>
+                <td class="text-center font-weight-semibold text-secondary">
+                  {{ res.class_score|floatformat:1 }}
+                </td>
+                <td class="text-center font-weight-semibold text-secondary">
+                  {{ res.mid_semester|floatformat:1 }}
+                </td>
+                <td class="text-center font-weight-semibold text-secondary">
+                  {{ res.end_of_term_exams|floatformat:1 }}
+                </td>
+                <td class="text-center font-weight-bold text-dark" style="font-size: 1.05rem;">
+                  {{ res.total_marks|floatformat:1 }}
+                  <small class="d-block text-muted" style="font-size: 0.72rem;">{{ res.percentage|floatformat:1 }}%</small>
+                </td>
+                <td class="text-center">
+                  <span class="badge grade-pill {% if 'A' in res.grade %}grade-A{% elif 'B' in res.grade %}grade-B{% elif 'C' in res.grade %}grade-C{% elif 'D' in res.grade %}grade-D{% else %}grade-F{% endif %}">
+                    {{ res.grade }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-light border text-dark font-weight-bold px-2 py-1 small">
+                    {{ res.get_remark_display|default:res.remark|default:"-" }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="bg-light">
+              <tr>
+                <td colspan="4" class="text-right font-weight-bold text-dark py-3">
+                  Term Average Score:
+                </td>
+                <td class="text-center font-weight-bold text-primary py-3" style="font-size: 1.1rem;">
+                  {{ group.term_average }}%
+                </td>
+                <td colspan="2" class="text-muted small py-3">
+                  Top Course: <strong>{{ group.highest_result.subject.name }} ({{ group.highest_result.percentage|floatformat:0 }}%)</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="card shadow-sm border-0 rounded-4 p-5 text-center bg-white mb-4">
+        <i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
+        <h5 class="font-weight-bold text-dark">No Academic Records Found</h5>
+        <p class="text-muted small mb-3">No examination scores have been recorded for the selected session.</p>
+        <div>
+          <a href="{% url 'student:view-result' student.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-4 font-weight-bold">
+            <i class="fas fa-redo-alt mr-1"></i> Clear Filters
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Grading Scale Reference & Advisory (Screen Only) -->
+    <div class="card advisory-card shadow-sm border-0 rounded-4 mb-4 no-print">
+      <div class="card-body p-4">
+        <div class="row align-items-center">
+          <div class="col-lg-7 mb-3 mb-lg-0">
+            <h6 class="font-weight-bold text-dark mb-2">
+              <i class="fas fa-info-circle text-primary mr-2"></i>Institutional Grading Standard
+            </h6>
+            <div class="row g-2 small">
+              <div class="col-6 col-sm-3 mb-2">
+                <div class="p-2 bg-white rounded border text-center">
+                  <span class="badge grade-pill grade-A mb-1">A</span>
+                  <div class="font-weight-bold text-dark">80% - 100%</div>
+                  <small class="text-muted">Excellent</small>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3 mb-2">
+                <div class="p-2 bg-white rounded border text-center">
+                  <span class="badge grade-pill grade-B mb-1">B</span>
+                  <div class="font-weight-bold text-dark">70% - 79%</div>
+                  <small class="text-muted">Very Good</small>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3 mb-2">
+                <div class="p-2 bg-white rounded border text-center">
+                  <span class="badge grade-pill grade-C mb-1">C</span>
+                  <div class="font-weight-bold text-dark">60% - 69%</div>
+                  <small class="text-muted">Good</small>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3 mb-2">
+                <div class="p-2 bg-white rounded border text-center">
+                  <span class="badge grade-pill grade-D mb-1">D</span>
+                  <div class="font-weight-bold text-dark">50% - 59%</div>
+                  <small class="text-muted">Pass</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5 text-lg-right">
+            <div class="p-3 bg-white rounded-3 border">
+              <span class="small font-weight-bold text-dark d-block mb-1">Grading Structure Policy</span>
+              <p class="small text-muted mb-2">Final term grades are calculated from continuous assessment: <strong>20% Class Score + 30% Mid-Semester + 50% End of Term Examination</strong>.</p>
+              <a href="{% url 'student:enrolled-courses' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold">
+                <i class="fas fa-book-reader mr-1"></i> View Enrolled Courses
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Report Footer (Printed Only) -->
+    <div class="d-none print-only mt-5 pt-4 border-top">
+      <div class="row align-items-center">
+        <div class="col-6">
+          <div class="text-center pt-4 border-top" style="max-width: 200px;">
+            <span class="small font-weight-bold text-dark d-block">Class Teacher's Signature</span>
+            <small class="text-muted">Date: ____________________</small>
+          </div>
+        </div>
+        <div class="col-6 text-right">
+          <div class="text-center pt-4 border-top ml-auto" style="max-width: 200px;">
+            <span class="small font-weight-bold text-dark d-block">Headmaster / Principal</span>
+            <small class="text-muted">School Official Stamp</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <style>
-    /* Styling System */
-    .bg-light-faded { background-color: #f8fafc; }
-    .bg-primary-faded { background-color: #eef2ff; }
-    .text-slate-600 { color: #475569; }
-    .fw-black { font-weight: 900; }
-    .x-small { font-size: 0.72rem; letter-spacing: 0.05em; }
-    .border-y { border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+  /* Student Dossier Card */
+  .student-dossier-card {
+    background: #ffffff;
+    border-radius: 16px;
+  }
+  .avatar-wrap {
+    width: 90px;
+    height: 90px;
+  }
+  .avatar-img {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+  }
+  .avatar-fallback {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+    color: #ffffff;
+    font-size: 2rem;
+  }
 
-    /* Modern Stats */
-    .stat-card-modern { background: white; padding: 1.5rem; border-radius: 1.25rem; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-    .icon-box { width: 50px; height: 50px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-    .bg-soft-blue { background: #e0f2fe; color: #0369a1; }
-    .bg-soft-green { background: #dcfce7; color: #15803d; }
-    .bg-soft-orange { background: #ffedd5; color: #c2410c; }
+  /* Metric Cards */
+  .metric-card {
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+  .metric-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+  .metric-val {
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .metric-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
 
-    /* Tables & Badges */
-    .badge-pill-primary { background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 50px; font-size: 0.7rem; font-weight: 800; }
-    .badge-grade { width: 35px; height: 35px; display: inline-flex; align-items: center; justify-content: center; color: white; border-radius: 50%; font-weight: 900; font-size: 0.8rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-    .result-table thead th { border: none; padding-top: 1.2rem; padding-bottom: 1.2rem; }
-    .result-table tbody td { padding-top: 1.2rem; padding-bottom: 1.2rem; border-color: #f1f5f9; }
+  /* Filter Panel */
+  .filter-panel-card {
+    border-radius: 16px;
+    background: #ffffff;
+  }
 
-    @media print {
-        .no-print, .sidebar, .header, .btn-primary { display: none !important; }
-        .page-wrapper { margin: 0; padding: 0; background: white; }
-        .card { box-shadow: none !important; border: 1px solid #eee !important; }
-        .content { width: 100% !important; padding: 0 !important; }
-        body { font-size: 12px; }
-        .badge-grade { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  /* Grade Transcript Table */
+  .grade-transcript-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-top: none;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .grade-transcript-table tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  /* Advisory Card */
+  .advisory-card {
+    background: #f1f5f9;
+    border-radius: 16px;
+  }
+
+  /* Grade Pills */
+  .grade-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 3px 8px;
+    font-weight: 800;
+    font-size: 0.78rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+  }
+  .grade-A { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .grade-B { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+  .grade-C { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .grade-D { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+  .grade-F { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+  /* Soft Colors */
+  .bg-soft-primary { background-color: #eff6ff; color: #2563eb; }
+  .bg-soft-success { background-color: #ecfdf5; color: #059669; }
+  .bg-soft-warning { background-color: #fffbeb; color: #d97706; }
+  .bg-soft-danger  { background-color: #fef2f2; color: #dc2626; }
+  .bg-soft-indigo  { background-color: #eef2ff; color: #4f46e5; }
+  .bg-soft-orange  { background-color: #fff7ed; color: #c2410c; }
+  .text-indigo     { color: #4f46e5; }
+  .text-orange     { color: #c2410c; }
+
+  .badge-primary-soft { background: #eff6ff; color: #1d4ed8; }
+  .badge-success-soft { background: #ecfdf5; color: #047857; }
+  .badge-warning-soft { background: #fffbeb; color: #b45309; }
+  .badge-danger-soft  { background: #fef2f2; color: #b91c1c; }
+
+  /* Print Stylesheet */
+  @media print {
+    .no-print, .header, .sidebar, footer {
+      display: none !important;
     }
+    .print-only {
+      display: block !important;
+    }
+    .page-wrapper {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+    }
+    .content {
+      padding: 0 !important;
+    }
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #cbd5e1 !important;
+      break-inside: avoid;
+    }
+    .badge, .grade-pill {
+      border: 1px solid #94a3b8 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
 </style>
-
-{% if results %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.6)');
-        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.05)');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [{% for r in results %}"{{ r.subject.name|truncatechars:10 }}",{% endfor %}],
-                datasets: [{
-                    label: 'Mastery Percentage',
-                    data: [{% for r in results %}{{ r.percentage }},{% endfor %}],
-                    fill: true,
-                    backgroundColor: gradient,
-                    borderColor: '#4f46e5',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#4f46e5',
-                    pointHoverRadius: 8,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: { borderDash: [5, 5] }
-                    },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    });
-</script>
-{% endif %}
 {% endblock %}

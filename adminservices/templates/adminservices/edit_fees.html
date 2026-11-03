@@ -1,114 +1,310 @@
 {% extends "adminservices/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
-{% block title %}Edit Invoice | {{ school.name }}{% endblock %}
+{% block title %}Edit Fee Invoice | Finance{% endblock %}
 
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .invoice-container { padding: 30px; }
-    .card-custom { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-    .summary-box { background: #1e293b; color: white; border-radius: 20px; padding: 25px; position: sticky; top: 90px; }
-    label { font-weight: 700; color: #64748b; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 5px; display: block; }
+    .invoice-container {
+        padding: 24px 0 40px;
+        max-width: 1360px;
+    }
 
-    .auto-filled {
-        border: 2px solid #10b981 !important;
-        background-color: #f0fdf4 !important;
-        transition: background-color 0.5s ease;
+    .card-custom {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 28px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .student-badge-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .form-group-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    label {
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .select2-container--default .select2-selection--single {
-        height: 38px !important;
-        border: 1px solid #dee2e6 !important;
+        height: 42px !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 8px !important;
+        display: flex;
+        align-items: center;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 40px !important;
+        padding-left: 12px !important;
+        color: #0f172a !important;
+        font-weight: 600;
+    }
+
+    /* Live Summary Card */
+    .summary-box {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+        position: sticky;
+        top: 90px;
+    }
+
+    .summary-box-head {
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 14px;
+        margin-bottom: 18px;
+    }
+
+    .summary-box-title {
+        font-size: 0.9rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #0f172a;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 0.92rem;
+        color: #475569;
+    }
+
+    .summary-line strong {
+        font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+        font-size: 1rem;
+        color: #0f172a;
+    }
+
+    .summary-balance-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+        margin: 18px 0;
+    }
+
+    .summary-balance-label {
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .summary-balance-amount {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 0;
+        font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="invoice-container">
+<div class="invoice-container container-fluid px-0">
+
+    <!-- Page Header -->
+    <div class="page-header admin-list-header mb-4">
+        <div class="admin-list-header-copy">
+            <h3 class="page-title">Edit Invoice &amp; Record Payment</h3>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'adminservices:list-fees' %}">Collections</a></li>
+                <li class="breadcrumb-item active">Invoice #{{ form.instance.id|stringformat:".8s" }}</li>
+            </ul>
+        </div>
+        <div class="admin-list-header-actions">
+            <a href="{% url 'adminservices:print-fee-receipt' form.instance.id %}" target="_blank" class="btn btn-outline-primary">
+                <i class="fas fa-print mr-1"></i> Print Receipt
+            </a>
+            <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Collections
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card-custom">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold mb-0">Edit Invoice</h4>
-                    <span class="badge bg-primary">Ref: {{ form.instance.id|stringformat:".8s" }}...</span>
+
+                <!-- Student Info Card -->
+                <div class="student-badge-card">
+                    <div class="avatar avatar-md">
+                        {% if form.instance.student.user.profile_picture %}
+                            <img class="avatar-img rounded-circle" src="{{ form.instance.student.user.profile_picture.url }}" alt="{{ form.instance.student.user.get_full_name }}">
+                        {% elif form.instance.student.student_image %}
+                            <img class="avatar-img rounded-circle" src="{{ form.instance.student.student_image.url }}" alt="{{ form.instance.student.user.get_full_name }}">
+                        {% else %}
+                            <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold">
+                                {{ form.instance.student.user.initials }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h5 class="mb-1 font-weight-bold text-dark">
+                            {{ form.instance.student.user.get_full_name|default:form.instance.student.user.username }}
+                        </h5>
+                        <div class="text-muted small">
+                            <span class="mr-3"><i class="fas fa-id-card mr-1"></i> {{ form.instance.student.student_id|upper }}</span>
+                            <span><i class="fas fa-chalkboard mr-1"></i> {{ form.instance.student_class|default:form.instance.student.student_class }}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <form method="post" id="feeForm" novalidate>
                     {% csrf_token %}
+                    <div style="display:none;">{{ form.student }}</div>
 
-                    <div class="mb-4">
-                        <label>Student</label>
-                        <div class="form-control bg-light" style="height: auto;">
-                            <strong>{{ form.instance.student.user.get_full_name }}</strong><br>
-                            <small class="text-muted">{{ form.instance.student.student_class }}</small>
-                        </div>
-                        <div style="display:none;">{{ form.student }}</div>
-                    </div>
+                    <div class="form-group-card mb-0">
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label>Fee Category (Type)</label>
+                                {{ form.fee_type }}
+                                {% if form.fee_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.fee_type.errors }}</div>
+                                {% endif %}
+                            </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label>Fee Category</label>
-                            {{ form.fee_type }}
-                        </div>
-                        <div class="col-md-6">
-                            <label>Due Date</label>
-                            {{ form.due_date }}
-                        </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Due Date</label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                    <div class="text-danger small mt-1">{{ form.due_date.errors }}</div>
+                                {% endif %}
+                            </div>
 
-                        <div class="col-12"><hr class="my-2"></div>
+                            <div class="col-12"><hr class="my-2"></div>
 
-                        <div class="col-md-4">
-                            <label>Required Amount (₵)</label>
-                            {{ form.amount_required }}
-                        </div>
-                        <div class="col-md-4">
-                            <label>Total Discount (₵)</label>
-                            {{ form.discount }}
-                        </div>
-                        <div class="col-md-4">
-                            <label>Total Paid to Date (₵)</label>
-                            {{ form.amount_paid }}
-                        </div>
+                            <div class="col-md-4 mb-3">
+                                <label>Required Amount (&#8373;)</label>
+                                {{ form.amount_required }}
+                                {% if form.amount_required.errors %}
+                                    <div class="text-danger small mt-1">{{ form.amount_required.errors }}</div>
+                                {% endif %}
+                            </div>
 
-                        <div class="col-12">
-                            <label>Internal Notes / History</label>
-                            {{ form.notes }}
+                            <div class="col-md-4 mb-3">
+                                <label>Total Discount / Waiver (&#8373;)</label>
+                                {{ form.discount }}
+                                {% if form.discount.errors %}
+                                    <div class="text-danger small mt-1">{{ form.discount.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label>Total Paid to Date (&#8373;)</label>
+                                {{ form.amount_paid }}
+                                {% if form.amount_paid.errors %}
+                                    <div class="text-danger small mt-1">{{ form.amount_paid.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label>Internal Notes / History</label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small mt-1">{{ form.notes.errors }}</div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
 
+        <!-- Right Summary Preview Column -->
         <div class="col-lg-4">
             <div class="summary-box">
-                <h6 class="small opacity-50 mb-4">ADJUSTED BALANCE PREVIEW</h6>
+                <div class="summary-box-head">
+                    <h6 class="summary-box-title">
+                        <i class="fas fa-calculator text-primary"></i> Adjusted Balance Preview
+                    </h6>
+                    <small class="text-muted">Live calculations after changes</small>
+                </div>
 
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Subtotal</span>
-                    <span id="summReq">₵ 0.00</span>
+                <div class="summary-line">
+                    <span>Required Bill</span>
+                    <strong id="summReq">&#8373; 0.00</strong>
                 </div>
-                <div class="d-flex justify-content-between mb-2 text-warning">
-                    <span>Discount</span>
-                    <span id="summDisc">- ₵ 0.00</span>
+
+                <div class="summary-line text-warning">
+                    <span>Discount / Waiver</span>
+                    <strong id="summDisc" class="text-warning">- &#8373; 0.00</strong>
                 </div>
-                <div class="d-flex justify-content-between mb-4 text-success">
+
+                <div class="summary-line text-success">
                     <span>Total Paid</span>
-                    <span id="summPaid">₵ 0.00</span>
+                    <strong id="summPaid" class="text-success">&#8373; 0.00</strong>
                 </div>
 
-                <hr class="opacity-20">
-
-                <div class="py-3">
-                    <small class="opacity-50">FINAL BALANCE</small>
-                    <h2 class="fw-bold mb-0" id="summBalance">₵ 0.00</h2>
+                <div class="summary-balance-box">
+                    <div class="summary-balance-label">Final Balance Due</div>
+                    <h2 class="summary-balance-amount" id="summBalance">&#8373; 0.00</h2>
                 </div>
 
-                <button type="submit" form="feeForm" class="btn btn-primary w-100 py-3 mt-3 fw-bold shadow-sm" style="border-radius: 12px;" id="submitBtn">
-                    UPDATE INVOICE
+                <button type="submit" form="feeForm" class="btn btn-primary btn-block py-3 font-weight-bold shadow-sm" style="border-radius: 10px;" id="submitBtn">
+                    <i class="fas fa-save mr-1"></i> Update Invoice
                 </button>
-                <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-light w-100 mt-2 border-0 opacity-75">Cancel Changes</a>
+                <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary btn-block mt-2">
+                    Cancel Changes
+                </a>
             </div>
         </div>
     </div>
@@ -121,17 +317,15 @@
 
 <script>
 $(document).ready(function() {
-    // 1. Initialize Select2 for standard fields
     $('#id_fee_type').select2({ width: '100%' });
 
-    // 2. Real-time Calculation Function
     function calculate() {
         const required = parseFloat($('#id_amount_required').val()) || 0;
         const discount = parseFloat($('#id_discount').val()) || 0;
         const paidNow = parseFloat($('#id_amount_paid').val()) || 0;
 
-        const netTotal = required - discount;
-        const balance = netTotal - paidNow;
+        const netTotal = Math.max(required - discount, 0);
+        const balance = Math.max(netTotal - paidNow, 0);
 
         const formatGHS = (num) => '₵ ' + num.toLocaleString(undefined, {
             minimumFractionDigits: 2,
@@ -143,27 +337,23 @@ $(document).ready(function() {
         $('#summPaid').text(formatGHS(paidNow));
         $('#summBalance').text(formatGHS(balance));
 
-        // Color coding based on balance
         if (balance > 0) {
-            $('#summBalance').css('color', '#fbbf24'); // Yellow
+            $('#summBalance').css('color', '#dc2626');
         } else if (balance <= 0 && required > 0) {
-            $('#summBalance').css('color', '#10b981'); // Green
+            $('#summBalance').css('color', '#16a34a');
         } else {
-            $('#summBalance').css('color', 'white');
+            $('#summBalance').css('color', '#0f172a');
         }
     }
 
-    // 3. Listen for changes on all numeric inputs
     $('#id_amount_required, #id_discount, #id_amount_paid').on('input change', function() {
         calculate();
     });
 
-    // 4. Handle form submission visual
     $('#feeForm').on('submit', function() {
-        $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i> Updating...').prop('disabled', true);
+        $('#submitBtn').html('<i class="fas fa-spinner fa-spin mr-1"></i> Updating...').prop('disabled', true);
     });
 
-    // Run initial calculation on load to show current values
     calculate();
 });
 </script>

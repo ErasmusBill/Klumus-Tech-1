@@ -1,6 +1,7 @@
 from django import forms
 from django.core.validators import MinValueValidator, MaxValueValidator
-from account.models import Assignment, Attendance, ResultSheet, Student, Teacher,Subject
+from django.db.models import Q
+from account.models import Assignment, Attendance, ResultSheet, Student, Teacher, Subject, SchoolClass
 from datetime import datetime
 from django.utils import timezone
 
@@ -204,19 +205,38 @@ class AssignmentForm(forms.ModelForm):
             'instructions', 'due_date', 'total_marks', 'attachment'
         ]
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Chapter 4 Fractions Worksheet'}),
             'subject': forms.Select(attrs={'class': 'form-select'}),
             'student_class': forms.Select(attrs={'class': 'form-select'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Overview and summary of what students are expected to do...'}),
+            'instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Specific submission requirements, formatting, or instructions...'}),
             'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'total_marks': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'total_marks': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'placeholder': '100'}),
             'attachment': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
-    def __init__(self, school=None, *args, **kwargs):
+    def __init__(self, school=None, teacher=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if school:
-            self.fields['subject'].queryset = Subject.objects.filter(school=school) # type: ignore
+            if teacher:
+                self.fields['subject'].queryset = Subject.objects.filter(teacher=teacher, school=school)
+                t_subjects = Subject.objects.filter(teacher=teacher, school=school)
+                t_class_ids = set(t_subjects.values_list('subject_class_id', flat=True))
+                if teacher.class_teacher_class_id:
+                    t_class_ids.add(teacher.class_teacher_class_id)
+                if t_class_ids:
+                    self.fields['student_class'].queryset = SchoolClass.objects.filter(
+                        id__in=t_class_ids, is_active=True
+                    ).order_by('order', 'name')
+                else:
+                    self.fields['student_class'].queryset = SchoolClass.objects.filter(
+                        Q(school=school) | Q(school__isnull=True), is_active=True
+                    ).order_by('order', 'name')
+            else:
+                self.fields['subject'].queryset = Subject.objects.filter(school=school)
+                self.fields['student_class'].queryset = SchoolClass.objects.filter(
+                    Q(school=school) | Q(school__isnull=True), is_active=True
+                ).order_by('order', 'name')
         else:
-            self.fields['subject'].queryset = Subject.objects.none() # type: ignore
+            self.fields['subject'].queryset = Subject.objects.none()
+            self.fields['student_class'].queryset = SchoolClass.objects.filter(is_active=True).order_by('order', 'name')

@@ -10,6 +10,7 @@ urlpatterns = [
     path("profile/", views.student_detail, name="student-detail"),
     path("results/<uuid:student_id>/", views.view_result, name="view-result"),
     path("courses/", views.student_enrolled_courses, name="enrolled-courses"),
+    path("timetable/", views.student_timetable, name="student-timetable"),
     # path("change-class/", views.student_change_class, name="change-class"),
     path("fees/<uuid:student_id>/", views.list_fees_related, name="fees-list"),
     

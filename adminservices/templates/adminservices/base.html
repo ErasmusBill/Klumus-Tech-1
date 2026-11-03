@@ -101,12 +101,37 @@
             text-decoration: none !important;
         }
 
+        .school-brand-logo {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            flex-shrink: 0;
+        }
+
+        .school-brand-placeholder {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #2563eb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(37, 99, 235, 0.15);
+        }
+
         .school-brand-name {
             display: block;
             max-width: 100%;
             font-size: 1rem;
             font-weight: 800;
-            line-height: 1.05;
+            line-height: 1.15;
             letter-spacing: 0.015em;
             text-transform: none;
             color: #0f172a;
@@ -292,7 +317,14 @@
     <div class="main-wrapper">
         <div class="header">
             <div class="header-left">
-                <a href="/" class="logo d-flex align-items-center">
+                <a href="{% url 'adminservices:admin-dashboard' %}" class="logo d-flex align-items-center">
+                    {% if request.user.managed_school and request.user.managed_school.logo %}
+                        <img src="{{ request.user.managed_school.logo.url }}" alt="{{ request.user.managed_school.name }}" class="school-brand-logo mr-2">
+                    {% else %}
+                        <div class="school-brand-placeholder mr-2">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                    {% endif %}
                     <span class="school-brand-name">
                         {% if request.user.managed_school %}{{ request.user.managed_school.name|title }}{% else %}Kiddo Care{% endif %}
                     </span>
@@ -350,10 +382,12 @@
                 <li class="nav-item dropdown has-arrow">
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
-                            {% if request.user.managed_school and request.user.managed_school.logo %}
+                            {% if request.user.profile_picture %}
+                                <img class="rounded-circle" src="{{ request.user.profile_picture.url }}" width="31" height="31">
+                            {% elif request.user.managed_school and request.user.managed_school.logo %}
                                 <img class="rounded-circle" src="{{ request.user.managed_school.logo.url }}" width="31" height="31">
                             {% else %}
-                                <img class="rounded-circle" src="{% static 'assets/img/logo-small.png' %}" width="31" height="31">
+                                <span class="rounded-circle bg-primary text-white font-weight-bold d-inline-flex align-items-center justify-content-center" style="width: 31px; height: 31px; font-size: 13px;">{{ request.user.initials }}</span>
                             {% endif %}
                         </span>
                     </a>
@@ -362,7 +396,7 @@
                             <h6 class="font-bold mb-0 text-sm">{{ request.user.get_full_name|default:request.user.username }}</h6>
                             <p class="text-muted text-xs font-bold mb-0 uppercase">Administrator</p>
                         </div>
-                        <a class="dropdown-item rounded-2" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a>
+                        <a class="dropdown-item rounded-2" href="{% url 'adminservices:school-settings' %}"><i class="fas fa-university me-2"></i> School Profile &amp; Logo</a>
                         <form method="post" action="{% url 'account:logout' %}">
                             {% csrf_token %}<button class="dropdown-item rounded-2 text-danger border-0 bg-transparent w-100 text-start" type="submit"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
                         </form>
@@ -381,6 +415,13 @@
                         </li>
 
                         <li class="menu-title"><span>Academic Resources</span></li>
+                        <li class="submenu">
+                            <a href="#"><i class="fas fa-layer-group"></i> <span> Classes</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:list-classes' %}">Class List</a></li>
+                                <li><a href="{% url 'adminservices:add-class' %}">Add Class</a></li>
+                            </ul>
+                        </li>
                         <li class="submenu">
                             <a href="#"><i class="fas fa-user-graduate"></i> <span> Students</span> <span class="menu-arrow"></span></a>
                             <ul>
@@ -407,6 +448,13 @@
                             <ul>
                                 <li><a href="{% url 'adminservices:list-subjects' %}">Subject List</a></li>
                                 <li><a href="{% url 'adminservices:add-subject' %}">Add Subject</a></li>
+                            </ul>
+                        </li>
+                        <li class="submenu {% if 'timetable' in request.resolver_match.url_name %}active open{% endif %}">
+                            <a href="#"><i class="fas fa-calendar-alt"></i> <span> Timetables</span> <span class="menu-arrow"></span></a>
+                            <ul>
+                                <li><a href="{% url 'adminservices:timetable-list' %}">Class Timetables</a></li>
+                                <li><a href="{% url 'adminservices:add-timetable' %}">Add Schedule Entry</a></li>
                             </ul>
                         </li>
 
@@ -437,6 +485,9 @@
                         </li>
 
                         <li class="menu-title"><span>Settings</span></li>
+                        <li class="{% if request.resolver_match.url_name == 'school-settings' %}active{% endif %}">
+                            <a href="{% url 'adminservices:school-settings' %}"><i class="fas fa-university"></i> <span>School Profile &amp; Logo</span></a>
+                        </li>
                         <li><a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a></li>
                         <li>
                             <form method="post" action="{% url 'account:logout' %}" class="d-inline">

@@ -1,44 +1,213 @@
 {% extends "adminservices/base.html" %}
 {% load static media_tags %}
 
-{% block title %}Fees Collection | Finance{% endblock %}
+{% block title %}Fees Collection &amp; Finance{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
-  .summary-card {
+  .finance-page {
+    padding: 24px 0 40px;
+  }
+
+  .finance-shell {
+    max-width: 1400px;
+  }
+
+  /* KPI Stat Tiles */
+  .finance-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .finance-stat-tile {
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    background: #fff;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .finance-stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .finance-stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .icon-blue { background: #eff6ff; color: #2563eb; }
+  .icon-green { background: #ecfdf5; color: #059669; }
+  .icon-amber { background: #fffbeb; color: #d97706; }
+  .icon-purple { background: #faf5ff; color: #7c3aed; }
+
+  .finance-stat-value {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+    font-feature-settings: "tnum";
+  }
+
+  .finance-stat-label {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Class Breakdown Card */
+  .class-breakdown-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    margin-bottom: 24px;
     overflow: hidden;
   }
 
-  .summary-card .card-body {
-    padding: 1.25rem;
+  .class-breakdown-card .card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .class-breakdown-card .card-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .class-breakdown-table {
+    margin-bottom: 0;
+  }
+
+  .class-breakdown-table thead th {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-top: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 18px;
+  }
+
+  .class-breakdown-table tbody td {
+    padding: 14px 18px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    font-size: 0.9rem;
+  }
+
+  .class-breakdown-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  .collection-progress-wrap {
+    min-width: 140px;
+  }
+
+  .collection-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .collection-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* Filter Card */
+  .filter-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
   }
 
   .text-amount {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
     font-weight: 700;
     white-space: nowrap;
   }
 
-  .status-paid { background: #d1fae5; color: #065f46; }
-  .status-partial { background: #fef3c7; color: #92400e; }
-  .status-unpaid { background: #fee2e2; color: #991b1b; }
-  .status-overdue { background: #fca5a5; color: #7f1d1d; }
+  /* Status Badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+
+  .status-badge-paid { background: #dcfce7; color: #15803d; }
+  .status-badge-partial { background: #fef3c7; color: #b45309; }
+  .status-badge-unpaid { background: #fee2e2; color: #b91c1c; }
+  .status-badge-overdue { background: #fecaca; color: #991b1b; }
+
+  @media (max-width: 991.98px) {
+    .finance-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .finance-stat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="admin-list-page">
-  <div class="admin-list-shell">
-    <div class="page-header admin-list-header">
+<div class="finance-page">
+  <div class="finance-shell container-fluid px-0">
+
+    <!-- Page Header -->
+    <div class="page-header admin-list-header mb-4">
       <div class="admin-list-header-copy">
-        <h3 class="page-title">Finance &amp; Fees</h3>
+        <h3 class="page-title">Finance &amp; Fees Management</h3>
         <ul class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
-          <li class="breadcrumb-item active">Collections</li>
+          <li class="breadcrumb-item active">Fee Collections</li>
         </ul>
       </div>
       <div class="admin-list-header-actions">
@@ -46,44 +215,12 @@
           <i class="fas fa-file-invoice-dollar"></i>
           {{ page_obj.paginator.count|default:0 }} invoices
         </span>
-        <a href="{% url 'adminservices:fee-configuration' %}" class="btn btn-outline-primary">
-          <i class="fas fa-cog"></i> Fee Structure
+        <a href="{% url 'adminservices:fee_structure_list' %}" class="btn btn-outline-primary">
+          <i class="fas fa-cog mr-1"></i> Fee Structures
         </a>
         <a href="{% url 'adminservices:add-fees' %}" class="btn btn-primary">
-          <i class="fas fa-plus"></i> New Invoice
+          <i class="fas fa-plus mr-1"></i> Create Invoice
         </a>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-12">
-        <div class="card summary-card bg-dark text-white" style="background: #1e293b;">
-          <div class="card-body">
-            <h5 class="card-title text-white mb-4"><i class="fas fa-chart-pie mr-2"></i> Class-wise Collection Summary</h5>
-            <div class="table-responsive">
-              <table class="table table-sm text-white border-0 mb-0">
-                <thead>
-                  <tr class="text-slate-400">
-                    <th class="border-0">Class Level</th>
-                    <th class="border-0">Total Billed</th>
-                    <th class="border-0">Total Collected</th>
-                    <th class="border-0">Outstanding Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for summary in class_summaries %}
-                  <tr>
-                    <td class="font-weight-bold">{{ summary.student_class }}</td>
-                    <td class="text-amount">&#8373;{{ summary.total_billed|floatformat:2 }}</td>
-                    <td class="text-amount text-success">&#8373;{{ summary.total_paid|floatformat:2 }}</td>
-                    <td class="text-amount text-warning">&#8373;{{ summary.total_owing|floatformat:2 }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -98,61 +235,258 @@
       {% endfor %}
     {% endif %}
 
+    <!-- Top Financial KPI Cards -->
+    <div class="finance-stat-grid">
+      <div class="finance-stat-tile">
+        <div class="finance-stat-icon icon-blue">
+          <i class="fas fa-file-invoice"></i>
+        </div>
+        <div>
+          <h4 class="finance-stat-value">&#8373;{{ total_billed_all|floatformat:2 }}</h4>
+          <div class="finance-stat-label">Total Expected</div>
+        </div>
+      </div>
+
+      <div class="finance-stat-tile">
+        <div class="finance-stat-icon icon-green">
+          <i class="fas fa-hand-holding-usd"></i>
+        </div>
+        <div>
+          <h4 class="finance-stat-value text-success">&#8373;{{ total_paid_all|floatformat:2 }}</h4>
+          <div class="finance-stat-label">Total Collected</div>
+        </div>
+      </div>
+
+      <div class="finance-stat-tile">
+        <div class="finance-stat-icon icon-amber">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div>
+          <h4 class="finance-stat-value text-danger">&#8373;{{ total_owing_all|floatformat:2 }}</h4>
+          <div class="finance-stat-label">Outstanding Balance</div>
+        </div>
+      </div>
+
+      <div class="finance-stat-tile">
+        <div class="finance-stat-icon icon-purple">
+          <i class="fas fa-percentage"></i>
+        </div>
+        <div>
+          <h4 class="finance-stat-value text-primary">{{ overall_rate }}%</h4>
+          <div class="finance-stat-label">Recovery Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class-wise Collection Summary (Modern, Intuitive, Human-readable Class Names) -->
+    <div class="class-breakdown-card">
+      <div class="card-header">
+        <div>
+          <h5 class="card-title">
+            <i class="fas fa-chart-pie text-primary"></i> Class-wise Collection Summary
+          </h5>
+          <small class="text-muted">Summary of fee obligations, collections, and recovery status grouped by academic level</small>
+        </div>
+        {% if selected_class %}
+          <a href="{% url 'adminservices:list-fees' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-times mr-1"></i> Clear Class Filter
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="table-responsive">
+        <table class="table class-breakdown-table">
+          <thead>
+            <tr>
+              <th>Class Level</th>
+              <th>Students</th>
+              <th>Total Billed</th>
+              <th>Total Collected</th>
+              <th>Outstanding Balance</th>
+              <th>Recovery Rate</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for summary in class_summaries %}
+              <tr {% if selected_class and selected_class == summary.class_id %}class="table-active"{% endif %}>
+                <td>
+                  <strong>
+                    <i class="fas fa-chalkboard text-muted mr-1"></i>
+                    {{ summary.class_name }}
+                  </strong>
+                  {% if summary.class_code %}
+                    <span class="badge badge-light ml-1 text-xs">{{ summary.class_code }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="text-muted"><i class="fas fa-user-graduate mr-1"></i>{{ summary.student_count }}</span>
+                </td>
+                <td class="text-amount font-weight-bold">&#8373;{{ summary.total_billed|floatformat:2 }}</td>
+                <td class="text-amount text-success font-weight-bold">&#8373;{{ summary.total_paid|floatformat:2 }}</td>
+                <td class="text-amount text-danger font-weight-bold">&#8373;{{ summary.total_owing|floatformat:2 }}</td>
+                <td>
+                  <div class="collection-progress-wrap">
+                    <div class="collection-progress-bar">
+                      <div class="collection-progress-fill {% if summary.collection_rate >= 80 %}bg-success{% elif summary.collection_rate >= 50 %}bg-primary{% elif summary.collection_rate >= 25 %}bg-warning{% else %}bg-danger{% endif %}"
+                           style="width: {{ summary.collection_rate }}%;"></div>
+                    </div>
+                    <span class="small font-weight-bold {% if summary.collection_rate >= 80 %}text-success{% elif summary.collection_rate >= 50 %}text-primary{% elif summary.collection_rate >= 25 %}text-warning{% else %}text-danger{% endif %}">
+                      {{ summary.collection_rate }}% collected
+                    </span>
+                  </div>
+                </td>
+                <td class="text-right">
+                  {% if summary.class_id %}
+                    <a href="?class_id={{ summary.class_id }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                       class="btn btn-sm {% if selected_class == summary.class_id %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                       title="Filter invoices by {{ summary.class_name }}">
+                      <i class="fas fa-filter mr-1"></i> Filter
+                    </a>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <i class="fas fa-info-circle mr-1"></i> No fee data available to generate class summaries.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="filter-panel">
+      <form method="get" action="{% url 'adminservices:list-fees' %}" class="row align-items-center g-3">
+        <div class="col-md-4 mb-2 mb-md-0">
+          <div class="input-group">
+            <div class="input-group-prepend">
+              <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+            </div>
+            <input type="text" name="q" value="{{ search_query }}" class="form-control border-left-0" placeholder="Search student name, ID, or fee category...">
+          </div>
+        </div>
+
+        <div class="col-md-3 mb-2 mb-md-0">
+          <select name="class_id" class="form-control">
+            <option value="">All Classes</option>
+            {% for c in available_classes %}
+              <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>
+                {{ c.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-3 mb-2 mb-md-0">
+          <select name="status" class="form-control">
+            <option value="">All Statuses</option>
+            <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Fully Paid</option>
+            <option value="partial" {% if selected_status == 'partial' %}selected{% endif %}>Partially Paid</option>
+            <option value="unpaid" {% if selected_status == 'unpaid' %}selected{% endif %}>Unpaid</option>
+            <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 d-flex">
+          <button type="submit" class="btn btn-primary flex-grow-1 mr-1">
+            <i class="fas fa-filter"></i> Apply
+          </button>
+          {% if search_query or selected_class or selected_status %}
+            <a href="{% url 'adminservices:list-fees' %}" class="btn btn-outline-secondary" title="Reset Filters">
+              <i class="fas fa-undo"></i>
+            </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    <!-- Individual Fee Records Table -->
     <div class="card card-table admin-list-card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="card-title text-dark font-weight-bold mb-0">
+          <i class="fas fa-receipt text-primary mr-2"></i> Student Fee Invoices
+        </h5>
+        {% if search_query or selected_class or selected_status %}
+          <span class="badge badge-info">Filtered View</span>
+        {% endif %}
+      </div>
+
       <div class="card-body">
         <div class="table-responsive admin-list-table-wrap">
           <table class="table table-hover table-center mb-0 datatable admin-list-table">
             <thead>
               <tr>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th>Fee Type</th>
-                <th>Billed (&#8373;)</th>
-                <th>Paid (&#8373;)</th>
-                <th>Balance (&#8373;)</th>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Fee Details</th>
+                <th>Billed</th>
+                <th>Paid</th>
+                <th>Balance</th>
                 <th>Status</th>
-                <th class="admin-list-actions-cell">Actions</th>
+                <th class="admin-list-actions-cell text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {% for fee in page_obj %}
                 <tr>
-                  <td><span class="text-muted text-xs">{{ fee.student.student_id|upper }}</span></td>
                   <td>
-                    <h2 class="table-avatar">
+                    <div class="table-avatar">
                       <a href="{% url 'adminservices:student-detail' fee.student.id %}" class="avatar avatar-sm mr-2">
-                        <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ fee.student.user.get_full_name }}">
+                        {% if fee.student.user.profile_picture %}
+                          <img class="avatar-img rounded-circle" src="{{ fee.student.user.profile_picture.url }}" alt="{{ fee.student.user.get_full_name }}">
+                        {% elif fee.student.student_image %}
+                          <img class="avatar-img rounded-circle" src="{{ fee.student.student_image.url }}" alt="{{ fee.student.user.get_full_name }}">
+                        {% else %}
+                          <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold">
+                            {{ fee.student.user.initials }}
+                          </span>
+                        {% endif %}
                       </a>
-                      <a href="{% url 'adminservices:student-detail' fee.student.id %}">
-                        {{ fee.student.user.get_full_name|default:fee.student.user.username }}
-                        <small class="d-block text-muted">{{ fee.student_class }}</small>
-                      </a>
-                    </h2>
+                      <div>
+                        <strong>
+                          <a href="{% url 'adminservices:student-detail' fee.student.id %}" class="text-dark">
+                            {{ fee.student.user.get_full_name|default:fee.student.user.username }}
+                          </a>
+                        </strong>
+                        <div class="small text-muted">{{ fee.student.student_id|upper }}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>
-                    {{ fee.get_fee_type_display }}
-                    <small class="d-block text-indigo-600 font-weight-bold">{{ fee.get_term_display }}</small>
+                    <span class="badge badge-light font-weight-bold">
+                      {{ fee.student_class|default:fee.student.student_class|default:"Unassigned" }}
+                    </span>
                   </td>
-                  <td class="text-amount">&#8373;{{ fee.total_bill|floatformat:2 }}</td>
-                  <td class="text-amount text-success">&#8373;{{ fee.amount_paid|floatformat:2 }}</td>
-                  <td class="text-amount text-danger">&#8373;{{ fee.balance|floatformat:2 }}</td>
+                  <td>
+                    <strong>{{ fee.display_name|default:fee.get_fee_type_display }}</strong>
+                    <div class="small text-muted">Due: {{ fee.due_date|date:"M d, Y"|default:"Not specified" }}</div>
+                  </td>
+                  <td class="text-amount font-weight-bold">&#8373;{{ fee.total_bill|floatformat:2 }}</td>
+                  <td class="text-amount text-success font-weight-bold">&#8373;{{ fee.amount_paid|floatformat:2 }}</td>
+                  <td class="text-amount text-danger font-weight-bold">&#8373;{{ fee.balance|floatformat:2 }}</td>
                   <td>
                     {% if fee.status == 'paid' %}
-                      <span class="badge status-paid">Fully Paid</span>
-                    {% elif fee.status == 'overdue' %}
-                      <span class="badge status-overdue">Overdue</span>
+                      <span class="status-badge status-badge-paid"><i class="fas fa-check-circle"></i> Paid</span>
                     {% elif fee.status == 'partial' %}
-                      <span class="badge status-partial">Partial</span>
+                      <span class="status-badge status-badge-partial"><i class="fas fa-adjust"></i> Partial</span>
+                    {% elif fee.status == 'overdue' %}
+                      <span class="status-badge status-badge-overdue"><i class="fas fa-exclamation-triangle"></i> Overdue</span>
                     {% else %}
-                      <span class="badge status-unpaid">Unpaid</span>
+                      <span class="status-badge status-badge-unpaid"><i class="fas fa-clock"></i> Unpaid</span>
                     {% endif %}
                   </td>
-                  <td class="admin-list-actions-cell">
+                  <td class="admin-list-actions-cell text-right">
                     <div class="admin-list-actions">
                       <a href="{% url 'adminservices:edit-fees' fee.id %}"
                          class="btn btn-sm bg-success-light"
-                         title="Edit / Record Payment"
-                         aria-label="Edit / Record Payment">
+                         title="Record Payment / Edit"
+                         aria-label="Record Payment / Edit">
                         <i class="fas fa-pen"></i>
                       </a>
                       <a href="{% url 'adminservices:print-fee-receipt' fee.id %}"
@@ -162,13 +496,12 @@
                          aria-label="Print Receipt">
                         <i class="fas fa-print"></i>
                       </a>
-                      <form method="post" action="{% url 'adminservices:delete-fees' fee.id %}">
+                      <form method="post" action="{% url 'adminservices:delete-fees' fee.id %}" class="d-inline" onsubmit="return confirm('Delete this fee record?');">
                         {% csrf_token %}
                         <button type="submit"
                                 class="btn btn-sm bg-danger-light"
-                                onclick="return confirm('Delete this fee record?');"
-                                title="Delete"
-                                aria-label="Delete">
+                                title="Delete Invoice"
+                                aria-label="Delete Invoice">
                           <i class="fas fa-trash"></i>
                         </button>
                       </form>
@@ -177,7 +510,14 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="8" class="text-center">No fee records found.</td>
+                  <td colspan="8" class="text-center py-5 text-muted">
+                    <i class="fas fa-file-invoice-dollar fa-3x mb-3 text-secondary d-block"></i>
+                    <h6>No fee invoice records found</h6>
+                    <p class="small text-muted mb-3">Adjust your search or create a new student fee invoice.</p>
+                    <a href="{% url 'adminservices:add-fees' %}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-plus mr-1"></i> Create First Invoice
+                    </a>
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -185,11 +525,11 @@
         </div>
 
         {% if page_obj.has_other_pages %}
-          <div class="admin-list-pagination">
+          <div class="admin-list-pagination mt-4">
             <ul class="pagination justify-content-center">
               {% if page_obj.has_previous %}
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo;</a>
                 </li>
               {% endif %}
               {% for num in page_obj.paginator.page_range %}
@@ -199,13 +539,13 @@
                   </li>
                 {% else %}
                   <li class="page-item">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    <a class="page-link" href="?page={{ num }}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
                   </li>
                 {% endif %}
               {% endfor %}
               {% if page_obj.has_next %}
                 <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_class %}&class_id={{ selected_class }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">&raquo;</a>
                 </li>
               {% endif %}
             </ul>
@@ -213,6 +553,7 @@
         {% endif %}
       </div>
     </div>
+
   </div>
 </div>
 {% endblock %}
@@ -221,13 +562,18 @@
 <script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
   $(function () {
-    $('.datatable').DataTable({
-      pageLength: 15,
-      order: [[1, 'asc']],
-      columnDefs: [
-        { orderable: false, targets: [-1] }
-      ]
-    });
+    if ($.fn.DataTable && $('.datatable').length) {
+      $('.datatable').DataTable({
+        pageLength: 15,
+        order: [[0, 'asc']],
+        searching: false,
+        paging: false,
+        info: false,
+        columnDefs: [
+          { orderable: false, targets: [-1] }
+        ]
+      });
+    }
   });
 </script>
 {% endblock %}

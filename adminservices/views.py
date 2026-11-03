@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum, ProtectedError, Avg, F
 from django.conf import settings
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -17,11 +17,11 @@ from django.core.cache import cache
 from account.models import (
     Teacher, CustomUser, Department, School,
     Student, Parent, Fees, Subject, Announcement, Notification, ClassFee,
-    Attendance, Timetable, Leave
+    Attendance, Timetable, Leave, SchoolClass, Enrollment, ResultSheet
 )
 from .forms import (
     AddTeacherForm, AddDepartmentForm, AddStudentForm,
-    AddFeesForm, AddSubjectForm, AnnouncementForm, ClassFeeForm
+    AddFeesForm, AddSubjectForm, AnnouncementForm, ClassFeeForm, AddClassForm, TimetableForm, SchoolSettingsForm
 )
 from .utils import *
 from .utils import send_announcement_via_email_and_sms
@@ -88,7 +88,7 @@ def should_cache(request) -> bool:
 
 @login_required(login_url='account:login')
 def admin_dashboard(request):
-    """Admin dashboard with school overview and student search"""
+    """Admin dashboard with school overview, key metrics, and student search"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("account:login")
@@ -105,25 +105,50 @@ def admin_dashboard(request):
         if cached_response:
             return cached_response
 
-    # Get basic counts
-    students_count = Student.objects.filter(school=school).count()
-    teachers_count = Teacher.objects.filter(school=school).count()
+    # Core academic & operational counts
+    students_count = Student.objects.filter(school=school, is_active=True).count()
+    teachers_count = Teacher.objects.filter(school=school, is_active=True).count()
+    classes_count = SchoolClass.for_school(school, active_only=True).count()
+    subjects_count = Subject.objects.filter(school=school).count()
     departments_count = Department.objects.filter(school=school).count()
     published_announcements_count = Announcement.objects.filter(school=school, published=True).count()
     academic_year = school.get_current_academic_year()
 
-    # Student distribution by class
-    class_map = dict(Student.CLASS_CHOICES)
-    class_counts = (
-        Student.objects.filter(school=school)
-        .values("student_class")
-        .annotate(total=Count("id"))
+    # Fee collection metrics
+    fees_agg = Fees.objects.filter(school=school).aggregate(
+        total_collected=Sum('amount_paid'),
+        total_required=Sum('amount_required')
     )
-    class_counts_map = {row["student_class"]: row["total"] for row in class_counts}
-    distribution_labels = [class_map[key] for key in class_map.keys() if class_counts_map.get(key)]
-    distribution_data = [class_counts_map[key] for key in class_map.keys() if class_counts_map.get(key)]
+    total_fees_collected = fees_agg['total_collected'] or Decimal('0.00')
+    total_fees_required = fees_agg['total_required'] or Decimal('0.00')
 
-    # Handle student search
+    # Student distribution by class
+    class_counts = (
+        Student.objects.filter(school=school, student_class__isnull=False, is_active=True)
+        .values("student_class__name")
+        .annotate(total=Count("id"))
+        .order_by("student_class__order", "student_class__name")
+    )
+    distribution_labels = [row["student_class__name"] for row in class_counts]
+    distribution_data = [row["total"] for row in class_counts]
+
+    # Classes summary for dashboard quick view
+    active_classes = SchoolClass.for_school(school, active_only=True)
+    classes_summary = []
+    for c in active_classes:
+        s_count = c.students.filter(school=school, is_active=True).count()
+        subj_count = c.subjects.filter(school=school).count()
+        classes_summary.append({
+            "id": c.id,
+            "name": c.name,
+            "code": c.code or "-",
+            "order": c.order,
+            "student_count": s_count,
+            "subject_count": subj_count,
+            "is_custom": bool(c.school_id),
+        })
+
+    # Student search
     students = Student.objects.filter(school=school).select_related('user')
     search_query = None
     search_results_count = None
@@ -135,7 +160,8 @@ def admin_dashboard(request):
                 Q(user__first_name__icontains=search_query) |
                 Q(user__last_name__icontains=search_query) |
                 Q(student_id__icontains=search_query) |
-                Q(admission_number__icontains=search_query)
+                Q(admission_number__icontains=search_query) |
+                Q(student_class__name__icontains=search_query)
             )
             if not students.exists():
                 messages.info(request, f"No students found matching '{search_query}'")
@@ -145,8 +171,8 @@ def admin_dashboard(request):
 
     recent_students = (
         Student.objects.filter(school=school)
-        .select_related("user")
-        .order_by("-created_at")[:5]
+        .select_related("user", "student_class")
+        .order_by("-created_at")[:6]
     )
     recent_announcements = (
         Announcement.objects.filter(school=school, published=True)
@@ -157,10 +183,16 @@ def admin_dashboard(request):
     context = {
         "school": school,
         "academic_year": academic_year,
+        "today_date": timezone.now().strftime("%A, %d %B %Y"),
         "students_count": students_count,
-        "departments_count": departments_count,
         "teachers_count": teachers_count,
+        "classes_count": classes_count,
+        "subjects_count": subjects_count,
+        "departments_count": departments_count,
         "published_announcements_count": published_announcements_count,
+        "total_fees_collected": total_fees_collected,
+        "total_fees_required": total_fees_required,
+        "classes_summary": classes_summary,
         "students": students,
         "search_query": search_query,
         "search_results_count": search_results_count,
@@ -530,8 +562,14 @@ def delete_teacher(request, teacher_id):
         messages.error(request, "Invalid request method.")
         return redirect("adminservices:list-teachers")
 
-    teacher_name = teacher.user.get_full_name()
+    teacher_name = teacher.user.get_full_name() or teacher.user.username
+    user = teacher.user
     teacher.delete()
+    if user:
+        try:
+            user.delete()
+        except Exception:
+            pass
 
     bump_cache_version(school.id, "teachers")
     bump_cache_version(school.id, "admin_dashboard")
@@ -739,14 +777,44 @@ def delete_department(request, department_id):
 @login_required(login_url='account:login')
 def department_detail(request, department_id):
     """View department details"""
-    if request.user.role != "admin":
-        messages.error(request, "You are not authorized to perform this action")
-        return redirect("adminservices:list-teachers")
-    
-    school = request.user.managed_school
-    department = get_object_or_404(Department, id=department_id, school=school)
-    
-    return render(request, "adminservices/department-detail.html", {"department": department})
+    if not request.user.is_authenticated or request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "You are an admin but have no school assigned.")
+        return redirect("adminservices:admin-dashboard")
+
+    department = get_object_or_404(
+        Department.objects.select_related('school'),
+        id=department_id,
+        school=school
+    )
+
+    teachers = department.teachers.select_related('user', 'class_teacher_class').order_by('user__first_name', 'user__last_name')
+    subjects = department.subjects.select_related('teacher__user', 'subject_class').order_by('name')
+
+    hod_teacher = None
+    if department.head_of_department:
+        hod_query = department.head_of_department.strip().lower()
+        for t in teachers:
+            full_name = t.user.get_full_name().strip().lower()
+            if full_name and (full_name in hod_query or hod_query in full_name):
+                hod_teacher = t
+                break
+
+    context = {
+        "department": department,
+        "teachers": teachers,
+        "subjects": subjects,
+        "hod_teacher": hod_teacher,
+        "total_teachers": teachers.count(),
+        "total_subjects": subjects.count(),
+        "total_students": department.number_of_students,
+    }
+
+    return render(request, "adminservices/department_detail.html", context)
 
 # ===== STUDENT MANAGEMENT VIEWS =====
 @login_required(login_url='account:login')
@@ -904,14 +972,49 @@ def list_students(request):
         cache.set(cache_key, response, 300)
     return response
 
-@login_required(login_url='account:login') 
+@login_required(login_url='account:login')
 def student_detail(request, student_id):
-    """View student details"""
+    """View student details with full academic and financial profile"""
     if request.user.role != "admin":
         messages.error(request, "You are not authorized.")
         return redirect("account:login")
-    student = get_object_or_404(Student, id=student_id, school=request.user.managed_school)
-    return render(request, "adminservices/student_detail.html", {"student": student})
+    student = get_object_or_404(
+        Student.objects.select_related('user', 'parent', 'school', 'student_class', 'previous_class'),
+        id=student_id,
+        school=request.user.managed_school
+    )
+
+    # Enrollments
+    enrollments = Enrollment.objects.filter(student=student, is_active=True).select_related('subject__teacher__user', 'subject__department')
+    enrollments_count = enrollments.count()
+
+    # Attendance
+    total_attendance = Attendance.objects.filter(student=student).count()
+    present_count = Attendance.objects.filter(student=student, status='present').count()
+    attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
+
+    # Financial status
+    pending_fees = Fees.objects.filter(student=student, status__in=['unpaid', 'partial', 'overdue']).order_by('due_date')
+    fee_aggregate = pending_fees.aggregate(total=Sum(F('amount_required') - F('discount') - F('amount_paid')))
+    total_pending_fees = fee_aggregate['total'] or 0
+
+    # Recent Results
+    recent_results = ResultSheet.objects.filter(student=student).select_related('subject').order_by('-exam_date')[:6]
+    average_grade = recent_results.aggregate(Avg('percentage'))['percentage__avg']
+
+    return render(request, "adminservices/student_detail.html", {
+        "student": student,
+        "enrollments_count": enrollments_count,
+        "enrolled_courses": enrollments[:6],
+        "attendance_rate": round(attendance_rate, 1),
+        "total_attendance": total_attendance,
+        "present_count": present_count,
+        "pending_fees": pending_fees[:5],
+        "total_pending_fees": total_pending_fees,
+        "recent_results": recent_results,
+        "average_grade": round(average_grade, 1) if average_grade else None,
+    })
+
 
 @login_required(login_url='account:login')
 def edit_student(request, student_id):
@@ -999,7 +1102,7 @@ def create_fee_structure(request):
             return redirect('adminservices:fee_structure_list')
     else:
         # Change request.user.school to school
-        form = ClassFeeForm(school=school)
+        form = ClassFeeForm(school=school, initial={'academic_year': current_academic_year})
 
     return render(request, 'adminservices/fees_configuration.html', {
         'form': form,
@@ -1234,33 +1337,99 @@ def list_fee_structures(request):
 
 @login_required(login_url='account:login')
 def list_fees(request):
-    """List all fees with grouped class totals and pagination"""
-    if request.user.role != "admin":
+    """List all fees with grouped class totals, summary KPI cards, filtering, and pagination"""
+    if not request.user.is_authenticated or request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
         return redirect("account:login")
 
-    school = request.user.managed_school
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "You are an admin but have no school assigned.")
+        return redirect("adminservices:admin-dashboard")
 
-    # 1. Calculate Grouped Stats (Totals per Class)
-    # We calculate: (Amount Required - Discount) as the 'Expected'
-    class_summaries = Fees.objects.filter(school=school).values('student_class').annotate(
-        total_billed=Sum(F('amount_required') - F('discount')),
-        total_paid=Sum('amount_paid'),
-        total_owing=Sum(F('amount_required') - F('discount') - F('amount_paid'))
-    ).order_by('student_class')
+    # 1. Calculate Grouped Stats (Totals per Class) with human-readable class names
+    raw_class_summaries = (
+        Fees.objects.filter(school=school)
+        .values('student_class__id', 'student_class__name', 'student_class__code', 'student_class__order')
+        .annotate(
+            total_billed=Sum(F('amount_required') - F('discount')),
+            total_paid=Sum('amount_paid'),
+            total_owing=Sum(F('amount_required') - F('discount') - F('amount_paid')),
+            student_count=Count('student', distinct=True)
+        )
+        .order_by('student_class__order', 'student_class__name')
+    )
 
-    # 2. List Individual Fee Records
-    fees_list = Fees.objects.filter(school=school).select_related(
-        'student__user', 'fee_structure'
-    ).order_by('-created_at')
+    class_summaries = []
+    total_billed_all = Decimal('0.00')
+    total_paid_all = Decimal('0.00')
+    total_owing_all = Decimal('0.00')
+
+    for s in raw_class_summaries:
+        billed = s.get('total_billed') or Decimal('0.00')
+        paid = s.get('total_paid') or Decimal('0.00')
+        owing = s.get('total_owing') or Decimal('0.00')
+        rate = round((paid / billed * 100) if billed > 0 else Decimal('0.00'), 1)
+        name = s.get('student_class__name') or "General / Unassigned"
+
+        class_summaries.append({
+            'class_id': str(s.get('student_class__id') or ''),
+            'class_name': name,
+            'class_code': s.get('student_class__code') or "",
+            'total_billed': billed,
+            'total_paid': paid,
+            'total_owing': owing,
+            'collection_rate': rate,
+            'student_count': s.get('student_count') or 0,
+        })
+
+        total_billed_all += billed
+        total_paid_all += paid
+        total_owing_all += owing
+
+    overall_rate = round((total_paid_all / total_billed_all * 100) if total_billed_all > 0 else Decimal('0.00'), 1)
+
+    # 2. Filters & Search
+    status_filter = request.GET.get('status', '').strip().lower()
+    search_query = request.GET.get('q', '').strip()
+    class_filter = request.GET.get('class_id', '').strip()
+
+    fees_qs = Fees.objects.filter(school=school).select_related(
+        'student__user', 'student__student_class', 'fee_structure', 'student_class'
+    )
+
+    if status_filter:
+        fees_qs = fees_qs.filter(status=status_filter)
+    if class_filter:
+        fees_qs = fees_qs.filter(student_class_id=class_filter)
+    if search_query:
+        fees_qs = fees_qs.filter(
+            Q(student__user__first_name__icontains=search_query) |
+            Q(student__user__last_name__icontains=search_query) |
+            Q(student__student_id__icontains=search_query) |
+            Q(fee_type__icontains=search_query)
+        )
+
+    fees_list = fees_qs.order_by('-created_at')
 
     # Pagination
     paginator = Paginator(fees_list, 15)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    available_classes = school.classes.filter(is_active=True).order_by('order', 'name')
+
     context = {
         "page_obj": page_obj,
         "class_summaries": class_summaries,
+        "total_billed_all": total_billed_all,
+        "total_paid_all": total_paid_all,
+        "total_owing_all": total_owing_all,
+        "overall_rate": overall_rate,
+        "available_classes": available_classes,
+        "selected_status": status_filter,
+        "selected_class": class_filter,
+        "search_query": search_query,
     }
     return render(request, "adminservices/list_fees.html", context)
 @login_required(login_url='account:login')
@@ -1346,10 +1515,51 @@ def list_subjects(request):
 @login_required(login_url='account:login')
 def subject_detail(request, subject_id):
     """View subject details"""
+    if not request.user.is_authenticated or request.user.role != "admin":
+        messages.error(request, "You are not authorized.")
+        return redirect("account:login")
+
     school = getattr(request.user, 'managed_school', None)
-    subject = get_object_or_404(Subject, id=subject_id, school=school)
-    
-    return render(request, "adminservices/subject_detail.html", {"subject": subject})
+    if not school:
+        messages.error(request, "You are an admin but have no school assigned.")
+        return redirect("adminservices:admin-dashboard")
+
+    subject = get_object_or_404(
+        Subject.objects.select_related('department', 'teacher__user', 'subject_class', 'school'),
+        id=subject_id,
+        school=school
+    )
+
+    enrollments = (
+        subject.enrollments.filter(is_active=True)
+        .select_related('student__user', 'student__student_class')
+        .order_by('student__user__first_name', 'student__user__last_name')
+    )
+
+    assignments = (
+        subject.assignments.all()
+        .select_related('teacher__user')
+        .order_by('-created_at')[:20]
+    )
+
+    timetables = (
+        subject.timetables.filter(school=school)
+        .order_by('day_of_week', 'start_time')
+    )
+
+    results_count = subject.results.count()
+
+    context = {
+        "subject": subject,
+        "enrollments": enrollments,
+        "enrolled_count": enrollments.count(),
+        "assignments": assignments,
+        "assignments_count": subject.assignments.count(),
+        "timetables": timetables,
+        "timetables_count": timetables.count(),
+        "results_count": results_count,
+    }
+    return render(request, "adminservices/subject_detail.html", context)
 
 @login_required(login_url='account:login')
 def edit_subject(request, subject_id):
@@ -1580,26 +1790,33 @@ def _get_academic_year(school):
 # ===== PRINTING & PDF GENERATION VIEWS =====
 
 @login_required(login_url='account:login')
+@login_required(login_url='account:login')
 def print_fee_receipt(request, fee_id):
     """Render HTML version of the fee receipt for printing."""
-    if request.user.role != "admin":
+    fee = get_object_or_404(Fees.objects.select_related('school', 'student__user'), id=fee_id)
+    school = fee.school
+
+    if request.user.role == "admin":
+        if getattr(request.user, 'managed_school', None) != school:
+            messages.error(request, "You are not authorized to perform this action.")
+            return redirect("adminservices:list-fees")
+    elif request.user.role == "student":
+        if not hasattr(request.user, 'student_profile') or request.user.student_profile.id != fee.student.id:
+            messages.error(request, "You are not authorized to view this receipt.")
+            return redirect("student:student-dashboard")
+    else:
         messages.error(request, "You are not authorized to perform this action.")
-        return redirect("adminservices:list-fees")
+        return redirect("account:login")
 
-    school = request.user.managed_school
-    # Use the new model name (likely 'Fees' or 'Fee') and proper school lookup
-    fee = get_object_or_404(Fees, id=fee_id, school=school)
-
-    # Use the fee's stored year/term instead of generic functions
     receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
 
     context = {
         'school': school,
         'fee': fee,
         'receipt_number': receipt_number,
-        'issue_date': fee.created_at.strftime('%B %d, %Y'),
-        'academic_year': fee.academic_year,  # Pulled directly from the Fee record
-        'payment_method': "Cash",  # Or fee.payment_method if added to model
+        'issue_date': (fee.payment_date or fee.created_at).strftime('%B %d, %Y'),
+        'academic_year': fee.academic_year,
+        'payment_method': fee.get_payment_method_display() if fee.payment_method else "Cash",
     }
 
     return render(request, 'adminservices/fee_receipt.html', context)
@@ -1613,7 +1830,11 @@ def print_admission_form(request, student_id):
         return redirect("adminservices:list-students")
 
     school = request.user.managed_school
-    student = get_object_or_404(Student, id=student_id, school=school)
+    student = get_object_or_404(
+        Student.objects.select_related('user', 'parent', 'school', 'student_class', 'previous_class'),
+        id=student_id,
+        school=school
+    )
 
     # Use admission_number (e.g., "2025-0042") for traceability
     form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
@@ -1634,12 +1855,20 @@ def print_admission_form(request, student_id):
 @login_required(login_url='account:login')
 def download_fee_receipt_pdf(request, fee_id):
     """Generate and download a PDF version of the fee receipt."""
-    if request.user.role != "admin":
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect("adminservices:list-fees")
+    fee = get_object_or_404(Fees.objects.select_related('school', 'student__user'), id=fee_id)
+    school = fee.school
 
-    school = request.user.managed_school
-    fee = get_object_or_404(Fees, id=fee_id, student__school=school)
+    if request.user.role == "admin":
+        if getattr(request.user, 'managed_school', None) != school:
+            messages.error(request, "You are not authorized to perform this action.")
+            return redirect("adminservices:list-fees")
+    elif request.user.role == "student":
+        if not hasattr(request.user, 'student_profile') or request.user.student_profile.id != fee.student.id:
+            messages.error(request, "You are not authorized to download this receipt.")
+            return redirect("student:student-dashboard")
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
 
     receipt_number = fee.receipt_number or f"RCP-{fee.id.hex[:8].upper()}"
     issue_date = timezone.now().strftime('%B %d, %Y')
@@ -1680,7 +1909,11 @@ def download_admission_form_pdf(request, student_id):
         return redirect("adminservices:list-students")
 
     school = request.user.managed_school
-    student = get_object_or_404(Student, id=student_id, school=school)
+    student = get_object_or_404(
+        Student.objects.select_related('user', 'parent', 'school', 'student_class', 'previous_class'),
+        id=student_id,
+        school=school
+    )
 
     form_number = f"ADM{timezone.now().strftime('%Y%m%d')}-{student.admission_number}"
     generated_date = timezone.now().strftime('%B %d, %Y')
@@ -1710,3 +1943,401 @@ def download_admission_form_pdf(request, student_id):
     except Exception as e:
         messages.error(request, f"Failed to generate PDF: {str(e)}")
         return redirect('adminservices:print-admission-form', student_id=student_id)
+
+
+@login_required(login_url='account:login')
+def add_class(request):
+    """Add a new school class"""
+    if request.user.role != "admin" and not request.user.is_superuser:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:admin-dashboard")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school and not request.user.is_superuser:
+        messages.error(request, "Your account is not linked to any school.")
+        return redirect("adminservices:admin-dashboard")
+
+    if request.method == "POST":
+        form = AddClassForm(request.POST, school=school)
+        if form.is_valid():
+            name = form.cleaned_data.get('name', '').strip()
+            global_class = SchoolClass.objects.filter(school__isnull=True, name__iexact=name).first()
+            if global_class and school and global_class.excluded_schools.filter(id=school.id).exists():
+                global_class.excluded_schools.remove(school)
+                school_class = global_class
+            else:
+                school_class = form.save(commit=False)
+                if school:
+                    school_class.school = school
+                school_class.save()
+            if school:
+                bump_cache_version(school.id, "classes")
+                bump_cache_version(school.id, "admin_dashboard")
+            messages.success(request, f"Class '{school_class.name}' created successfully!")
+            return redirect("adminservices:list-classes")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AddClassForm(school=school)
+
+    return render(request, "adminservices/add_class.html", {"form": form})
+
+
+@login_required(login_url='account:login')
+def list_classes(request):
+    """List all classes available to the school (both school-specific and global)"""
+    if request.user.role != "admin" and not request.user.is_superuser:
+        messages.error(request, "Not authorized.")
+        return redirect("adminservices:admin-dashboard")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school and not request.user.is_superuser:
+        messages.error(request, "No school linked to your account.")
+        return redirect("adminservices:admin-dashboard")
+
+    page_number = request.GET.get("page") or 1
+    if school:
+        classes = SchoolClass.for_school(school, active_only=True)
+    else:
+        classes = SchoolClass.objects.filter(is_active=True).order_by("order", "name")
+
+    classes_with_counts = []
+    for c in classes:
+        student_count = c.students.filter(school=school, is_active=True).count() if school else c.students.filter(is_active=True).count()
+        subject_count = c.subjects.filter(school=school).count() if school else c.subjects.count()
+        classes_with_counts.append({
+            "obj": c,
+            "student_count": student_count,
+            "subject_count": subject_count,
+            "is_custom": bool(c.school_id),
+        })
+
+    paginator = Paginator(classes_with_counts, 25)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "adminservices/list_classes.html", {"page_obj": page_obj})
+
+
+@login_required(login_url='account:login')
+def edit_class(request, class_id):
+    """Edit class details"""
+    if request.user.role != "admin" and not request.user.is_superuser:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-classes")
+
+    school = getattr(request.user, 'managed_school', None)
+    if request.user.is_superuser:
+        school_class = get_object_or_404(SchoolClass, id=class_id)
+    else:
+        school_class = get_object_or_404(
+            SchoolClass,
+            Q(school=school) | Q(school__isnull=True),
+            id=class_id
+        )
+        if school_class.school and school_class.school != school:
+            messages.error(request, "You cannot edit another school's class.")
+            return redirect("adminservices:list-classes")
+
+    if request.method == "POST":
+        form = AddClassForm(request.POST, instance=school_class, school=school)
+        if form.is_valid():
+            school_class = form.save(commit=False)
+            if not request.user.is_superuser and not school_class.school and school:
+                import uuid
+                school_class.pk = None
+                school_class.id = uuid.uuid4()
+                school_class.school = school
+            school_class.save()
+            if school:
+                bump_cache_version(school.id, "classes")
+                bump_cache_version(school.id, "admin_dashboard")
+            messages.success(request, f"Class '{school_class.name}' updated successfully!")
+            return redirect("adminservices:list-classes")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AddClassForm(instance=school_class, school=school)
+
+    return render(request, "adminservices/edit_class.html", {"form": form, "school_class": school_class})
+
+
+@login_required(login_url='account:login')
+def delete_class(request, class_id):
+    """Delete a class with support for GET (confirmation preview) and POST (execution)."""
+    if request.user.role != "admin" and not request.user.is_superuser:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("adminservices:list-classes")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school and not request.user.is_superuser:
+        messages.error(request, "No school linked to your account.")
+        return redirect("adminservices:admin-dashboard")
+
+    if request.user.is_superuser:
+        school_class = get_object_or_404(SchoolClass, id=class_id)
+    else:
+        school_class = get_object_or_404(
+            SchoolClass,
+            Q(school=school) | Q(school__isnull=True),
+            id=class_id
+        )
+
+    # Check dependencies for this school
+    if school:
+        student_count = Student.objects.filter(student_class=school_class, school=school).count()
+        subject_count = Subject.objects.filter(subject_class=school_class, school=school).count()
+        fees_count = Fees.objects.filter(student_class=school_class, school=school).count()
+    else:
+        student_count = Student.objects.filter(student_class=school_class).count()
+        subject_count = Subject.objects.filter(subject_class=school_class).count()
+        fees_count = Fees.objects.filter(student_class=school_class).count()
+
+    can_delete = (student_count == 0 and subject_count == 0)
+
+    # GET request: render confirmation template
+    if request.method == "GET":
+        return render(request, "adminservices/confirm_delete.html", {
+            "object": school_class,
+            "school_class": school_class,
+            "student_count": student_count,
+            "subject_count": subject_count,
+            "fees_count": fees_count,
+            "can_delete": can_delete,
+            "school": school,
+        })
+
+    # POST request: execute deletion
+    if not can_delete:
+        messages.error(
+            request,
+            f"Cannot delete class '{school_class.name}' because {student_count} student(s) and {subject_count} subject(s) are currently assigned to it in your school. Please reassign or remove them first."
+        )
+        return redirect("adminservices:list-classes")
+
+    class_name = school_class.name
+    try:
+        with transaction.atomic():
+            # Clean up fee structures and timetables for this school
+            if school:
+                ClassFee.objects.filter(school=school, student_class=school_class).delete()
+                Timetable.objects.filter(school=school, student_class=school_class).delete()
+                Teacher.objects.filter(school=school, class_teacher_class=school_class).update(
+                    class_teacher_class=None, is_class_teacher=False
+                )
+            else:
+                ClassFee.objects.filter(student_class=school_class).delete()
+                Timetable.objects.filter(student_class=school_class).delete()
+                Teacher.objects.filter(class_teacher_class=school_class).update(
+                    class_teacher_class=None, is_class_teacher=False
+                )
+
+            if school_class.school == school or (request.user.is_superuser and school_class.school is None):
+                # Custom class belonging to this school or superuser deleting global class
+                school_class.delete()
+            else:
+                # Global class being deleted/removed from this school:
+                # Exclude it so it no longer appears in this school's curriculum, lists, or dropdowns
+                if school and hasattr(school_class, 'excluded_schools'):
+                    school_class.excluded_schools.add(school)
+                else:
+                    school_class.is_active = False
+                    school_class.save(update_fields=['is_active'])
+
+        if school:
+            bump_cache_version(school.id, "classes")
+            bump_cache_version(school.id, "admin_dashboard")
+            bump_cache_version(school.id, "teachers")
+
+        messages.success(request, f"Class '{class_name}' deleted successfully.")
+    except ProtectedError as e:
+        messages.error(
+            request,
+            f"Cannot delete class '{class_name}' due to protected database dependencies: {e}"
+        )
+    except Exception as e:
+        messages.error(
+            request,
+            f"An error occurred while deleting class '{class_name}': {str(e)}"
+        )
+
+    return redirect("adminservices:list-classes")
+
+
+@login_required(login_url='account:login')
+def timetable_list(request):
+    """View and manage class timetables weekly schedule."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to view this page.")
+        return redirect("account:login")
+
+    school = request.user.managed_school
+    classes = SchoolClass.for_school(school, active_only=True).order_by('order', 'name') if school else SchoolClass.objects.filter(is_active=True).order_by('order', 'name')
+
+    selected_class_id = request.GET.get('class_id')
+    selected_class = None
+    if selected_class_id:
+        selected_class = classes.filter(id=selected_class_id).first()
+    if not selected_class and classes.exists():
+        selected_class = classes.first()
+
+    DAYS = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+    ]
+
+    days_schedule = {day_code: {'label': day_label, 'entries': []} for day_code, day_label in DAYS}
+    total_entries = 0
+    total_teachers = 0
+    total_subjects = 0
+
+    if selected_class and school:
+        timetables = Timetable.objects.filter(
+            school=school,
+            student_class=selected_class
+        ).select_related('subject', 'teacher__user', 'student_class').order_by('start_time')
+
+        total_entries = timetables.count()
+        total_teachers = timetables.values('teacher').distinct().count()
+        total_subjects = timetables.values('subject').distinct().count()
+
+        for entry in timetables:
+            if entry.day_of_week in days_schedule:
+                days_schedule[entry.day_of_week]['entries'].append(entry)
+
+    context = {
+        'classes': classes,
+        'selected_class': selected_class,
+        'days_schedule': days_schedule,
+        'total_entries': total_entries,
+        'total_teachers': total_teachers,
+        'total_subjects': total_subjects,
+    }
+    return render(request, 'adminservices/timetable_list.html', context)
+
+
+@login_required(login_url='account:login')
+def add_timetable(request):
+    """Add a new timetable entry for a class."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    school = request.user.managed_school
+    if request.method == "POST":
+        form = TimetableForm(request.POST, school=school)
+        if form.is_valid():
+            timetable = form.save()
+            messages.success(
+                request,
+                f"Schedule entry for {timetable.subject.name} ({timetable.student_class}) created successfully."
+            )
+            return redirect(f"{reverse('adminservices:timetable-list')}?class_id={timetable.student_class_id}")
+    else:
+        initial = {}
+        class_id = request.GET.get('class_id')
+        day = request.GET.get('day')
+        if class_id:
+            initial['student_class'] = class_id
+        if day:
+            initial['day_of_week'] = day
+        form = TimetableForm(school=school, initial=initial)
+
+    context = {
+        'form': form,
+        'title': "Create Class Timetable Schedule",
+        'button_text': "Save Schedule Entry",
+    }
+    return render(request, 'adminservices/add_timetable.html', context)
+
+
+@login_required(login_url='account:login')
+def edit_timetable(request, timetable_id):
+    """Edit an existing timetable entry."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    school = request.user.managed_school
+    timetable = get_object_or_404(Timetable, id=timetable_id, school=school)
+
+    if request.method == "POST":
+        form = TimetableForm(request.POST, instance=timetable, school=school)
+        if form.is_valid():
+            timetable = form.save()
+            messages.success(
+                request,
+                f"Schedule entry for {timetable.subject.name} ({timetable.student_class}) updated successfully."
+            )
+            return redirect(f"{reverse('adminservices:timetable-list')}?class_id={timetable.student_class_id}")
+    else:
+        form = TimetableForm(instance=timetable, school=school)
+
+    context = {
+        'form': form,
+        'timetable': timetable,
+        'title': "Edit Class Timetable Schedule",
+        'button_text': "Update Schedule Entry",
+    }
+    return render(request, 'adminservices/add_timetable.html', context)
+
+
+@login_required(login_url='account:login')
+def delete_timetable(request, timetable_id):
+    """Delete a timetable entry."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("account:login")
+
+    school = request.user.managed_school
+    timetable = get_object_or_404(Timetable, id=timetable_id, school=school)
+    class_id = timetable.student_class_id
+
+    if request.method == "POST":
+        timetable.delete()
+        messages.success(request, "Timetable entry deleted successfully.")
+        return redirect(f"{reverse('adminservices:timetable-list')}?class_id={class_id}")
+
+    return redirect('adminservices:timetable-list')
+
+
+@login_required(login_url='account:login')
+def school_settings(request):
+    """Manage school profile details, contact information, and institution logo."""
+    if request.user.role != "admin":
+        messages.error(request, "You are not authorized to view this page.")
+        return redirect("account:login")
+
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "No managed school found for this administrator account.")
+        return redirect("adminservices:admin-dashboard")
+
+    if request.method == "POST":
+        if "remove_logo" in request.POST:
+            if school.logo:
+                school.logo.delete(save=False)
+                school.logo = None
+                school.save(update_fields=['logo'])
+                for section in ("school_profile", "admin_dashboard", "teacher_portal", "student_portal"):
+                    bump_cache_version(school.id, section)
+                messages.success(request, "School logo has been removed successfully.")
+            return redirect("adminservices:school-settings")
+
+        form = SchoolSettingsForm(request.POST, request.FILES, instance=school)
+        if form.is_valid():
+            school = form.save()
+            for section in ("school_profile", "admin_dashboard", "teacher_portal", "student_portal"):
+                bump_cache_version(school.id, section)
+            messages.success(request, "School profile and logo updated successfully!")
+            return redirect("adminservices:school-settings")
+    else:
+        form = SchoolSettingsForm(instance=school)
+
+    context = {
+        'school': school,
+        'form': form,
+    }
+    return render(request, 'adminservices/school_settings.html', context)

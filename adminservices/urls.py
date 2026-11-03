@@ -14,6 +14,10 @@ urlpatterns = [
     path("list-department",views.list_departments,name="list-departments"),
     path("delete-department/<uuid:department_id>",views.delete_department,name="delete-department"),
     path("edit-department/<uuid:department_id>",views.edit_department, name="edit-department"),
+    path("add-class", views.add_class, name="add-class"),
+    path("list-classes", views.list_classes, name="list-classes"),
+    path("edit-class/<uuid:class_id>", views.edit_class, name="edit-class"),
+    path("delete-class/<uuid:class_id>", views.delete_class, name="delete-class"),
     path("delete-teacher/<uuid:teacher_id>",views.delete_teacher,name="delete-teacher"),
     path("edit-teacher/<uuid:teacher_id>",views.update_teacher, name="edit-teacher"),
     path("teacher-detail/<uuid:teacher_id>",views.teacher_detail, name="teacher-detail"),
@@ -33,7 +37,8 @@ urlpatterns = [
     path('add-subject/', views.add_subject, name='add-subject'),
     path('list-subjects/', views.list_subjects, name='list-subjects'),
     path('edit-subject/<uuid:subject_id>',views.edit_subject, name='edit-subject'),
-    path('subject-detial/<uuid:subject_id>',views.subject_detail, name='subject-detail'),
+    path('subject-detail/<uuid:subject_id>', views.subject_detail, name='subject-detail'),
+    path('subject-detial/<uuid:subject_id>', views.subject_detail),
     path('delete-subject/<uuid:subject_id>',views.delete_subject, name='delete-subject'),
     
     path('announcements/', views.list_announcements, name='announcement_list'),
@@ -41,10 +46,14 @@ urlpatterns = [
     path('announcements/<uuid:pk>/edit/', views.manage_announcement, name='announcement_edit'),
     path('delete-announcement/<uuid:announcement_id>/delete/',views.announcement_delete, name='delete-announcement'),
     
-    
-    
     path('fees/<uuid:fee_id>/print-receipt/', views.print_fee_receipt, name='print-fee-receipt'),
     path('fees/<uuid:fee_id>/download-receipt/', views.download_fee_receipt_pdf, name='download-fee-receipt'),
     path('students/<uuid:student_id>/print-admission/', views.print_admission_form, name='print-admission-form'),
     path('students/<uuid:student_id>/download-admission/', views.download_admission_form_pdf, name='download-admission-form'),
+
+    path('timetables/', views.timetable_list, name='timetable-list'),
+    path('timetables/add/', views.add_timetable, name='add-timetable'),
+    path('timetables/<uuid:timetable_id>/edit/', views.edit_timetable, name='edit-timetable'),
+    path('timetables/<uuid:timetable_id>/delete/', views.delete_timetable, name='delete-timetable'),
+    path('school-settings/', views.school_settings, name='school-settings'),
 ]

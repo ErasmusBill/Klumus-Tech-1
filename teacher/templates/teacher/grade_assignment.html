@@ -1,117 +1,408 @@
-<!-- teacher/grade_assignment.html -->
 {% extends 'teacher/base.html' %}
 {% load static %}
 
-{% block title %}Grade - {{ submission.student.user.get_full_name }}{% endblock %}
+{% block title %}Grade: {{ submission.student.user.get_full_name }} | Kiddo Care{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gr-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --gr-surface: #ffffff;
+    --gr-border: #e2e8f0;
+    --gr-border-light: #f1f5f9;
+    --gr-text: #0f172a;
+    --gr-text-muted: #64748b;
+    --gr-primary: #3b82f6;
+    --gr-primary-light: #eff6ff;
+    --gr-success: #10b981;
+    --gr-radius-lg: 16px;
+    --gr-radius-md: 12px;
+    --gr-radius-sm: 8px;
+    --gr-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+  }
+
+  .grading-page {
+    font-family: var(--gr-font);
+    color: var(--gr-text);
+  }
+
+  .gr-header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #38bdf8 100%);
+    border-radius: var(--gr-radius-lg);
+    padding: 1.75rem 2rem;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  }
+  .gr-header-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+  }
+  .gr-header-subtitle {
+    font-size: 0.92rem;
+    opacity: 0.92;
+    margin-bottom: 0;
+  }
+
+  .gr-card {
+    background: var(--gr-surface);
+    border: 1px solid var(--gr-border);
+    border-radius: var(--gr-radius-lg);
+    box-shadow: var(--gr-shadow-sm);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .gr-card-header {
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--gr-border);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--gr-text);
+  }
+  .gr-card-body {
+    padding: 1.5rem;
+  }
+
+  .gr-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    flex-shrink: 0;
+  }
+
+  .gr-preset-btn {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--gr-radius-sm);
+    background: #f1f5f9;
+    color: var(--gr-text);
+    border: 1px solid var(--gr-border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .gr-preset-btn:hover {
+    background: var(--gr-primary);
+    color: #ffffff;
+    border-color: var(--gr-primary);
+  }
+
+  .gr-comment-chip {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    cursor: pointer;
+    margin: 0.2rem;
+    transition: all 0.15s ease;
+  }
+  .gr-comment-chip:hover {
+    background: #dbeafe;
+    transform: translateY(-1px);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-    <div class="content container-fluid">
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h3 class="page-title">Grade Assignment</h3>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'teacher:assignment-list' %}">Assignments</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}">Submissions</a></li>
-                        <li class="breadcrumb-item active">Grade</li>
-                    </ul>
-                </div>
-            </div>
+<div class="grading-page">
+
+  <!-- ==================== HEADER ==================== -->
+  <div class="gr-header-card">
+    <div class="row align-items-center">
+      <div class="col-lg-8 mb-2 mb-lg-0">
+        <h1 class="gr-header-title">
+          <i class="fas fa-check-circle me-2"></i> Grade Student Submission
+        </h1>
+        <p class="gr-header-subtitle">
+          Assignment: <strong>{{ submission.assignment.title }}</strong> &bull; Class: <strong>{{ submission.assignment.get_student_class_display }}</strong>
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <div class="d-flex align-items-center justify-content-lg-end gap-2">
+          {% if next_submission %}
+            <a href="{% url 'teacher:grade-assignment' next_submission.id %}" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
+              <i class="fas fa-forward me-1"></i> Next Student
+            </a>
+          {% endif %}
+          <a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}" class="btn btn-light btn-sm fw-bold shadow-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Submissions
+          </a>
         </div>
-
-        <div class="row">
-            <div class="col-md-8 offset-md-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Grade: {{ submission.assignment.title }}</h4>
-                        <p class="text-muted mb-0">
-                            Student: <strong>{{ submission.student.user.get_full_name }}</strong> |
-                            Class: {{ submission.assignment.get_student_class_display }}
-                        </p>
-                    </div>
-                    <div class="card-body">
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                            {% endfor %}
-                        {% endif %}
-
-                        <!-- Submission Details -->
-                        <div class="mb-4">
-                            <h5>Submission Details</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Submitted:</strong> {{ submission.submission_date|date:"M d, Y H:i" }}</p>
-                                    <p><strong>Status:</strong> 
-                                        <span class="badge bg-{% if submission.status == 'graded' %}success{% else %}warning{% endif %}">
-                                            {{ submission.get_status_display }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Total Marks:</strong> {{ submission.assignment.total_marks }}</p>
-                                    {% if submission.marks_obtained %}
-                                        <p><strong>Current Marks:</strong> {{ submission.marks_obtained }}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Submitted Files -->
-                        {% if submission.submission_file %}
-                        <div class="mb-4">
-                            <h5>Submitted File</h5>
-                            <a href="{% url 'teacher:download-submission' submission.id %}" class="btn btn-outline-primary">
-                                <i class="fas fa-download"></i> Download Submission File
-                            </a>
-                        </div>
-                        {% endif %}
-
-                        {% if submission.submission_text %}
-                        <div class="mb-4">
-                            <h5>Text Response</h5>
-                            <div class="bg-light p-3 rounded">
-                                {{ submission.submission_text|linebreaks }}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Grading Form -->
-                        <form method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="marks_obtained" class="form-label">Marks Obtained (0 - {{ submission.assignment.total_marks }})</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       id="marks_obtained" 
-                                       name="marks_obtained" 
-                                       value="{{ submission.marks_obtained|default:0 }}"
-                                       min="0" 
-                                       max="{{ submission.assignment.total_marks }}" 
-                                       step="0.1"
-                                       required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="feedback" class="form-label">Feedback</label>
-                                <textarea class="form-control" 
-                                          id="feedback" 
-                                          name="feedback" 
-                                          rows="5" 
-                                          placeholder="Provide feedback to the student...">{{ submission.feedback|default:'' }}</textarea>
-                            </div>
-                            
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}" class="btn btn-secondary me-2">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Save Grade</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="fas fa-info-circle me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <!-- Left Column: Student Submission & Context -->
+    <div class="col-lg-7">
+
+      <!-- Student Profile Card -->
+      <div class="gr-card">
+        <div class="gr-card-body">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="gr-avatar shadow-sm">
+                {{ submission.student.user.initials }}
+              </div>
+              <div>
+                <h4 class="fw-extrabold text-dark mb-0">{{ submission.student.user.get_full_name }}</h4>
+                <div class="text-muted small">
+                  <span><i class="fas fa-id-badge me-1"></i> {{ submission.student.student_id }}</span>
+                  <span class="mx-2">&bull;</span>
+                  <span><i class="fas fa-school me-1"></i> {{ submission.assignment.get_student_class_display }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-end">
+              {% if submission.status == 'late' %}
+                <span class="badge bg-danger py-2 px-3 fw-bold">
+                  <i class="fas fa-exclamation-triangle me-1"></i> Submitted Late
+                </span>
+              {% elif submission.status == 'graded' %}
+                <span class="badge bg-success py-2 px-3 fw-bold">
+                  <i class="fas fa-check-double me-1"></i> Graded
+                </span>
+              {% else %}
+                <span class="badge bg-info py-2 px-3 fw-bold">
+                  <i class="fas fa-check me-1"></i> Submitted on Time
+                </span>
+              {% endif %}
+              <div class="small text-muted mt-1">
+                {{ submission.submission_date|date:"M d, Y &bull; H:i" }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submitted Work -->
+      <div class="gr-card">
+        <div class="gr-card-header">
+          <span><i class="fas fa-folder-open text-primary me-2"></i> Submitted Work</span>
+          <span class="small text-muted">Review materials below</span>
+        </div>
+        <div class="gr-card-body">
+          {% if submission.submission_file %}
+            <div class="p-3 rounded-4 bg-light border d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-3">
+                  <i class="fas fa-file-pdf fa-2x"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark">Submission File Attached</div>
+                  <small class="text-muted">Click to download and review</small>
+                </div>
+              </div>
+              <a href="{% url 'teacher:download-submission' submission.id %}" class="btn btn-primary btn-sm fw-bold">
+                <i class="fas fa-download me-1"></i> Download File
+              </a>
+            </div>
+          {% endif %}
+
+          {% if submission.submission_text %}
+            <div class="mb-0">
+              <label class="form-label small fw-bold text-muted text-uppercase mb-2">Student Response / Comments:</label>
+              <div class="p-3 rounded-4 bg-light border text-dark" style="white-space: pre-wrap; line-height: 1.6;">
+                {{ submission.submission_text }}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if not submission.submission_file and not submission.submission_text %}
+            <div class="text-center py-4 text-muted">
+              <i class="fas fa-file-excel fa-2x mb-2 text-muted"></i>
+              <p class="mb-0">No file or text response was attached to this submission.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assignment Reference Brief -->
+      <div class="gr-card">
+        <div class="gr-card-header">
+          <span><i class="fas fa-info-circle text-muted me-2"></i> Assignment Reference</span>
+          <span class="badge bg-light text-dark border">{{ submission.assignment.subject.name }}</span>
+        </div>
+        <div class="gr-card-body small">
+          <h6 class="fw-bold text-dark mb-1">{{ submission.assignment.title }}</h6>
+          <p class="text-muted mb-2">{{ submission.assignment.description }}</p>
+          {% if submission.assignment.instructions %}
+            <div class="p-2 bg-light rounded text-muted">
+              <strong>Instructions:</strong> {{ submission.assignment.instructions }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Grading Console -->
+    <div class="col-lg-5">
+      <div class="gr-card" style="position: sticky; top: 20px;">
+        <div class="gr-card-header">
+          <span><i class="fas fa-pencil-ruler text-success me-2"></i> Evaluation & Scoring</span>
+          <span class="badge bg-primary fs-6">{{ submission.assignment.total_marks }} Max Points</span>
+        </div>
+        <div class="gr-card-body">
+          <form method="post" id="gradeForm">
+            {% csrf_token %}
+
+            <!-- Marks Input -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="marks_obtained" class="form-label fw-bold mb-0">Marks Awarded:</label>
+                <span id="scorePercentageBadge" class="badge bg-light text-primary border">0%</span>
+              </div>
+              <div class="input-group input-group-lg">
+                <input type="number" 
+                       class="form-control fw-extrabold text-center fs-3" 
+                       id="marks_obtained" 
+                       name="marks_obtained" 
+                       value="{{ submission.marks_obtained|default:'' }}"
+                       min="0" 
+                       max="{{ submission.assignment.total_marks }}" 
+                       step="0.5"
+                       placeholder="0.0"
+                       required
+                       oninput="calculatePercentage(this.value)">
+                <span class="input-group-text bg-light text-muted fw-bold">/ {{ submission.assignment.total_marks }}</span>
+              </div>
+            </div>
+
+            <!-- Quick Score Presets -->
+            <div class="mb-3">
+              <label class="form-label small text-muted text-uppercase fw-bold mb-1">Quick Presets:</label>
+              <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="gr-preset-btn" onclick="setPresetScore(1.0)">100%</button>
+                <button type="button" class="gr-preset-btn" onclick="setPresetScore(0.9)">90%</button>
+                <button type="button" class="gr-preset-btn" onclick="setPresetScore(0.8)">80%</button>
+                <button type="button" class="gr-preset-btn" onclick="setPresetScore(0.7)">70%</button>
+                <button type="button" class="gr-preset-btn" onclick="setPresetScore(0.5)">50%</button>
+              </div>
+            </div>
+
+            <!-- Feedback -->
+            <div class="mb-3">
+              <label for="feedback" class="form-label fw-bold">Teacher Feedback & Comments:</label>
+              <textarea class="form-control" 
+                        id="feedback" 
+                        name="feedback" 
+                        rows="4" 
+                        placeholder="Provide constructive feedback for the student...">{{ submission.feedback|default:'' }}</textarea>
+            </div>
+
+            <!-- Quick Feedback Snippets -->
+            <div class="mb-4">
+              <label class="form-label small text-muted text-uppercase fw-bold mb-1">Feedback Snippets:</label>
+              <div>
+                <span class="gr-comment-chip" onclick="appendComment('Excellent work! Outstanding presentation and accurate answers.')">+ Excellent</span>
+                <span class="gr-comment-chip" onclick="appendComment('Good effort overall. Remember to double-check your calculations.')">+ Good Effort</span>
+                <span class="gr-comment-chip" onclick="appendComment('Needs revision on key steps. Please review the rubric.')">+ Needs Revision</span>
+                <span class="gr-comment-chip" onclick="appendComment('Well-structured response, clear explanations.')">+ Clear response</span>
+              </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm" id="saveGradeBtn">
+                <i class="fas fa-check-circle me-1"></i> Save Grade & Send Feedback
+              </button>
+              <a href="{% url 'teacher:assignment-submissions' submission.assignment.id %}" class="btn btn-outline-secondary btn-sm">
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+const maxMarks = parseFloat("{{ submission.assignment.total_marks }}") || 100;
+
+function calculatePercentage(val) {
+  const num = parseFloat(val);
+  const badge = document.getElementById('scorePercentageBadge');
+  if (isNaN(num) || num < 0) {
+    badge.textContent = '0%';
+    badge.className = 'badge bg-light text-muted border';
+    return;
+  }
+  const pct = Math.min(100, Math.round((num / maxMarks) * 100));
+  badge.textContent = `${pct}%`;
+
+  if (pct >= 80) {
+    badge.className = 'badge bg-success py-1 px-2';
+  } else if (pct >= 60) {
+    badge.className = 'badge bg-primary py-1 px-2';
+  } else if (pct >= 50) {
+    badge.className = 'badge bg-warning text-dark py-1 px-2';
+  } else {
+    badge.className = 'badge bg-danger py-1 px-2';
+  }
+}
+
+function setPresetScore(fraction) {
+  const input = document.getElementById('marks_obtained');
+  const score = Math.round(maxMarks * fraction * 10) / 10;
+  input.value = score;
+  calculatePercentage(score);
+}
+
+function appendComment(text) {
+  const fb = document.getElementById('feedback');
+  if (fb.value.trim()) {
+    fb.value = fb.value.trim() + " " + text;
+  } else {
+    fb.value = text;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const initialMarks = document.getElementById('marks_obtained').value;
+  if (initialMarks) {
+    calculatePercentage(initialMarks);
+  }
+
+  const form = document.getElementById('gradeForm');
+  if (form) {
+    form.addEventListener('submit', () => {
+      const btn = document.getElementById('saveGradeBtn');
+      if (btn) {
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving...`;
+        btn.disabled = true;
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

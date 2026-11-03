@@ -1,91 +1,437 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
-{% block title %}Students in {{ current_class_display }} - Promotion Management{% endblock %}
+{% block title %}{{ current_class_display }} - Promotion Management{% endblock %}
+
+{% block extra_css %}
+<style>
+  .class-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+  }
+
+  .stat-card {
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .filter-panel {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  }
+
+  .table-students {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table-students thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .table-students tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  .table-students tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .table-students td {
+    padding: 13px 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .action-btn-pill {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+
+  @media print {
+    .sidebar, .header, .page-header, .filter-panel, .stat-row, .btn-no-print, .action-cell, .breadcrumb {
+      display: none !important;
+    }
+    .card, .table-responsive {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    body {
+      background: #ffffff !important;
+      font-size: 11pt;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h3 class="page-title">Students in {{ current_class_display }}</h3>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
-                <li class="breadcrumb-item active">{{ current_class_display }}</li>
-            </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-            {% if not is_final_class %}
-            <a href="{% url 'teacher:bulk-promote' current_class %}" class="btn btn-primary">
-                <i class="fas fa-users"></i> Bulk Promote All
-            </a>
-            {% endif %}
-        </div>
+<!-- Page Header Navigation -->
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <ul class="breadcrumb mb-1 bg-transparent p-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+        <li class="breadcrumb-item active">{{ current_class_display }}</li>
+      </ul>
+      <h3 class="page-title mb-0 font-weight-bold">Class Promotion Roster</h3>
     </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <a href="{% url 'teacher:promotion-dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm">
+        <i class="fas fa-arrow-left mr-1"></i> Promotion Hub
+      </a>
+      {% if not is_final_class %}
+        <a href="{% url 'teacher:bulk-promote' current_class %}" class="btn btn-success btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm font-weight-bold text-white">
+          <i class="fas fa-users mr-1"></i> Bulk Promote All
+        </a>
+      {% endif %}
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm" onclick="window.print()">
+        <i class="fas fa-print mr-1"></i> Print Roster
+      </button>
+      <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 btn-no-print shadow-sm" id="btnExportCSV">
+        <i class="fas fa-file-excel mr-1"></i> Export CSV
+      </button>
+    </div>
+  </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">
-                    {{ students.count }} Students in {{ current_class_display }}
-                    {% if next_class_name %}
-                    <small class="text-muted">→ Next: {{ next_class_name }}</small>
-                    {% endif %}
-                </h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-center mb-0">
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Admission Number</th>
-                                <th>Promotion Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student in students %}
-                            <tr>
-                                <td>{{ student.student_id }}</td>
-                                <td>
-                                    <h6 class="mb-0">{{ student.user.get_full_name }}</h6>
-                                    <small class="text-muted">{{ student.user.email }}</small>
-                                </td>
-                                <td>{{ student.admission_number }}</td>
-                                <td>
-                                    <span class="badge badge-{% if student.promotion_status == 'promoted' %}success{% elif student.promotion_status == 'retained' %}warning{% elif student.promotion_status == 'graduated' %}info{% else %}secondary{% endif %}">
-                                        {{ student.get_promotion_status_display }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="actions">
-                                        <a href="{% url 'teacher:individual-promotion' student.id %}" 
-                                           class="btn btn-sm btn-outline-primary" title="Manage Promotion">
-                                            <i class="fas fa-user-edit"></i> Promote
-                                        </a>
-                                        <a href="{% url 'teacher:view-result' student.id %}" 
-                                           class="btn btn-sm btn-outline-info" title="View Results">
-                                            <i class="fas fa-chart-line"></i> Results
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">
-                                    <i class="fas fa-info-circle"></i> No students found in this class.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
+      <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
     </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Class Hero Banner -->
+<div class="class-hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge badge-warning px-3 py-1 font-weight-bold mr-2" style="background-color: #f59e0b; color: #78350f; font-size: 0.8rem;">
+          <i class="fas fa-chalkboard mr-1"></i> Current Class: {{ current_class_display }}
+        </span>
+        <span class="badge badge-light px-3 py-1 font-weight-bold mr-2 text-dark" style="font-size: 0.8rem;">
+          <i class="fas fa-arrow-right mr-1 text-primary"></i> Target: {{ next_class_name }}
+        </span>
+        <span class="text-white-50 small">
+          <i class="fas fa-users mr-1"></i> {{ total_in_class }} Students in Roster
+        </span>
+      </div>
+      <h2 class="font-weight-bold text-white mb-1" style="font-size: 1.85rem; letter-spacing: -0.02em;">
+        {{ current_class_display }} Promotion Console
+      </h2>
+      <p class="text-white-50 mb-0 small">
+        Review individual academic standing, verify prerequisites, and authorize promotions to <strong class="text-white">{{ next_class_name }}</strong>.
+      </p>
+    </div>
+    <div class="col-lg-4 text-lg-right mt-3 mt-lg-0 btn-no-print">
+      {% if not is_final_class %}
+        <a href="{% url 'teacher:bulk-promote' current_class %}" class="btn btn-warning font-weight-bold px-4 py-2 rounded-pill shadow-sm" style="color: #78350f; background: #fbbf24; border: none;">
+          <i class="fas fa-users mr-1"></i> Launch Bulk Promotion
+        </a>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
+<!-- KPI Cards -->
+<div class="row mb-4 stat-row">
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #eff6ff; color: #1d4ed8;">
+          <i class="fas fa-user-graduate"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Total in Class</span>
+          <h3 class="mb-0 font-weight-bold text-dark">{{ total_in_class }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #f0fdf4; color: #166534;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Promoted</span>
+          <h3 class="mb-0 font-weight-bold text-success">{{ promoted_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #fef3c7; color: #92400e;">
+          <i class="fas fa-pause-circle"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Pending Review</span>
+          <h3 class="mb-0 font-weight-bold text-warning">{{ pending_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #fef2f2; color: #991b1b;">
+          <i class="fas fa-redo"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Retained</span>
+          <h3 class="mb-0 font-weight-bold text-danger">{{ retained_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Table & Filter Card -->
+<div class="card filter-panel mb-4 overflow-hidden border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom py-3 px-4">
+    <div class="row align-items-center">
+      <div class="col-md-6 mb-2 mb-md-0">
+        <h5 class="mb-0 font-weight-bold text-dark d-flex align-items-center">
+          <i class="fas fa-list mr-2 text-primary"></i> Class Student Roster
+          <span class="badge badge-pill badge-primary ml-2 px-2 py-1" style="font-size: 0.75rem;">{{ total_in_class }} Students</span>
+        </h5>
+      </div>
+      <div class="col-md-6 d-flex justify-content-md-end align-items-center">
+        <div class="input-group input-group-sm" style="max-width: 300px;">
+          <div class="input-group-prepend">
+            <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+          </div>
+          <input type="text" id="filterInput" class="form-control bg-light border-left-0" placeholder="Filter by student name or ID...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-students mb-0" id="classRosterTable">
+      <thead>
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th style="min-width: 240px;">Student Name</th>
+          <th style="min-width: 130px;">Student ID</th>
+          <th style="min-width: 130px;">Admission No.</th>
+          <th class="text-center" style="min-width: 130px;">Academic Avg</th>
+          <th class="text-center" style="min-width: 140px;">Promotion Status</th>
+          <th class="text-right action-cell btn-no-print" style="min-width: 200px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr class="student-item" data-search="{{ student.user.get_full_name|lower }} {{ student.student_id|lower }} {{ student.admission_number|lower }}">
+          <td class="text-muted font-weight-bold">{{ forloop.counter }}</td>
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="avatar avatar-sm mr-2 flex-shrink-0">
+                {% if student.user.profile_picture %}
+                  <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                {% elif student.student_image %}
+                  <img class="avatar-img rounded-circle" src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                {% else %}
+                  <span class="avatar-title rounded-circle font-weight-bold" style="width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background-color: #eff6ff; color: #1d4ed8;">
+                    {{ student.user.initials }}
+                  </span>
+                {% endif %}
+              </div>
+              <div>
+                <a href="{% url 'teacher:individual-promotion' student.id %}" class="font-weight-bold text-dark text-decoration-none">
+                  {{ student.user.get_full_name }}
+                </a>
+                <div class="small text-muted">{{ student.user.email|default:"No email listed" }}</div>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <span class="badge badge-light border text-dark font-weight-semibold px-2 py-1">
+              {{ student.student_id|default:"-" }}
+            </span>
+          </td>
+
+          <td>
+            <span class="small font-weight-bold text-muted">{{ student.admission_number|default:"-" }}</span>
+          </td>
+
+          <td class="text-center">
+            {% if student.academic_avg is not None %}
+              <span class="badge px-2 py-1 font-weight-bold {% if student.academic_avg >= 70 %}badge-success{% elif student.academic_avg >= 50 %}badge-primary{% else %}badge-danger{% endif %}" style="font-size: 0.8rem;">
+                {{ student.academic_avg }}%
+              </span>
+            {% else %}
+              <span class="text-muted small">No Grades</span>
+            {% endif %}
+          </td>
+
+          <td class="text-center">
+            {% if student.promotion_status == 'promoted' %}
+              <span class="badge badge-success px-3 py-1 font-weight-semibold" style="font-size: 0.78rem;">
+                <i class="fas fa-check mr-1"></i> Promoted
+              </span>
+            {% elif student.promotion_status == 'retained' %}
+              <span class="badge badge-warning px-3 py-1 font-weight-semibold" style="font-size: 0.78rem;">
+                <i class="fas fa-redo mr-1"></i> Retained
+              </span>
+            {% elif student.promotion_status == 'graduated' %}
+              <span class="badge badge-info px-3 py-1 font-weight-semibold" style="font-size: 0.78rem;">
+                <i class="fas fa-graduation-cap mr-1"></i> Graduated
+              </span>
+            {% else %}
+              <span class="badge badge-light border text-muted px-3 py-1" style="font-size: 0.78rem;">
+                <i class="fas fa-hourglass-half mr-1"></i> Pending
+              </span>
+            {% endif %}
+          </td>
+
+          <td class="text-right action-cell btn-no-print">
+            <div class="d-inline-flex align-items-center gap-1">
+              <a href="{% url 'teacher:individual-promotion' student.id %}" class="btn btn-sm btn-primary action-btn-pill shadow-xs font-weight-bold" title="Manage or edit promotion decision">
+                <i class="fas fa-user-edit"></i> Promote / Edit
+              </a>
+              <a href="{% url 'teacher:view-result' student.id %}" class="btn btn-sm btn-outline-secondary action-btn-pill shadow-xs" title="View Academic Report">
+                <i class="fas fa-file-invoice"></i> Report
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="fas fa-user-graduate fa-3x mb-3 opacity-50"></i>
+            <h5>No Students in {{ current_class_display }}</h5>
+            <p class="small text-muted mb-0">No active students are currently enrolled in this class.</p>
+          </td>
+        </tr>
+        {% endfor %}
+        <tr id="noResultsMatchRow" style="display: none;">
+          <td colspan="7" class="text-center py-4 text-muted">
+            <i class="fas fa-search mr-2"></i> No students match your search filter.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filterInput = document.getElementById('filterInput');
+  const rows = document.querySelectorAll('.student-item');
+  const noMatchRow = document.getElementById('noResultsMatchRow');
+
+  if (filterInput && rows.length > 0) {
+    filterInput.addEventListener('input', function() {
+      const q = this.value.toLowerCase().trim();
+      let matchCount = 0;
+
+      rows.forEach(row => {
+        const searchText = row.getAttribute('data-search') || '';
+        if (!q || searchText.includes(q)) {
+          row.style.display = '';
+          matchCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (noMatchRow) {
+        noMatchRow.style.display = (matchCount === 0 && q.length > 0) ? '' : 'none';
+      }
+    });
+  }
+
+  // Client-side CSV Export
+  const exportBtn = document.getElementById('btnExportCSV');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      const table = document.getElementById('classRosterTable');
+      if (!table) return;
+
+      const rowsData = [];
+      const headers = ['#', 'Student Name', 'Student ID', 'Admission No', 'Academic Avg', 'Promotion Status'];
+      rowsData.push(headers.map(h => `"${h}"`).join(','));
+
+      const tbodyRows = table.querySelectorAll('tbody tr.student-item');
+      tbodyRows.forEach((tr, idx) => {
+        if (tr.style.display === 'none') return;
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 6) return;
+
+        const num = idx + 1;
+        const name = cells[1].querySelector('a') ? cells[1].querySelector('a').innerText.trim() : '';
+        const studentId = cells[2].innerText.trim();
+        const adm = cells[3].innerText.trim();
+        const avg = cells[4].innerText.trim();
+        const status = cells[5].innerText.trim();
+
+        const row = [num, name, studentId, adm, avg, status];
+        rowsData.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+      });
+
+      if (rowsData.length <= 1) {
+        alert('No students to export.');
+        return;
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + rowsData.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `promotion_roster_{{ current_class|slugify }}_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+});
+</script>
 {% endblock %}

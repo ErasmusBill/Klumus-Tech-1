@@ -128,6 +128,35 @@
                 <h5 class="fw-bold text-danger mb-1">{{ object.get_fee_type_display }}</h5>
                 <span class="text-muted small">Assigned to {{ object.student.user.get_full_name }}</span>
                 <div class="mt-2 fw-bold text-dark">₵ {{ object.amount_required }}</div>
+            {% elif school_class %}
+                <h5 class="fw-bold text-danger mb-1">{{ school_class.name }}</h5>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-1 rounded-pill mb-3 d-inline-block">
+                    Class / Grade Level
+                </span>
+                <div class="text-left text-start small border-top pt-2">
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Class Code:</span>
+                        <code>{{ school_class.code|default:"-" }}</code>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Progression Order:</span>
+                        <strong>#{{ school_class.order }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Assigned Students:</span>
+                        <strong class="{% if student_count > 0 %}text-danger font-weight-bold{% else %}text-success{% endif %}">{{ student_count }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Assigned Subjects:</span>
+                        <strong class="{% if subject_count > 0 %}text-danger font-weight-bold{% else %}text-success{% endif %}">{{ subject_count }}</strong>
+                    </div>
+                </div>
+                {% if not can_delete %}
+                <div class="alert alert-warning text-left text-start mt-3 mb-0 py-2 small">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Cannot delete this class while it has active students or subjects in your school. Please reassign or remove them first.
+                </div>
+                {% endif %}
             {% else %}
                 <h5 class="fw-bold text-danger mb-0">{{ object }}</h5>
             {% endif %}
@@ -135,10 +164,12 @@
 
         <form method="post" class="btn-group-vertical">
             {% csrf_token %}
+            {% if can_delete is None or can_delete %}
             <button type="submit" class="btn-danger-confirm">
                 Yes, Delete Permanently
             </button>
-            <a href="javascript:history.back()" class="btn-go-back">
+            {% endif %}
+            <a href="{% url 'adminservices:list-classes' %}" class="btn-go-back">
                 Cancel, Keep Record
             </a>
         </form>

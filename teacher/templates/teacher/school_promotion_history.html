@@ -1,95 +1,233 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
 
-{% block title %}Promotion History - {{ school.name }}{% endblock %}
+{% block title %}School Promotion History - {{ school.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .history-card {
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  }
+
+  .table-history {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table-history thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .table-history tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  .table-history tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .table-history td {
+    padding: 13px 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  @media print {
+    .sidebar, .header, .page-header, .filter-box, .btn-no-print, .breadcrumb {
+      display: none !important;
+    }
+    .card, .table-responsive {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    body {
+      background: #ffffff !important;
+      font-size: 11pt;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h3 class="page-title">Promotion History</h3>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
-                <li class="breadcrumb-item active">Promotion History</li>
-            </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-            <a href="{% url 'teacher:promotion-dashboard' %}" class="btn btn-primary">
-                <i class="fas fa-arrow-left"></i> Back to Dashboard
-            </a>
-        </div>
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <ul class="breadcrumb mb-1 bg-transparent p-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+        <li class="breadcrumb-item active">Audit History</li>
+      </ul>
+      <h3 class="page-title mb-0 font-weight-bold">School Promotion Audit Trail</h3>
     </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <a href="{% url 'teacher:promotion-dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 shadow-sm btn-no-print">
+        <i class="fas fa-arrow-left mr-1"></i> Promotion Hub
+      </a>
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 shadow-sm btn-no-print" onclick="window.print()">
+        <i class="fas fa-print mr-1"></i> Print
+      </button>
+      <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm btn-no-print" id="btnExportCSV">
+        <i class="fas fa-file-excel mr-1"></i> Export CSV
+      </button>
+    </div>
+  </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">All Promotion Records</h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-center mb-0">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Student</th>
-                                <th>From Class</th>
-                                <th>To Class</th>
-                                <th>Academic Year</th>
-                                <th>Processed By</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for promotion in promotions %}
-                            <tr>
-                                <td>{{ promotion.promotion_date|date:"M d, Y" }}</td>
-                                <td>
-                                    <h6 class="mb-0">
-                                        <a href="{% url 'teacher:student-promotion-history' promotion.student.id %}">
-                                            {{ promotion.student.user.get_full_name }}
-                                        </a>
-                                    </h6>
-                                    <small class="text-muted">{{ promotion.student.student_id }}</small>
-                                </td>
-                                <td>{{ promotion.get_from_class_display }}</td>
-                                <td>
-                                    {% if promotion.to_class %}
-                                        {{ promotion.get_to_class_display }}
-                                    {% else %}
-                                        <span class="text-success">Graduated</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ promotion.academic_year }}</td>
-                                <td>
-                                    {% if promotion.promoted_by %}
-                                        {{ promotion.promoted_by.get_full_name }}
-                                    {% else %}
-                                        <span class="text-muted">System</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if promotion.remarks %}
-                                        <small class="text-muted">{{ promotion.remarks|truncatewords:10 }}</small>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center text-muted">
-                                    <i class="fas fa-info-circle"></i> No promotion records found.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="card history-card mb-4 overflow-hidden">
+  <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap">
+    <div class="d-flex align-items-center mb-2 mb-sm-0">
+      <h5 class="mb-0 font-weight-bold text-dark d-flex align-items-center">
+        <i class="fas fa-clipboard-list text-primary mr-2"></i> Permanent Promotion Log
+        <span class="badge badge-pill badge-primary ml-2 px-2 py-1" style="font-size: 0.75rem;">{{ promotions.count }} Records</span>
+      </h5>
     </div>
+    <div class="filter-box">
+      <div class="input-group input-group-sm" style="max-width: 280px;">
+        <div class="input-group-prepend">
+          <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+        </div>
+        <input type="text" id="filterInput" class="form-control bg-light border-left-0" placeholder="Filter by student name...">
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-history mb-0" id="historyTable">
+      <thead>
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th style="min-width: 200px;">Student</th>
+          <th style="min-width: 140px;">Effective Date</th>
+          <th style="min-width: 220px;">Progression Transition</th>
+          <th style="min-width: 120px;">Session</th>
+          <th style="min-width: 160px;">Authorized By</th>
+          <th style="min-width: 200px;">Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for promo in promotions %}
+        <tr class="history-row" data-search="{{ promo.student.user.get_full_name|lower }} {{ promo.student.student_id|lower }} {{ promo.academic_year|lower }}">
+          <td class="text-muted font-weight-bold">{{ forloop.counter }}</td>
+          <td>
+            <div class="font-weight-bold text-dark">
+              <a href="{% url 'teacher:student-promotion-history' promo.student.id %}" class="text-dark text-decoration-none">
+                {{ promo.student.user.get_full_name }}
+              </a>
+            </div>
+            <small class="text-muted">ID: {{ promo.student.student_id|default:promo.student.admission_number|default:"-" }}</small>
+          </td>
+
+          <td>
+            <span class="small font-weight-semibold text-dark">{{ promo.promotion_date|date:"M d, Y" }}</span>
+          </td>
+
+          <td>
+            {% if promo.to_class %}
+              <span class="badge badge-light border text-dark px-2 py-1 font-weight-bold">
+                {{ promo.get_from_class_display }} <i class="fas fa-arrow-right mx-1 text-primary"></i> {{ promo.get_to_class_display }}
+              </span>
+            {% else %}
+              <span class="badge badge-purple px-2 py-1" style="background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff;">
+                Graduated from {{ promo.get_from_class_display }}
+              </span>
+            {% endif %}
+          </td>
+
+          <td>
+            <span class="small font-weight-bold text-dark">{{ promo.academic_year }}</span>
+          </td>
+
+          <td>
+            <div class="small font-weight-semibold text-dark">{{ promo.promoted_by.get_full_name|default:"Administrator" }}</div>
+            <small class="text-muted">{{ promo.promoted_by.email|default:"" }}</small>
+          </td>
+
+          <td>
+            <small class="text-muted">{{ promo.remarks|default:"Standard progression" }}</small>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="fas fa-history fa-3x mb-3 opacity-50"></i>
+            <h5>No Promotion Records Found</h5>
+            <p class="small text-muted mb-0">No promotion milestones have been recorded yet.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filterInput = document.getElementById('filterInput');
+  const rows = document.querySelectorAll('.history-row');
+
+  if (filterInput && rows.length > 0) {
+    filterInput.addEventListener('input', function() {
+      const q = this.value.toLowerCase().trim();
+      rows.forEach(row => {
+        const text = row.getAttribute('data-search') || '';
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  const exportBtn = document.getElementById('btnExportCSV');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      const table = document.getElementById('historyTable');
+      if (!table) return;
+
+      const rowsData = [];
+      const headers = ['#', 'Student Name', 'Student ID', 'Date', 'Progression', 'Session', 'Authorized By', 'Remarks'];
+      rowsData.push(headers.map(h => `"${h}"`).join(','));
+
+      const tbodyRows = table.querySelectorAll('tbody tr.history-row');
+      tbodyRows.forEach((tr, idx) => {
+        if (tr.style.display === 'none') return;
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 7) return;
+
+        const num = idx + 1;
+        const name = cells[1].querySelector('.font-weight-bold') ? cells[1].querySelector('.font-weight-bold').innerText.trim() : '';
+        const id = cells[1].querySelector('small') ? cells[1].querySelector('small').innerText.replace('ID:', '').trim() : '';
+        const date = cells[2].innerText.trim();
+        const prog = cells[3].innerText.trim();
+        const year = cells[4].innerText.trim();
+        const by = cells[5].querySelector('.font-weight-semibold') ? cells[5].querySelector('.font-weight-semibold').innerText.trim() : '';
+        const remarks = cells[6].innerText.trim();
+
+        const row = [num, name, id, date, prog, year, by, remarks];
+        rowsData.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+      });
+
+      if (rowsData.length <= 1) {
+        alert('No data to export.');
+        return;
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + rowsData.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `school_promotion_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+});
+</script>
 {% endblock %}

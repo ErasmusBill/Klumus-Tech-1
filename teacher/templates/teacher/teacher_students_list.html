@@ -1,207 +1,482 @@
 {% extends "teacher/base.html" %}
 {% load static media_tags %}
 
-{% block title %}{{ subject_name }} - Students{% endblock %}
+{% block title %}{{ subject.name }} - Class Roster{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'assets/plugins/datatables/datatables.min.css' %}">
 <style>
-  .table-avatar a {
-    color: #495057;
-    text-decoration: none;
+  .subject-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: #ffffff;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
   }
-  .table-avatar .avatar {
-    border-radius: 50%;
-    width: 31px;
-    height: 31px;
-    object-fit: cover;
+
+  .stat-card {
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .btn-sm i {
-    font-size: 12px;
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   }
-  .subject-badge {
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .filter-panel {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  }
+
+  .table-students {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table-students thead th {
+    background: #f8fafc;
+    color: #475569;
     font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
   }
-  .card-stat {
-    border-left: 4px solid #007bff;
+  .table-students tbody tr {
+    transition: background-color 0.15s ease;
   }
-  @media (max-width: 768px) {
-    .table-responsive {
-      font-size: 0.875rem;
+  .table-students tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .table-students td {
+    padding: 13px 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .contact-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    text-decoration: none !important;
+  }
+  .contact-badge:hover {
+    background: #dcfce7;
+    color: #14532d;
+  }
+
+  .action-btn-pill {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+
+  @media print {
+    .sidebar, .header, .page-header, .filter-panel, .stat-row, .btn-no-print, .action-cell, .breadcrumb {
+      display: none !important;
     }
-    .btn-group .btn {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
+    .card, .table-responsive {
+      border: none !important;
+      box-shadow: none !important;
     }
-    .card-header .btn {
-      margin-top: 10px;
+    body {
+      background: #ffffff !important;
+      font-size: 11pt;
+    }
+    .subject-hero {
+      background: none !important;
+      color: #000000 !important;
+      border: 1px solid #000000;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    .subject-hero h2, .subject-hero p, .subject-hero span {
+      color: #000000 !important;
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="teacher-page-shell">
-    
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="row align-items-center">
-        <div class="col">
-          <h3 class="page-title">{{ subject_name }}</h3>
-          <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-students' %}">Students</a></li>
-            <li class="breadcrumb-item active">{{ subject_name }}</li>
-          </ul>
+<!-- Page Header Navigation -->
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <ul class="breadcrumb mb-1 bg-transparent p-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:my-subjects' %}">My Subjects</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-students' %}">Students</a></li>
+        <li class="breadcrumb-item active">{{ subject.name }}</li>
+      </ul>
+      <h3 class="page-title mb-0 font-weight-bold">Class Roster</h3>
+    </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <a href="{% url 'teacher:teacher-students' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm">
+        <i class="fas fa-arrow-left mr-1"></i> All Students
+      </a>
+      <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" class="btn btn-primary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm font-weight-bold">
+        <i class="fas fa-clipboard-check mr-1"></i> Enter Grades
+      </a>
+      <a href="{% url 'teacher:list-result' %}?subject={{ subject.id }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm">
+        <i class="fas fa-chart-line mr-1"></i> View Results
+      </a>
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 btn-no-print shadow-sm" onclick="window.print()">
+        <i class="fas fa-print mr-1"></i> Print
+      </button>
+      <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 btn-no-print shadow-sm" id="btnExportCSV">
+        <i class="fas fa-file-excel mr-1"></i> Export CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
+      <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  {% endfor %}\n{% endif %}
+
+<!-- Subject Hero Banner -->
+<div class="subject-hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge badge-warning px-3 py-1 font-weight-bold mr-2" style="background-color: #f59e0b; color: #78350f; font-size: 0.8rem;">
+          <i class="fas fa-chalkboard mr-1"></i> {{ subject.get_subject_class_display|default:"Assigned Class" }}
+        </span>
+        <span class="badge badge-light px-3 py-1 font-weight-bold mr-2 text-dark" style="font-size: 0.8rem;">
+          <i class="fas fa-layer-group mr-1 text-primary"></i> {{ subject.department.name|default:"General Department" }}
+        </span>
+        <span class="text-white-50 small">
+          <i class="fas fa-user-graduate mr-1"></i> {{ total_students }} Enrolled Students
+        </span>
+      </div>
+      <h2 class="font-weight-bold text-white mb-1" style="font-size: 1.85rem; letter-spacing: -0.02em;">
+        {{ subject.name }}
+      </h2>
+      <p class="text-white-50 mb-0 small">
+        Subject Code: <strong class="text-white">{{ subject.subject_code|default:"-" }}</strong> &bull; Total Term Results Logged: <strong class="text-white">{{ results_count }}</strong>
+      </p>
+    </div>
+    <div class="col-lg-4 text-lg-right mt-3 mt-lg-0 btn-no-print">
+      <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" class="btn btn-warning font-weight-bold px-4 py-2 rounded-pill shadow-sm" style="color: #78350f; background: #fbbf24; border: none;">
+        <i class="fas fa-edit mr-1"></i> Launch Bulk Grading
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Summary Cards -->
+<div class="row mb-4 stat-row">
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #eff6ff; color: #1d4ed8;">
+          <i class="fas fa-user-graduate"></i>
         </div>
-        <div class="col-auto text-right float-right ml-auto">
-          <a href="{% url 'teacher:teacher-students' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Back to All Students
-          </a>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Enrolled Roster</span>
+          <h3 class="mb-0 font-weight-bold text-dark">{{ total_students }}</h3>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Messages -->
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #f0fdf4; color: #166534;">
+          <i class="fas fa-chart-pie"></i>
         </div>
-      {% endfor %}
-    {% endif %}
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Results Recorded</span>
+          <h3 class="mb-0 font-weight-bold text-dark">{{ results_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Summary Card -->
-    <div class="row mb-4">
-      <div class="col-xl-3 col-sm-6 col-12">
-        <div class="card card-stat">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="card-icon rounded-circle bg-primary">
-                <i class="fas fa-users"></i>
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #fef3c7; color: #92400e;">
+          <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Class Level</span>
+          <h4 class="mb-0 font-weight-bold text-dark" style="font-size: 1.15rem;">{{ subject.get_subject_class_display }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #f3e8ff; color: #7e22ce;">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Department</span>
+          <h4 class="mb-0 font-weight-bold text-dark text-truncate" style="font-size: 1.15rem; max-width: 140px;">{{ subject.department.name|default:"General" }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search & Table Card -->
+<div class="card filter-panel mb-4 overflow-hidden border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom py-3 px-4">
+    <div class="row align-items-center">
+      <div class="col-md-6 mb-2 mb-md-0">
+        <h5 class="mb-0 font-weight-bold text-dark d-flex align-items-center">
+          <i class="fas fa-list mr-2 text-primary"></i> Active Student Roster
+          <span class="badge badge-pill badge-primary ml-2 px-2 py-1" style="font-size: 0.75rem;">{{ total_students }}</span>
+        </h5>
+      </div>
+      <div class="col-md-6 d-flex justify-content-md-end align-items-center">
+        <div class="input-group input-group-sm" style="max-width: 320px;">
+          <div class="input-group-prepend">
+            <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+          </div>
+          <input type="text" id="filterInput" class="form-control bg-light border-left-0" placeholder="Filter by student name, ID or parent...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-students mb-0" id="rosterTable">
+      <thead>
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th style="min-width: 240px;">Student Name</th>
+          <th style="min-width: 130px;">Student ID</th>
+          <th style="min-width: 130px;">Admission No.</th>
+          <th style="min-width: 120px;">Class</th>
+          <th style="min-width: 200px;">Parent / Guardian</th>
+          <th style="min-width: 180px;">Student Contact</th>
+          <th class="text-right action-cell btn-no-print" style="min-width: 160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+          <tr class="student-item" data-search="{{ student.user.get_full_name|lower }} {{ student.student_id|lower }} {{ student.admission_number|lower }} {{ student.parent.parent_guardian_name|lower }} {{ student.parent.father_name|lower }} {{ student.parent.mother_name|lower }}">
+            <td class="text-muted font-weight-bold">{{ forloop.counter }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="avatar avatar-sm mr-2 flex-shrink-0">
+                  {% if student.user.profile_picture %}
+                    <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                  {% elif student.student_image %}
+                    <img class="avatar-img rounded-circle" src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                  {% else %}
+                    <span class="avatar-title rounded-circle font-weight-bold" style="width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background-color: #eff6ff; color: #1d4ed8;">
+                      {{ student.user.initials }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div>
+                  <a href="{% url 'teacher:view-result' student.id %}" class="font-weight-bold text-dark text-decoration-none">
+                    {{ student.user.get_full_name }}
+                  </a>
+                  <div class="small text-muted">{{ student.gender|title|default:"Student" }}</div>
+                </div>
               </div>
-              <div class="ml-3">
-                <h4>{{ total_students }}</h4>
-                <span>Students in {{ subject_name }}</span>
+            </td>
+            <td>
+              <span class="badge badge-light border text-dark font-weight-semibold px-2 py-1">
+                {{ student.student_id|default:"-" }}
+              </span>
+            </td>
+            <td>
+              <span class="small font-weight-bold text-muted">{{ student.admission_number|default:"-" }}</span>
+            </td>
+            <td>
+              <span class="badge badge-light border text-primary font-weight-bold px-2 py-1" style="font-size: 0.75rem;">
+                {{ student.get_student_class_display }}
+              </span>
+            </td>
+            <td>
+              {% if student.parent %}
+                <div class="font-weight-semibold text-dark small">
+                  {{ student.parent.parent_guardian_name|default:student.parent.father_name|default:student.parent.mother_name|default:"Parent on file" }}
+                </div>
+                {% if student.parent.parent_guardian_phone or student.parent.father_phone or student.parent.mother_phone %}
+                  {% with phone=student.parent.parent_guardian_phone|default:student.parent.father_phone|default:student.parent.mother_phone %}
+                    <a href="tel:{{ phone }}" class="contact-badge mt-1">
+                      <i class="fas fa-phone mr-1"></i> {{ phone }}
+                    </a>
+                  {% endwith %}
+                {% else %}
+                  <span class="text-muted small">No phone listed</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted small">Not provided</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if student.mobile_number %}
+                <div class="small mb-1">
+                  <a href="tel:{{ student.mobile_number }}" class="text-muted text-decoration-none">
+                    <i class="fas fa-mobile-alt mr-1 text-primary"></i> {{ student.mobile_number }}
+                  </a>
+                </div>
+              {% endif %}
+              {% if student.user.email %}
+                <div class="small text-truncate text-muted" style="max-width: 170px;" title="{{ student.user.email }}">
+                  <i class="fas fa-envelope mr-1 text-secondary"></i> {{ student.user.email }}
+                </div>
+              {% else %}
+                <span class="text-muted small">No email</span>
+              {% endif %}
+            </td>
+            <td class="text-right action-cell btn-no-print">
+              <div class="d-inline-flex align-items-center gap-1">
+                <a href="{% url 'teacher:view-result' student.id %}" class="btn btn-sm btn-outline-primary action-btn-pill shadow-xs" title="View Student Academic Report">
+                  <i class="fas fa-file-invoice"></i> Results
+                </a>
+                <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" class="btn btn-sm btn-primary action-btn-pill shadow-xs font-weight-bold" title="Grade Student in this Subject">
+                  <i class="fas fa-pen-alt"></i> Grade
+                </a>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Students Table -->
-    <div class="row">
-      <div class="col-sm-12">
-        <div class="card card-table teacher-list-card">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-            <h5 class="card-title mb-0">Students List</h5>
-            <span class="badge badge-primary badge-pill">{{ subject_name }}</span>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-hover table-center mb-0 datatable">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Class</th>
-                    <th>Admission No.</th>
-                    <th>Contact</th>
-                    <th class="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for student in students %}
-                    <tr>
-                      <td>{{ forloop.counter }}</td>
-                      <td><strong>{{ student.student_id }}</strong></td>
-                      <td>
-                        <h2 class="table-avatar">
-                          <a href="#" class="avatar avatar-sm mr-2">
-                            {% if student.user.profile_picture %}
-                              <img class="avatar-img rounded-circle" src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
-                            {% elif student.student_image %}
-                              <img class="avatar-img rounded-circle" src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Profile Image">
-                            {% else %}
-                              <img class="avatar-img rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Default Avatar">
-                            {% endif %}
-                          </a>
-                          <a href="#">
-                            {{ student.user.get_full_name }}
-                          </a>
-                        </h2>
-                      </td>
-                      <td>{{ student.get_student_class_display }}</td>
-                      <td>{{ student.admission_number }}</td>
-                      <td>
-                        <small class="d-block">{{ student.user.email }}</small>
-                        <small class="text-muted">{{ student.mobile_number }}</small>
-                      </td>
-                      <td class="text-right">
-                        <div class="teacher-table-actions">
-                          <a href="{% url 'teacher:enter-bulk-grades' subject.id %}" 
-                             class="btn btn-sm bg-info-light mr-2"
-                             title="Enter Results"
-                             data-toggle="tooltip">
-                            <i class="fas fa-chart-line"></i>
-                          </a>
-                          <a href="#"
-                             class="btn btn-sm bg-success-light mr-2"
-                             title="View Results"
-                             data-toggle="tooltip">
-                            <i class="fas fa-eye"></i>
-                          </a>
-                          <a href="#"
-                             class="btn btn-sm bg-primary-light"
-                             title="View Profile"
-                             data-toggle="tooltip">
-                            <i class="fas fa-user"></i>
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td colspan="7" class="text-center py-5">
-                        <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
-                        <h4>No Students in This Subject</h4>
-                        <p class="text-muted">There are no students enrolled in {{ subject_name }} yet.</p>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr id="emptyRow">
+            <td colspan="8" class="text-center py-5">
+              <div class="py-4">
+                <i class="fas fa-user-graduate fa-3x text-muted mb-3 opacity-50"></i>
+                <h5 class="text-dark font-weight-bold">No Students Enrolled Yet</h5>
+                <p class="text-muted small mb-3">There are currently no active student enrollments for {{ subject.name }}.</p>
+                <a href="{% url 'teacher:my-subjects' %}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                  <i class="fas fa-book mr-1"></i> Return to My Subjects
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        <tr id="noResultsMatchRow" style="display: none;">
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="fas fa-search mr-2"></i> No students match your search criteria.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'assets/plugins/datatables/datatables.min.js' %}"></script>
 <script>
-  $(document).ready(function () {
-    $('.datatable').DataTable({
-      "pageLength": 10,
-      "order": [[2, "asc"]], // Sort by name
-      "responsive": true,
-      "columnDefs": [
-        { "orderable": false, "targets": [0, 6] } // Disable sorting on # and Actions columns
-      ],
-      "language": {
-        "emptyTable": "No students found in this subject"
+document.addEventListener('DOMContentLoaded', function() {
+  // Live Client-side Search Filter
+  const filterInput = document.getElementById('filterInput');
+  const rows = document.querySelectorAll('.student-item');
+  const noMatchRow = document.getElementById('noResultsMatchRow');
+
+  if (filterInput && rows.length > 0) {
+    filterInput.addEventListener('input', function() {
+      const q = this.value.toLowerCase().trim();
+      let matchCount = 0;
+
+      rows.forEach(row => {
+        const searchText = row.getAttribute('data-search') || '';
+        if (!q || searchText.includes(q)) {
+          row.style.display = '';
+          matchCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (noMatchRow) {
+        noMatchRow.style.display = (matchCount === 0 && q.length > 0) ? '' : 'none';
       }
     });
+  }
 
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-  });
+  // Client-side CSV Export
+  const exportBtn = document.getElementById('btnExportCSV');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      const table = document.getElementById('rosterTable');
+      if (!table) return;
+
+      const rowsData = [];
+      const headers = ['#', 'Student Name', 'Student ID', 'Admission No', 'Class', 'Parent / Guardian', 'Parent Phone', 'Student Phone', 'Student Email'];
+      rowsData.push(headers.map(h => `"${h}"`).join(','));
+
+      const tbodyRows = table.querySelectorAll('tbody tr.student-item');
+      tbodyRows.forEach((tr, idx) => {
+        if (tr.style.display === 'none') return;
+
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 8) return;
+
+        const num = idx + 1;
+        const name = cells[1].querySelector('a') ? cells[1].querySelector('a').innerText.trim() : '';
+        const studentId = cells[2].innerText.trim();
+        const adm = cells[3].innerText.trim();
+        const studentClass = cells[4].innerText.trim();
+        
+        const parentName = cells[5].querySelector('.font-weight-semibold') ? cells[5].querySelector('.font-weight-semibold').innerText.trim() : '';
+        const parentPhone = cells[5].querySelector('.contact-badge') ? cells[5].querySelector('.contact-badge').innerText.trim() : '';
+        
+        const studentPhone = cells[6].querySelector('a[href^="tel:"]') ? cells[6].querySelector('a[href^="tel:"]').innerText.trim() : '';
+        const studentEmail = cells[6].querySelector('.text-truncate') ? cells[6].querySelector('.text-truncate').innerText.trim() : '';
+
+        const row = [num, name, studentId, adm, studentClass, parentName, parentPhone, studentPhone, studentEmail];
+        rowsData.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+      });
+
+      if (rowsData.length <= 1) {
+        alert('No students to export.');
+        return;
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + rowsData.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `class_roster_{{ subject.name|slugify }}_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+});
 </script>
 {% endblock %}

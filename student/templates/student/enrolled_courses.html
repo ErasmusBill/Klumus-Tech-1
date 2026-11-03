@@ -1,186 +1,847 @@
 {% extends 'student/base.html' %}
 {% load static media_tags %}
 
-{% block title %}My Learning Journey | Enrolled Courses{% endblock %}
+{% block title %}My Enrolled Courses | {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
-<div class="page-wrapper bg-light-faded">
-    <div class="content container-fluid px-lg-5">
+<div class="page-wrapper" style="background-color: #f8fafc; min-height: 100vh;">
+  <div class="content container-fluid px-lg-4 py-4">
 
-        <!-- Header Section -->
-        <div class="page-header border-0 mb-4 pt-4">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h2 class="fw-black text-slate-900 mb-1">My Academic Path</h2>
-                    <p class="text-muted fw-medium mb-0">Overview of your current curriculum and enrolled subjects.</p>
-                </div>
-                <div class="col-auto">
-                    <span class="badge bg-white border text-primary px-3 py-2 rounded-pill shadow-sm">
-                        <i class="fas fa-calendar-alt me-2"></i>Academic Year 2026
-                    </span>
-                </div>
-            </div>
+    <!-- Page Header & Quick Navigation -->
+    <div class="page-header mb-4 border-0">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <h3 class="page-title mb-1 font-weight-bold" style="color: #0f172a; letter-spacing: -0.01em;">
+            <i class="fas fa-book-reader text-primary mr-2"></i>My Enrolled Courses &amp; Curriculum
+          </h3>
+          <ul class="breadcrumb mb-0 bg-transparent p-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}" class="text-primary font-weight-semibold">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'student:student-detail' %}" class="text-secondary font-weight-semibold">My Profile</a></li>
+            <li class="breadcrumb-item active text-muted">Enrolled Courses</li>
+          </ul>
         </div>
-
-        <!-- Student Profile Hero -->
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-            <div class="card-body p-0">
-                <div class="row g-0">
-                    <!-- Left Side: Profile -->
-                    <div class="col-lg-4 bg-faded-primary p-4 text-center border-end">
-                        <div class="position-relative d-inline-block mb-3">
-                            {% if student.student_image or student.user.profile_picture %}
-                                <img src="{{ student.student_image|default:student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
-                                     class="rounded-circle border border-4 border-white shadow-sm"
-                                     style="width: 110px; height: 110px; object-fit: cover;">
-                            {% else %}
-                                <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle border border-4 border-white shadow-sm" style="width: 110px;">
-                            {% endif %}
-                            <div class="status-online-dot"></div>
-                        </div>
-                        <h4 class="fw-black text-dark mb-1">{{ student.user.get_full_name }}</h4>
-                        <p class="text-primary fw-bold small mb-0">{{ student.student_id }}</p>
-                    </div>
-
-                    <!-- Right Side: Academic Stats -->
-                    <div class="col-lg-8 p-4 bg-white">
-                        <div class="row g-4 text-center text-lg-start">
-                            <div class="col-6 col-md-4">
-                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Class Level</span>
-                                <h6 class="fw-bold text-dark mb-0">{{ student.get_student_class_display }}</h6>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Enrollment Status</span>
-                                <span class="badge bg-success-light text-success rounded-pill px-3">Active Student</span>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <span class="x-small text-muted fw-black text-uppercase d-block mb-1">Promotion Status</span>
-                                <h6 class="fw-bold text-success mb-0">{{ student.get_promotion_status_display }}</h6>
-                            </div>
-                        </div>
-                        <hr class="my-4 opacity-50">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <div class="stat-icon-sm bg-faded-info text-info">
-                                    <i class="fas fa-info-circle"></i>
-                                </div>
-                            </div>
-                            <p class="small text-muted mb-0">Your curriculum is automatically managed based on your grade level. For elective changes, please visit the Registry.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-md-5 text-md-right mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+          <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-semibold shadow-sm mr-2">
+            <i class="fas fa-tasks mr-1"></i> Assignments
+          </a>
+          <a href="{% url 'student:view-result' student.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold shadow-sm">
+            <i class="fas fa-award mr-1"></i> Grades &amp; Results
+          </a>
         </div>
-
-        <!-- Subject List Table -->
-        <div class="card border-0 shadow-sm rounded-4 mb-5">
-            <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-black text-dark mb-0">Course Curriculum</h5>
-                <div class="text-muted small fw-bold">{{ enrollments.count }} Total Subjects</div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light-faded">
-                        <tr class="text-uppercase x-small fw-black text-muted">
-                            <th class="ps-4">#</th>
-                            <th>Subject Name</th>
-                            <th>Department</th>
-                            <th>Lead Instructor</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-end pe-4">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for enrollment in enrollments %}
-                        <tr>
-                            <td class="ps-4 text-muted small">{{ forloop.counter }}</td>
-                            <td>
-                                <div class="fw-bold text-dark">{{ enrollment.subject.name }}</div>
-                                <div class="x-small text-muted">Code: {{ enrollment.subject.subject_code|default:"N/A" }}</div>
-                            </td>
-                            <td>
-                                <span class="badge bg-faded-secondary text-dark rounded-pill fw-medium">
-                                    {{ enrollment.subject.department.name }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-xs bg-faded-primary text-primary rounded-circle me-2 d-flex align-items-center justify-content-center">
-                                        <i class="fas fa-user-tie x-small"></i>
-                                    </div>
-                                    <span class="small fw-bold">
-                                        {{ enrollment.subject.teacher.user.get_full_name|default:"TBA" }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                {% if enrollment.is_active %}
-                                    <div class="d-flex align-items-center justify-content-center text-success small fw-bold">
-                                        <span class="pulse-dot me-2"></span> Active
-                                    </div>
-                                {% else %}
-                                    <span class="text-muted small fw-bold">Inactive</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end pe-4">
-                                <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">Open Portal</button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <div class="py-4">
-                                    <i class="fas fa-book-open fa-3x text-muted opacity-25 mb-3"></i>
-                                    <h6 class="text-muted fw-bold">No subjects found for this session.</h6>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
+      </div>
     </div>
+
+    <!-- Student Academic Identity Strip -->
+    <div class="card identity-strip mb-4 shadow-sm border-0">
+      <div class="card-body p-3 p-md-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div class="d-flex align-items-center">
+            <div class="avatar-wrap mr-3">
+              {% if student.student_image %}
+                <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" class="avatar-img rounded-circle shadow-sm">
+              {% elif student.user.profile_picture %}
+                <img src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" class="avatar-img rounded-circle shadow-sm">
+              {% else %}
+                <div class="avatar-fallback rounded-circle font-weight-bold shadow-sm">
+                  {{ student.user.initials }}
+                </div>
+              {% endif %}
+            </div>
+            <div>
+              <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                <h5 class="text-dark font-weight-bold mb-0 mr-2">{{ student.user.get_full_name }}</h5>
+                <span class="badge badge-light border text-primary font-weight-bold px-2 py-1 small mr-1">
+                  <i class="fas fa-graduation-cap mr-1"></i>{{ student.get_student_class_display|default:"Enrolled" }}
+                </span>
+                <span class="badge badge-success-soft font-weight-bold px-2 py-1 small">
+                  <i class="fas fa-check-circle mr-1"></i>Active Curriculum
+                </span>
+              </div>
+              <div class="small text-muted">
+                <span class="mr-3"><i class="fas fa-id-badge text-muted mr-1"></i>ID: <strong>{{ student.student_id|default:student.admission_number }}</strong></span>
+                <span class="mr-3"><i class="fas fa-school text-muted mr-1"></i>{{ student.school.name }}</span>
+                <span><i class="fas fa-calendar-check text-muted mr-1"></i>Academic Year 2026/2027</span>
+              </div>
+            </div>
+          </div>
+          <div class="d-none d-lg-block text-right">
+            <span class="text-muted small text-uppercase font-weight-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.05em;">Curriculum Registration</span>
+            <span class="font-weight-bold text-dark" style="font-size: 1.15rem;">{{ total_enrollments }} Registered Subject{{ total_enrollments|pluralize }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 High-Level Metric Cards -->
+    <div class="row mb-4">
+      <!-- 1. Total Courses -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Enrolled Subjects</span>
+              <div class="metric-icon bg-soft-primary text-primary">
+                <i class="fas fa-book-open"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ total_enrollments }}</h2>
+              <span class="badge badge-primary-soft ml-2 small font-weight-bold">Registered</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Core &amp; Elective Courses</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Assigned Teachers -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Instructors</span>
+              <div class="metric-icon bg-soft-success text-success">
+                <i class="fas fa-chalkboard-teacher"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ total_teachers }}</h2>
+              <span class="badge badge-success-soft ml-2 small font-weight-bold">Assigned Faculty</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Mentors &amp; Subject Leads</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Departments -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Academic Disciplines</span>
+              <div class="metric-icon bg-soft-indigo text-indigo">
+                <i class="fas fa-shapes"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ total_departments }}</h2>
+              <span class="badge badge-primary-soft ml-2 small font-weight-bold">Disciplines</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Diverse Curriculum</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Pending Assignments -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Coursework Tasks</span>
+              <div class="metric-icon {% if total_pending_tasks > 0 %}bg-soft-warning text-warning{% else %}bg-soft-success text-success{% endif %}">
+                <i class="fas fa-tasks"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val {% if total_pending_tasks > 0 %}text-warning{% else %}text-success{% endif %} mb-0 font-weight-bold">
+                {{ total_pending_tasks }}
+              </h2>
+              {% if total_pending_tasks > 0 %}
+                <span class="badge badge-warning-soft ml-2 small font-weight-bold">To Submit</span>
+              {% else %}
+                <span class="badge badge-success-soft ml-2 small font-weight-bold">Up to Date</span>
+              {% endif %}
+            </div>
+            <small class="text-muted mt-2 d-block">
+              <a href="{% url 'student:list-all-assignments' %}" class="text-primary font-weight-bold">Review Homework &rarr;</a>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter, Search & View Controls Bar -->
+    <div class="card filter-bar-card mb-4 shadow-sm border-0">
+      <div class="card-body p-3">
+        <div class="row align-items-center g-3">
+          <!-- Live Search Bar -->
+          <div class="col-lg-5 col-md-6 mb-2 mb-md-0">
+            <div class="input-group search-input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+              </div>
+              <input type="text"
+                     id="courseSearchInput"
+                     class="form-control border-left-0 pl-0"
+                     placeholder="Search course title, code, or teacher..."
+                     value="{{ search_query }}">
+              {% if search_query %}
+                <div class="input-group-append">
+                  <a href="{% url 'student:enrolled-courses' %}" class="btn btn-link text-muted" title="Clear Search">
+                    <i class="fas fa-times"></i>
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Department Quick Filter Buttons -->
+          <div class="col-lg-5 col-md-6 mb-2 mb-md-0">
+            <div class="d-flex align-items-center flex-wrap gap-1 department-filter-wrap">
+              <button type="button" class="btn btn-sm dept-filter-pill active mr-1 mb-1" data-dept="all">
+                All ({{ total_enrollments }})
+              </button>
+              {% for dept in subjects_by_department %}
+                <button type="button" class="btn btn-sm dept-filter-pill mr-1 mb-1" data-dept="{{ dept.subject__department__name|lower }}">
+                  {{ dept.subject__department__name }} ({{ dept.count }})
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- View Mode Switcher -->
+          <div class="col-lg-2 text-right">
+            <div class="btn-group btn-group-sm rounded-pill shadow-xs p-1 bg-light border" role="group" aria-label="View switch">
+              <button type="button" id="gridToggleBtn" class="btn btn-sm btn-primary rounded-pill px-3 font-weight-bold" title="Grid View">
+                <i class="fas fa-th-large mr-1"></i> Cards
+              </button>
+              <button type="button" id="listToggleBtn" class="btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold" title="List View">
+                <i class="fas fa-list mr-1"></i> Table
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRID VIEW: Course Cards (Default) -->
+    <div id="courseGridView" class="row">
+      {% for course in courses_data %}
+      <div class="col-xl-4 col-md-6 mb-4 course-item"
+           data-name="{{ course.subject.name|lower }}"
+           data-code="{{ course.subject.subject_code|default:''|lower }}"
+           data-dept="{{ course.department.name|default:'general'|lower }}"
+           data-teacher="{{ course.teacher.user.get_full_name|default:''|lower }}">
+        
+        <div class="card course-card h-100 shadow-sm border-0">
+          <!-- Card Top Accent Bar -->
+          <div class="course-accent-bar"></div>
+
+          <div class="card-body p-4 d-flex flex-column">
+            <!-- Badges Bar -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <span class="badge badge-dept-pill">
+                <i class="fas fa-layer-group mr-1"></i>{{ course.department.name|default:"General Academics" }}
+              </span>
+              <div class="d-flex align-items-center">
+                {% if course.subject.subject_code %}
+                  <span class="badge badge-light border text-muted mr-2 font-weight-bold">
+                    {{ course.subject.subject_code }}
+                  </span>
+                {% endif %}
+                <span class="status-dot-active" title="Enrolled & Active"></span>
+              </div>
+            </div>
+
+            <!-- Subject Name & Class -->
+            <h4 class="course-title font-weight-bold mb-1 text-dark">
+              {{ course.subject.name }}
+            </h4>
+            <div class="small text-muted mb-3">
+              <i class="fas fa-chalkboard text-muted mr-1"></i> Class: <strong>{{ course.subject.get_subject_class_display|default:student.get_student_class_display }}</strong>
+            </div>
+
+            <!-- Instructor Information -->
+            <div class="instructor-box p-3 rounded-3 mb-3">
+              <div class="d-flex align-items-center">
+                <div class="teacher-avatar mr-3">
+                  {% if course.teacher.user.profile_picture %}
+                    <img src="{{ course.teacher.user.profile_picture.url }}" alt="{{ course.teacher.user.get_full_name }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                  {% else %}
+                    <div class="teacher-avatar-fallback rounded-circle font-weight-bold">
+                      {{ course.teacher.user.initials|default:"T" }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="flex-grow-1 overflow-hidden">
+                  <span class="teacher-label text-uppercase text-muted d-block font-weight-bold" style="font-size: 0.65rem;">Lead Faculty</span>
+                  <div class="teacher-name font-weight-bold text-dark text-truncate" title="{{ course.teacher.user.get_full_name }}">
+                    {{ course.teacher.user.get_full_name|default:"Assigned Faculty" }}
+                  </div>
+                  {% if course.teacher.user.email %}
+                    <small class="text-muted text-truncate d-block" style="font-size: 0.75rem;">
+                      {{ course.teacher.user.email }}
+                    </small>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Performance & Task Indicators -->
+            <div class="row g-2 mb-3 mt-auto">
+              <!-- Pending Assignments -->
+              <div class="col-6">
+                <div class="stat-mini-pill p-2 rounded-2 border text-center">
+                  <span class="stat-mini-label text-uppercase text-muted d-block" style="font-size: 0.65rem; font-weight: 700;">Assignments</span>
+                  {% if course.pending_assignments_count > 0 %}
+                    <span class="badge badge-warning-soft font-weight-bold mt-1 px-2 py-1">
+                      <i class="fas fa-clock mr-1"></i>{{ course.pending_assignments_count }} Due
+                    </span>
+                  {% elif course.assignments_count > 0 %}
+                    <span class="badge badge-success-soft font-weight-bold mt-1 px-2 py-1">
+                      <i class="fas fa-check-circle mr-1"></i>All Done ({{ course.assignments_count }})
+                    </span>
+                  {% else %}
+                    <span class="badge badge-light border text-muted font-weight-semibold mt-1 px-2 py-1">
+                      None Set
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Latest Exam Score -->
+              <div class="col-6">
+                <div class="stat-mini-pill p-2 rounded-2 border text-center">
+                  <span class="stat-mini-label text-uppercase text-muted d-block" style="font-size: 0.65rem; font-weight: 700;">Exam Standing</span>
+                  {% if course.latest_result %}
+                    <span class="badge grade-pill {% if 'A' in course.latest_result.grade %}grade-A{% elif 'B' in course.latest_result.grade %}grade-B{% elif 'C' in course.latest_result.grade %}grade-C{% elif 'D' in course.latest_result.grade %}grade-D{% else %}grade-F{% endif %} mt-1 px-2 py-1">
+                      {{ course.latest_result.grade }} ({{ course.latest_result.percentage|floatformat:0 }}%)
+                    </span>
+                  {% else %}
+                    <span class="badge badge-light border text-muted font-weight-semibold mt-1 px-2 py-1">
+                      In Progress
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons Footer -->
+            <div class="card-footer-actions pt-3 border-top d-flex align-items-center justify-content-between">
+              <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold">
+                <i class="fas fa-tasks mr-1"></i> Assignments
+              </a>
+              <a href="{% url 'student:view-result' student.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold">
+                <i class="fas fa-chart-line mr-1"></i> Grades &rarr;
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 py-5 text-center">
+        <div class="empty-state-wrap p-5 bg-white rounded-4 shadow-sm">
+          <i class="fas fa-book-open fa-3x text-muted mb-3 opacity-50"></i>
+          <h5 class="font-weight-bold text-dark">No Enrolled Courses Found</h5>
+          <p class="text-muted small mb-3">You are not currently enrolled in any academic subjects for this session.</p>
+          <a href="{% url 'student:student-dashboard' %}" class="btn btn-primary btn-sm rounded-pill px-4 font-weight-bold">
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- LIST / TABLE VIEW: Comprehensive Roster (Initially Hidden or toggled) -->
+    <div id="courseListView" class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4" style="display: none;">
+      <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h5 class="font-weight-bold text-dark mb-0">
+          <i class="fas fa-table text-primary mr-2"></i>Curriculum Subject Ledger
+        </h5>
+        <span class="badge badge-light border text-muted small px-3 py-1 font-weight-bold">
+          {{ total_enrollments }} Courses
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table courses-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th style="width: 50px;" class="text-center">#</th>
+              <th style="min-width: 220px;">Subject &amp; Code</th>
+              <th style="width: 170px;">Department</th>
+              <th style="min-width: 180px;">Lead Instructor</th>
+              <th class="text-center" style="width: 140px;">Assignments</th>
+              <th class="text-center" style="width: 130px;">Exam Standing</th>
+              <th class="text-center" style="width: 110px;">Status</th>
+              <th class="text-right" style="width: 170px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for course in courses_data %}
+            <tr class="course-item"
+                data-name="{{ course.subject.name|lower }}"
+                data-code="{{ course.subject.subject_code|default:''|lower }}"
+                data-dept="{{ course.department.name|default:'general'|lower }}"
+                data-teacher="{{ course.teacher.user.get_full_name|default:''|lower }}">
+              <td class="text-center text-muted font-weight-bold small">{{ forloop.counter }}</td>
+              <td>
+                <div class="font-weight-bold text-dark">{{ course.subject.name }}</div>
+                <small class="text-muted">Code: {{ course.subject.subject_code|default:"Core Subject" }}</small>
+              </td>
+              <td>
+                <span class="badge badge-dept-pill">
+                  {{ course.department.name|default:"General" }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="teacher-avatar-xs mr-2">
+                    {% if course.teacher.user.profile_picture %}
+                      <img src="{{ course.teacher.user.profile_picture.url }}" alt="{{ course.teacher.user.get_full_name }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">
+                    {% else %}
+                      <div class="teacher-avatar-xs-fallback rounded-circle">
+                        {{ course.teacher.user.initials|default:"T" }}
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <span class="font-weight-bold text-dark small d-block">{{ course.teacher.user.get_full_name|default:"Assigned Faculty" }}</span>
+                    {% if course.teacher.user.email %}
+                      <small class="text-muted" style="font-size: 0.72rem;">{{ course.teacher.user.email }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                {% if course.pending_assignments_count > 0 %}
+                  <span class="badge badge-warning-soft font-weight-bold px-2 py-1">
+                    {{ course.pending_assignments_count }} Due
+                  </span>
+                {% elif course.assignments_count > 0 %}
+                  <span class="badge badge-success-soft font-weight-bold px-2 py-1">
+                    All Done ({{ course.assignments_count }})
+                  </span>
+                {% else %}
+                  <span class="badge badge-light border text-muted small">None Set</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if course.latest_result %}
+                  <span class="badge grade-pill {% if 'A' in course.latest_result.grade %}grade-A{% elif 'B' in course.latest_result.grade %}grade-B{% elif 'C' in course.latest_result.grade %}grade-C{% elif 'D' in course.latest_result.grade %}grade-D{% else %}grade-F{% endif %}">
+                    {{ course.latest_result.grade }} ({{ course.latest_result.percentage|floatformat:0 }}%)
+                  </span>
+                {% else %}
+                  <span class="badge badge-light border text-muted small">In Progress</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge badge-success-soft font-weight-bold px-2 py-1 small">
+                  <i class="fas fa-check-circle mr-1"></i>Active
+                </span>
+              </td>
+              <td class="text-right">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-primary btn-sm rounded-pill px-2 mr-1 font-weight-bold" title="View Assignments">
+                    <i class="fas fa-tasks mr-1"></i> Tasks
+                  </a>
+                  <a href="{% url 'student:view-result' student.id %}" class="btn btn-primary btn-sm rounded-pill px-2 font-weight-bold" title="View Grades">
+                    <i class="fas fa-chart-line"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <p class="small mb-0">No enrolled courses registered for this session.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- No Match Alert (hidden by default, shown when search filters out all items) -->
+    <div id="noMatchAlert" class="card shadow-sm border-0 rounded-4 p-5 text-center bg-white mb-4" style="display: none;">
+      <i class="fas fa-search fa-3x text-muted mb-3 opacity-50"></i>
+      <h5 class="font-weight-bold text-dark">No Matching Courses Found</h5>
+      <p class="text-muted small mb-3">No subjects match your current search and department filter criteria.</p>
+      <div>
+        <button type="button" id="resetFiltersBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 font-weight-bold">
+          <i class="fas fa-redo-alt mr-1"></i> Reset Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Curriculum Guidelines & Academic Standards Panel -->
+    <div class="card advisory-card mb-4 shadow-sm border-0 rounded-4">
+      <div class="card-body p-4">
+        <div class="row align-items-center">
+          <div class="col-lg-8 mb-3 mb-lg-0">
+            <h5 class="font-weight-bold text-dark mb-1">
+              <i class="fas fa-graduation-cap text-primary mr-2"></i>Academic Assessment Standards
+            </h5>
+            <p class="text-muted small mb-3">
+              Courses are evaluated across 3 standardized components throughout the term:
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="eval-badge px-3 py-2 rounded-3 bg-white border mr-2 mb-2">
+                <span class="d-block font-weight-bold text-dark small">Class Score &amp; Homework</span>
+                <span class="text-primary font-weight-bold">20% Weight</span>
+              </div>
+              <div class="eval-badge px-3 py-2 rounded-3 bg-white border mr-2 mb-2">
+                <span class="d-block font-weight-bold text-dark small">Mid-Semester Assessment</span>
+                <span class="text-info font-weight-bold">30% Weight</span>
+              </div>
+              <div class="eval-badge px-3 py-2 rounded-3 bg-white border mb-2">
+                <span class="d-block font-weight-bold text-dark small">End of Term Examination</span>
+                <span class="text-success font-weight-bold">50% Weight</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 text-lg-right">
+            <div class="p-3 bg-white rounded-3 border">
+              <span class="small font-weight-bold text-dark d-block mb-1">Need Curriculum Assistance?</span>
+              <p class="small text-muted mb-2">For elective changes or course syllabus inquiries, consult your class teacher or the school academic registry.</p>
+              <a href="{% url 'student:student-detail' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 font-weight-bold">
+                <i class="fas fa-user-circle mr-1"></i> My Academic Dossier
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <style>
-    /* Professional Layout */
-    .bg-light-faded { background-color: #f8fafc; }
-    .bg-faded-primary { background-color: rgba(79, 70, 229, 0.05); }
-    .bg-faded-info { background-color: rgba(14, 165, 233, 0.1); }
-    .bg-faded-secondary { background-color: #f1f5f9; }
-    .bg-success-light { background-color: #dcfce7; color: #15803d; }
+  /* Identity Strip */
+  .identity-strip {
+    border-radius: 16px;
+    background: #ffffff;
+  }
+  .avatar-wrap {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+  }
+  .avatar-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 3px solid #eef2ff;
+  }
+  .avatar-fallback {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+    color: #ffffff;
+    font-size: 1.4rem;
+  }
 
-    .fw-black { font-weight: 900; }
-    .x-small { font-size: 0.72rem; }
+  /* Metric Cards */
+  .metric-card {
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+  .metric-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+  .metric-val {
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .metric-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
 
-    /* Icons & Avatars */
-    .stat-icon-sm { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9rem; }
-    .avatar-xs { width: 28px; height: 28px; }
+  /* Filter Bar */
+  .filter-bar-card {
+    border-radius: 16px;
+    background: #ffffff;
+  }
+  .search-input-group .form-control {
+    border-radius: 20px;
+    font-size: 0.9rem;
+    padding: 10px 14px;
+  }
+  .search-input-group .input-group-text {
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+  }
+  .dept-filter-pill {
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .dept-filter-pill:hover,
+  .dept-filter-pill.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
 
-    /* Status Indicators */
-    .status-online-dot {
-        position: absolute; bottom: 8px; right: 8px; width: 16px; height: 16px;
-        background: #22c55e; border: 3px solid #fff; border-radius: 50%;
-    }
+  /* Course Card */
+  .course-card {
+    border-radius: 18px;
+    background: #ffffff;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .course-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+  }
+  .course-accent-bar {
+    height: 5px;
+    background: linear-gradient(90deg, #4f46e5, #3b82f6, #06b6d4);
+  }
+  .badge-dept-pill {
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 14px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .status-dot-active {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+  .course-title {
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+  }
 
-    .pulse-dot {
-        width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%;
-        display: inline-block;
-        box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
-        animation: pulse 2s infinite;
-    }
+  /* Instructor Box */
+  .instructor-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+  .teacher-avatar-fallback {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 1rem;
+  }
+  .teacher-avatar-xs-fallback {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
 
-    @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-    }
+  /* Stat Mini Pill */
+  .stat-mini-pill {
+    background: #ffffff;
+    border-color: #f1f5f9;
+  }
 
-    /* Table Polish */
-    .table thead th { border-top: none; }
-    .table tbody tr { transition: all 0.2s; }
-    .table tbody tr:hover { background-color: rgba(79, 70, 229, 0.02); }
+  /* Courses Table */
+  .courses-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-top: none;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .courses-table tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  /* Advisory Card */
+  .advisory-card {
+    background: #f1f5f9;
+    border-radius: 18px;
+  }
+
+  /* Soft Badges & Grades */
+  .bg-soft-primary { background-color: #eff6ff; color: #2563eb; }
+  .bg-soft-success { background-color: #ecfdf5; color: #059669; }
+  .bg-soft-warning { background-color: #fffbeb; color: #d97706; }
+  .bg-soft-indigo  { background-color: #eef2ff; color: #4f46e5; }
+  .text-indigo     { color: #4f46e5; }
+
+  .badge-primary-soft { background: #eff6ff; color: #1d4ed8; }
+  .badge-success-soft { background: #ecfdf5; color: #047857; }
+  .badge-warning-soft { background: #fffbeb; color: #b45309; }
+  .badge-danger-soft  { background: #fef2f2; color: #b91c1c; }
+
+  .grade-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 3px 8px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+  }
+  .grade-A { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .grade-B { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+  .grade-C { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .grade-D { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+  .grade-F { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("courseSearchInput");
+  const deptButtons = document.querySelectorAll(".dept-filter-pill");
+  const gridView = document.getElementById("courseGridView");
+  const listView = document.getElementById("courseListView");
+  const gridToggleBtn = document.getElementById("gridToggleBtn");
+  const listToggleBtn = document.getElementById("listToggleBtn");
+  const noMatchAlert = document.getElementById("noMatchAlert");
+  const resetFiltersBtn = document.getElementById("resetFiltersBtn");
+
+  let activeDept = "all";
+  let activeSearch = (searchInput.value || "").trim().toLowerCase();
+
+  // Filter Logic
+  function applyFilters() {
+    let visibleCount = 0;
+    const items = document.querySelectorAll(".course-item");
+
+    items.forEach(function (el) {
+      const name = el.getAttribute("data-name") || "";
+      const code = el.getAttribute("data-code") || "";
+      const dept = el.getAttribute("data-dept") || "";
+      const teacher = el.getAttribute("data-teacher") || "";
+
+      const matchesSearch = !activeSearch ||
+        name.includes(activeSearch) ||
+        code.includes(activeSearch) ||
+        teacher.includes(activeSearch);
+
+      const matchesDept = (activeDept === "all") || (dept === activeDept);
+
+      if (matchesSearch && matchesDept) {
+        el.style.display = "";
+        // In list view table, keep display as table-row
+        if (el.tagName === "TR") {
+          el.style.display = "table-row";
+        }
+        visibleCount++;
+      } else {
+        el.style.display = "none";
+      }
+    });
+
+    if (noMatchAlert) {
+      if (visibleCount === 0 && items.length > 0) {
+        noMatchAlert.style.display = "block";
+      } else {
+        noMatchAlert.style.display = "none";
+      }
+    }
+  }
+
+  // Search Input Event
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      activeSearch = this.value.trim().toLowerCase();
+      applyFilters();
+    });
+  }
+
+  // Department Filter Click
+  deptButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      deptButtons.forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      activeDept = (this.getAttribute("data-dept") || "all").toLowerCase();
+      applyFilters();
+    });
+  });
+
+  // Reset Filters
+  if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      activeSearch = "";
+      activeDept = "all";
+      deptButtons.forEach(b => {
+        b.classList.remove("active");
+        if (b.getAttribute("data-dept") === "all") b.classList.add("active");
+      });
+      applyFilters();
+    });
+  }
+
+  // View Mode Switcher
+  function setViewMode(mode) {
+    if (mode === "list") {
+      gridView.style.display = "none";
+      listView.style.display = "block";
+      listToggleBtn.className = "btn btn-sm btn-primary rounded-pill px-3 font-weight-bold";
+      gridToggleBtn.className = "btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold";
+    } else {
+      gridView.style.display = "flex";
+      listView.style.display = "none";
+      gridToggleBtn.className = "btn btn-sm btn-primary rounded-pill px-3 font-weight-bold";
+      listToggleBtn.className = "btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold";
+    }
+    applyFilters();
+  }
+
+  if (gridToggleBtn && listToggleBtn) {
+    gridToggleBtn.addEventListener("click", function () {
+      setViewMode("grid");
+      try { localStorage.setItem("student_courses_view", "grid"); } catch(e) {}
+    });
+    listToggleBtn.addEventListener("click", function () {
+      setViewMode("list");
+      try { localStorage.setItem("student_courses_view", "list"); } catch(e) {}
+    });
+
+    // Restore saved view mode preference
+    try {
+      const savedMode = localStorage.getItem("student_courses_view");
+      if (savedMode === "list") {
+        setViewMode("list");
+      }
+    } catch(e) {}
+  }
+});
+</script>
 {% endblock %}

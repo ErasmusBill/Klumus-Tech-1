@@ -3,6 +3,7 @@ from django.conf import settings
 import uuid
 from datetime import timedelta
 from django.db import IntegrityError, models
+from django.db.models import Q
 from django.contrib.auth.models import AbstractUser
 from django.forms import CharField
 from django.utils.crypto import get_random_string
@@ -78,6 +79,20 @@ class CustomUser(AbstractUser):
                 (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
             )
         return None
+
+    @property
+    def initials(self):
+        """Return 1-2 uppercase initials for the user."""
+        first = (self.first_name or "").strip()
+        last = (self.last_name or "").strip()
+        if first and last:
+            return f"{first[0]}{last[0]}".upper()
+        if first:
+            return first[:2].upper()
+        if last:
+            return last[:2].upper()
+        username = (self.username or "").strip()
+        return username[:2].upper() if username else "U"
 
 
 class RequestPasswordReset(models.Model):
@@ -250,19 +265,26 @@ class Parent(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="parent_profile", null=True, blank=True)
     
     # Father's Information
-    father_name = models.CharField(max_length=100)
-    father_phone = models.CharField(max_length=15)
+    father_name = models.CharField(max_length=100, blank=True)
+    father_phone = models.CharField(max_length=15, blank=True)
     father_occupation = models.CharField(max_length=100, blank=True)
     father_email = models.EmailField(blank=True)
     
     # Mother's Information
-    mother_name = models.CharField(max_length=100)
-    mother_phone = models.CharField(max_length=15)
+    mother_name = models.CharField(max_length=100, blank=True)
+    mother_phone = models.CharField(max_length=15, blank=True)
     mother_occupation = models.CharField(max_length=100, blank=True)
     mother_email = models.EmailField(blank=True)
     
+    # Guardian's Information
+    guardian_name = models.CharField(max_length=100, blank=True)
+    guardian_phone = models.CharField(max_length=15, blank=True)
+    guardian_relation = models.CharField(max_length=50, blank=True)
+    guardian_email = models.EmailField(blank=True)
+    guardian_occupation = models.CharField(max_length=100, blank=True)
+
     # Address Information
-    present_address = models.TextField()
+    present_address = models.TextField(blank=True)
     permanent_address = models.TextField(blank=True)
     
     # Emergency Contact
@@ -278,7 +300,28 @@ class Parent(models.Model):
         verbose_name_plural = "Parents"
 
     def __str__(self):
-        return f"{self.father_name} & {self.mother_name}"
+        names = [n for n in [self.father_name, self.mother_name, self.guardian_name] if n]
+        return " & ".join(names) if names else "Parent/Guardian"
+
+    @property
+    def address(self):
+        return self.present_address or self.permanent_address or ""
+
+    @property
+    def guardian_display_name(self):
+        return self.guardian_name or self.father_name or self.mother_name or "Parent/Guardian"
+
+    @property
+    def parent_guardian_name(self):
+        return self.guardian_name or self.father_name or self.mother_name or ""
+
+    @property
+    def parent_guardian_phone(self):
+        return self.guardian_phone or self.father_phone or self.mother_phone or ""
+
+    @property
+    def primary_phone(self):
+        return self.guardian_phone or self.father_phone or self.mother_phone or ""
 
 
 class School(models.Model):
@@ -504,6 +547,193 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.school.name} - {self.amount} ({self.status})"
 
+
+DEFAULT_SCHOOL_CLASSES = [
+    ("Creche", "CRECHE", 1),
+    ("Nursery 1", "NURSERY_1", 2),
+    ("Nursery 2", "NURSERY_2", 3),
+    ("Kindergarten 1", "KINDERGARTEN_1", 4),
+    ("Kindergarten 2", "KINDERGARTEN_2", 5),
+    ("Primary 1", "PRIMARY_1", 6),
+    ("Primary 2", "PRIMARY_2", 7),
+    ("Primary 3", "PRIMARY_3", 8),
+    ("Primary 4", "PRIMARY_4", 9),
+    ("Primary 5", "PRIMARY_5", 10),
+    ("Primary 6", "PRIMARY_6", 11),
+    ("JHS 1", "JHS_1", 12),
+    ("JHS 2", "JHS_2", 13),
+    ("JHS 3", "JHS_3", 14),
+]
+
+LEGACY_CLASS_MAP = {
+    "UPPER_PRIMARY_1": "Primary 1",
+    "UPPER_PRIMARY_2": "Primary 2",
+    "UPPER_PRIMARY_3": "Primary 3",
+    "UPPER_PRIMARY_4": "Primary 4",
+    "UPPER_PRIMARY_5": "Primary 5",
+    "UPPER_PRIMARY_6": "Primary 6",
+    "KINDERGARTEN": "Kindergarten 1",
+}
+
+
+def _resolve_school_class(val, school=None):
+    if not val or not isinstance(val, (str, int)):
+        return val
+    val_str = str(val).strip()
+    if not val_str or val_str == "0":
+        return None
+    target_name = LEGACY_CLASS_MAP.get(val_str.upper())
+    qs = SchoolClass.objects.all()
+    if school:
+        qs = qs.filter(Q(school=school) | Q(school__isnull=True)).exclude(excluded_schools=school)
+
+    sc = qs.filter(Q(code__iexact=val_str) | Q(name__iexact=val_str)).first()
+    if not sc and target_name:
+        sc = qs.filter(Q(name__iexact=target_name) | Q(code__iexact=target_name)).first()
+    if not sc:
+        normalized = val_str.replace("_", " ").title()
+        sc = qs.filter(Q(name__iexact=normalized) | Q(code__iexact=normalized)).first()
+    if not sc:
+        code = slugify(val_str).upper().replace("-", "_")
+        sc = SchoolClass.objects.create(name=val_str, code=code, school=school)
+    return sc
+
+
+class SchoolClass(models.Model):
+    """
+    Class/Grade model (e.g. Primary 1, JHS 1, Creche).
+    Can be created globally by Super Admin (school=None) or customized per school.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(
+        'School',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="classes",
+        help_text="Leave blank for global/default classes available across all schools."
+    )
+    excluded_schools = models.ManyToManyField(
+        'School',
+        blank=True,
+        related_name="excluded_classes",
+        help_text="Schools that have deleted or hidden this global class from their school."
+    )
+    name = models.CharField(max_length=100, help_text="e.g. Primary 1, JHS 1, Creche")
+    code = models.CharField(max_length=50, blank=True, help_text="Short code or slug e.g. PRIMARY_1, JHS_1")
+    order = models.PositiveIntegerField(default=0, help_text="Order/hierarchy for class progression and promotion.")
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Class"
+        verbose_name_plural = "Classes"
+        ordering = ["order", "name"]
+        unique_together = [["school", "name"]]
+
+    @classmethod
+    def for_school(cls, school=None, active_only=True):
+        qs = cls.objects.all()
+        if school:
+            qs = qs.filter(models.Q(school=school) | models.Q(school__isnull=True)).exclude(excluded_schools=school)
+        if active_only:
+            qs = qs.filter(is_active=True)
+        return qs.order_by("order", "name")
+
+    def __str__(self):
+        return self.name
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other_clean = other.strip()
+            return (
+                (bool(self.code) and self.code.lower() == other_clean.lower())
+                or self.name.lower() == other_clean.lower()
+                or str(self.id) == other_clean
+                or LEGACY_CLASS_MAP.get(other_clean.upper()) == self.name
+            )
+        return super().__eq__(other)
+
+    def __hash__(self):
+        return super().__hash__()
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = slugify(self.name).upper().replace("-", "_")
+        super().save(*args, **kwargs)
+
+
+Class = SchoolClass
+StudentClass = SchoolClass
+
+
+class ClassFilterQuerySet(models.QuerySet):
+    CLASS_FIELDS = {
+        'student_class', 'previous_class', 'promoted_to',
+        'class_teacher_class', 'subject_class', 'class_attendance',
+        'from_class', 'to_class'
+    }
+
+    def _clean_class_kwargs(self, kwargs):
+        new_kwargs = {}
+        extra_q = Q()
+        for k, v in kwargs.items():
+            field_name = k.split('__')[0]
+            if field_name in self.CLASS_FIELDS and isinstance(v, (str, int)):
+                v_str = str(v).strip()
+                if k == field_name:
+                    is_uuid = False
+                    try:
+                        uuid.UUID(v_str)
+                        is_uuid = True
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                    if is_uuid:
+                        extra_q &= (Q(**{f"{k}__id": v_str}) | Q(**{f"{k}__code__iexact": v_str}) | Q(**{f"{k}__name__iexact": v_str}))
+                    else:
+                        legacy_name = LEGACY_CLASS_MAP.get(v_str.upper())
+                        q = Q(**{f"{k}__code__iexact": v_str}) | Q(**{f"{k}__name__iexact": v_str})
+                        if legacy_name:
+                            q |= Q(**{f"{k}__name__iexact": legacy_name}) | Q(**{f"{k}__code__iexact": legacy_name})
+                        extra_q &= q
+                else:
+                    new_kwargs[k] = v
+            else:
+                new_kwargs[k] = v
+        return extra_q, new_kwargs
+
+    def filter(self, *args, **kwargs):
+        extra_q, clean_kwargs = self._clean_class_kwargs(kwargs)
+        if extra_q:
+            return super().filter(*args, extra_q, **clean_kwargs)
+        return super().filter(*args, **clean_kwargs)
+
+    def exclude(self, *args, **kwargs):
+        extra_q, clean_kwargs = self._clean_class_kwargs(kwargs)
+        if extra_q:
+            return super().exclude(*args, extra_q, **clean_kwargs)
+        return super().exclude(*args, **clean_kwargs)
+
+    def get(self, *args, **kwargs):
+        extra_q, clean_kwargs = self._clean_class_kwargs(kwargs)
+        if extra_q:
+            return super().get(*args, extra_q, **clean_kwargs)
+        return super().get(*args, **clean_kwargs)
+
+
+class ClassFilterManager(models.Manager.from_queryset(ClassFilterQuerySet)):
+    pass
+
+StudentQuerySet = ClassFilterQuerySet
+StudentManager = ClassFilterManager
+SubjectQuerySet = ClassFilterQuerySet
+SubjectManager = ClassFilterManager
+AttendanceQuerySet = ClassFilterQuerySet
+AttendanceManager = ClassFilterManager
+
+
 class Department(models.Model):
     """Department/Class model"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -547,13 +777,27 @@ class Teacher(models.Model):
     experience_years = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to="teacher_images/", blank=True, null=True)
     is_class_teacher = models.BooleanField(default=False)
-    class_teacher_class = models.CharField(
-        max_length=50,
-        choices=ATTENDANCE_CLASS_CHOICES,
+    class_teacher_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
+        related_name="class_teachers",
         help_text="Class this teacher is responsible for taking attendance."
-      )
+    )
+
+    def get_class_teacher_class_display(self):
+        return str(self.class_teacher_class) if self.class_teacher_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "class_teacher_class" in kwargs and isinstance(kwargs["class_teacher_class"], str):
+            kwargs["class_teacher_class"] = _resolve_school_class(kwargs["class_teacher_class"], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.class_teacher_class, str):
+            self.class_teacher_class = _resolve_school_class(self.class_teacher_class, self.school)
+        super().save(*args, **kwargs)
       
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, default="full_time")
     hire_date = models.DateField(default=timezone.now)
@@ -573,6 +817,10 @@ class Teacher(models.Model):
     def __str__(self):
         dept = self.department.name if self.department else "No Dept"
         return f"{self.user.get_full_name()} ({dept})"
+
+    @property
+    def initials(self):
+        return self.user.initials if self.user else "T"
 
     @property
     def can_take_attendance(self) -> bool:
@@ -597,7 +845,27 @@ class Subject(models.Model):
     teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name="subjects")
     school = models.ForeignKey('School', on_delete=models.CASCADE, null=True) 
     name = models.CharField(max_length=100)
-    subject_class = models.CharField(max_length=50, choices=CLASS_CHOICES)
+    objects = SubjectManager()
+
+    subject_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.PROTECT,
+        related_name="subjects",
+        help_text="Class this subject belongs to"
+    )
+
+    def get_subject_class_display(self):
+        return str(self.subject_class) if self.subject_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "subject_class" in kwargs and isinstance(kwargs["subject_class"], str):
+            kwargs["subject_class"] = _resolve_school_class(kwargs["subject_class"], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.subject_class, str):
+            self.subject_class = _resolve_school_class(self.subject_class, self.school)
+        super().save(*args, **kwargs)
     # code = models.CharField(max_length=20, blank=True)
     # description = models.TextField(blank=True)
     # credits = models.PositiveIntegerField(default=1)
@@ -660,8 +928,20 @@ class Student(models.Model):
     
     student_id = models.CharField(max_length=20, unique=True, editable=False)
     admission_number = models.CharField(max_length=20, unique=True, editable=False)
-    student_class = models.CharField(max_length=50, choices=CLASS_CHOICES)
-    previous_class = models.CharField(max_length=50, choices=CLASS_CHOICES, blank=True, null=True)
+    objects = StudentManager()
+
+    student_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.PROTECT,
+        related_name="students"
+    )
+    previous_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="former_students"
+    )
     
     # Promotion Fields
     promotion_status = models.CharField(
@@ -670,18 +950,47 @@ class Student(models.Model):
         default="pending",
         help_text="Current promotion status of the student"
     )
-    promoted_to = models.CharField(
-        max_length=50, 
-        choices=CLASS_CHOICES, 
-        blank=True, 
+    promoted_to = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.SET_NULL,
+        blank=True,
         null=True,
+        related_name="promoted_students",
         help_text="Class to which student will be promoted"
     )
+
+    def get_student_class_display(self):
+        return str(self.student_class) if self.student_class else ""
+
+    def get_previous_class_display(self):
+        return str(self.previous_class) if self.previous_class else ""
+
+    def get_promoted_to_display(self):
+        return str(self.promoted_to) if self.promoted_to else ""
+
+    @property
+    def initials(self):
+        return self.user.initials if self.user else "S"
+
+    @property
+    def grade_level(self):
+        return self.get_student_class_display()
+
+    @property
+    def admission_date(self):
+        return self.joining_date
+
+    def __init__(self, *args, **kwargs):
+        for field in ("student_class", "previous_class", "promoted_to"):
+            if field in kwargs and isinstance(kwargs[field], str):
+                kwargs[field] = _resolve_school_class(kwargs[field], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
     promotion_date = models.DateField(blank=True, null=True)
     
     joining_date = models.DateField(default=timezone.now)
     mobile_number = models.CharField(max_length=15)
     student_image = models.ImageField(upload_to="student_images/", blank=True, null=True)
+    previous_school = models.CharField(max_length=200, blank=True)
     
     # Health Information
     allergies = models.TextField(blank=True)
@@ -748,6 +1057,12 @@ class Student(models.Model):
             self.slug = self._build_slug()
 
     def save(self, *args, **kwargs):
+        if isinstance(self.student_class, str):
+            self.student_class = _resolve_school_class(self.student_class, self.school)
+        if isinstance(self.previous_class, str):
+            self.previous_class = _resolve_school_class(self.previous_class, self.school)
+        if isinstance(self.promoted_to, str):
+            self.promoted_to = _resolve_school_class(self.promoted_to, self.school)
         is_create = self._state.adding
 
         if not is_create:
@@ -782,23 +1097,25 @@ class Student(models.Model):
         raise IntegrityError("Could not generate unique student identifiers after multiple retries.")
 
     def promote_to_next_class(self):
-        """Promote student to the next class"""
-        class_progression = dict(self.CLASS_CHOICES)
-        class_keys = list(class_progression.keys())
-        
-        try:
-            current_index = class_keys.index(self.student_class)
-            if current_index < len(class_keys) - 1:
-                self.previous_class = self.student_class
-                self.promoted_to = class_keys[current_index + 1]
-                self.promotion_status = "promoted"
-                self.promotion_date = timezone.now().date()
-                return True
-            else:
-                self.promotion_status = "graduated"
-                self.promotion_date = timezone.now().date()
-                return False
-        except ValueError:
+        """Promote student to the next class based on class order"""
+        if not self.student_class:
+            return False
+
+        next_class = SchoolClass.objects.filter(
+            Q(school=self.school) | Q(school__isnull=True),
+            order__gt=self.student_class.order,
+            is_active=True
+        ).order_by('order', 'name').first()
+
+        if next_class:
+            self.previous_class = self.student_class
+            self.promoted_to = next_class
+            self.promotion_status = "promoted"
+            self.promotion_date = timezone.now().date()
+            return True
+        else:
+            self.promotion_status = "graduated"
+            self.promotion_date = timezone.now().date()
             return False
 
     def confirm_promotion(self):
@@ -852,11 +1169,26 @@ class Assignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="assignments")
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="assignments")
-    student_class = models.CharField(
-        max_length=50,
-        choices=Student.CLASS_CHOICES,
+    objects = ClassFilterManager()
+    student_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.CASCADE,
+        related_name="assignments",
         help_text="Select the class this assignment is for"
     )
+
+    def get_student_class_display(self):
+        return str(self.student_class) if self.student_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "student_class" in kwargs and isinstance(kwargs["student_class"], str):
+            kwargs["student_class"] = _resolve_school_class(kwargs["student_class"])
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.student_class, str):
+            self.student_class = _resolve_school_class(self.student_class)
+        super().save(*args, **kwargs)
     title = models.CharField(max_length=255)
     description = models.TextField()
     instructions = models.TextField(blank=True)
@@ -993,9 +1325,9 @@ class ResultSheet(models.Model):
     def calculate_total(self):
         """Compute total marks and derived fields."""
         # Simply sum all three manually entered components
-        class_score = self.class_score if self.class_score else Decimal('0')
-        mid_semester = self.mid_semester if self.mid_semester else Decimal('0')
-        end_of_term_exams = self.end_of_term_exams if self.end_of_term_exams else Decimal('0')
+        class_score = Decimal(str(self.class_score)) if self.class_score is not None else Decimal('0')
+        mid_semester = Decimal(str(self.mid_semester)) if self.mid_semester is not None else Decimal('0')
+        end_of_term_exams = Decimal(str(self.end_of_term_exams)) if self.end_of_term_exams is not None else Decimal('0')
         
         # Calculate total (sum of all three)
         self.total_marks = class_score + mid_semester + end_of_term_exams
@@ -1033,6 +1365,10 @@ class ResultSheet(models.Model):
         """Auto-calculate total, percentage, grade, and remark"""
         self.calculate_total()
         self._determine_grade_and_remark()
+        if "update_fields" in kwargs and kwargs["update_fields"] is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | {
+                "total_marks", "percentage", "grade", "remark"
+            }
         super().save(*args, **kwargs)
         
     def __str__(self):
@@ -1052,7 +1388,26 @@ class ClassFee(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="class_fee_structures")
-    student_class = models.CharField(max_length=50, blank=True, null=True, choices=Student.CLASS_CHOICES)
+    student_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="class_fee_structures"
+    )
+
+    def get_student_class_display(self):
+        return str(self.student_class) if self.student_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "student_class" in kwargs and isinstance(kwargs["student_class"], str):
+            kwargs["student_class"] = _resolve_school_class(kwargs["student_class"], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.student_class, str):
+            self.student_class = _resolve_school_class(self.student_class, self.school)
+        super().save(*args, **kwargs)
     fee_type = models.CharField(max_length=20, choices=[
         ("tuition", "Tuition Fee"),
         ("admission", "Admission Fee"),
@@ -1071,6 +1426,14 @@ class ClassFee(models.Model):
         unique_together = ('school', 'student_class', 'fee_type', 'academic_year', 'term')
         verbose_name = "Class Fee Structure"
         verbose_name_plural = "Class Fee Structures"
+
+    @property
+    def name(self):
+        """Display name for the fee structure."""
+        try:
+            return self.get_fee_type_display()
+        except Exception:
+            return "Class Fee"
 
     def __str__(self):
         return f"{self.get_student_class_display()} - {self.get_term_display()} ({self.get_fee_type_display()}: ₵{self.amount})"
@@ -1110,7 +1473,26 @@ class Fees(models.Model):
     )
 
     # Snapped fields (frozen at time of creation)
-    student_class = models.CharField(max_length=50, choices=Student.CLASS_CHOICES)
+    student_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name="fees"
+    )
+
+    def get_student_class_display(self):
+        return str(self.student_class) if self.student_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "student_class" in kwargs and isinstance(kwargs["student_class"], str):
+            kwargs["student_class"] = _resolve_school_class(kwargs["student_class"], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.student_class, str):
+            self.student_class = _resolve_school_class(self.student_class, self.school)
+        super().save(*args, **kwargs)
     term = models.CharField(max_length=10, choices=ClassFee.TERM_CHOICES)
     academic_year = models.CharField(max_length=20)
     fee_type = models.CharField(max_length=20, choices=ClassFee._meta.get_field('fee_type').choices)
@@ -1163,6 +1545,26 @@ class Fees(models.Model):
     @property
     def is_overdue(self):
         return self.balance > 0 and self.due_date and timezone.now().date() > self.due_date
+
+    @property
+    def net_amount(self):
+        """Current balance owed."""
+        return self.balance
+
+    @property
+    def display_name(self):
+        """Human-readable display name for this fee charge."""
+        if self.fee_structure:
+            try:
+                return self.fee_structure.get_fee_type_display()
+            except Exception:
+                pass
+        if self.fee_type:
+            try:
+                return self.get_fee_type_display()
+            except Exception:
+                pass
+        return "Tuition & School Fees" 
 
     def save(self, *args, **kwargs):
         # 1. If a structure is linked, pull its data to populate the bill
@@ -1218,7 +1620,27 @@ class Attendance(models.Model):
     attendance_type = models.CharField(max_length=20, choices=ATTENDANCE_TYPE_CHOICES)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="attendance", blank=True, null=True)
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="attendance", blank=True, null=True)
-    class_attendance = models.CharField(max_length=50, choices=CLASS_CHOICES,default=0)
+    objects = AttendanceManager()
+    class_attendance = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="attendances"
+    )
+
+    def get_class_attendance_display(self):
+        return str(self.class_attendance) if self.class_attendance else ""
+
+    def __init__(self, *args, **kwargs):
+        if "class_attendance" in kwargs and isinstance(kwargs["class_attendance"], (str, int)):
+            kwargs["class_attendance"] = _resolve_school_class(kwargs["class_attendance"])
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.class_attendance, (str, int)):
+            self.class_attendance = _resolve_school_class(self.class_attendance)
+        super().save(*args, **kwargs)
     date = models.DateField(default=timezone.now)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="present")
     remarks = models.TextField(blank=True)
@@ -1362,7 +1784,24 @@ class Timetable(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="timetables")
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="timetables")
     
-    student_class = models.CharField(max_length=50, choices=Student.CLASS_CHOICES)
+    student_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.CASCADE,
+        related_name="timetables"
+    )
+
+    def get_student_class_display(self):
+        return str(self.student_class) if self.student_class else ""
+
+    def __init__(self, *args, **kwargs):
+        if "student_class" in kwargs and isinstance(kwargs["student_class"], str):
+            kwargs["student_class"] = _resolve_school_class(kwargs["student_class"], kwargs.get("school"))
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.student_class, str):
+            self.student_class = _resolve_school_class(self.student_class, self.school)
+        super().save(*args, **kwargs)
     day_of_week = models.CharField(max_length=20, choices=DAY_CHOICES)
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -1434,8 +1873,35 @@ class PromotionHistory(models.Model):
     """Track student promotion history"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="promotion_history")
-    from_class = models.CharField(max_length=50, choices=Student.CLASS_CHOICES)
-    to_class = models.CharField(max_length=50, choices=Student.CLASS_CHOICES)
+    from_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.CASCADE,
+        related_name="promotions_from"
+    )
+    to_class = models.ForeignKey(
+        SchoolClass,
+        on_delete=models.CASCADE,
+        related_name="promotions_to"
+    )
+
+    def get_from_class_display(self):
+        return str(self.from_class) if self.from_class else ""
+
+    def get_to_class_display(self):
+        return str(self.to_class) if self.to_class else ""
+
+    def __init__(self, *args, **kwargs):
+        for field in ("from_class", "to_class"):
+            if field in kwargs and isinstance(kwargs[field], str):
+                kwargs[field] = _resolve_school_class(kwargs[field])
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.from_class, str):
+            self.from_class = _resolve_school_class(self.from_class)
+        if isinstance(self.to_class, str):
+            self.to_class = _resolve_school_class(self.to_class)
+        super().save(*args, **kwargs)
     academic_year = models.CharField(max_length=20, help_text="e.g., 2024/2025")
     
     promotion_date = models.DateField(default=timezone.now)

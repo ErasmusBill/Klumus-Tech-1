@@ -107,15 +107,17 @@ class TrialSubscriptionFlowTests(TestCase):
         first_response = self.client.post(
             reverse("account:login"),
             {"username": self.admin.username, "password": self.password},
+            follow=True,
         )
         first_messages = [m.message for m in get_messages(first_response.wsgi_request)]
         self.assertTrue(any("30-day free trial" in msg for msg in first_messages))
 
-        self.client.post(reverse("account:logout"))
+        self.client.post(reverse("account:logout"), follow=True)
 
         second_response = self.client.post(
             reverse("account:login"),
             {"username": self.admin.username, "password": self.password},
+            follow=True,
         )
         second_messages = [m.message for m in get_messages(second_response.wsgi_request)]
         self.assertFalse(any("30-day free trial" in msg for msg in second_messages))

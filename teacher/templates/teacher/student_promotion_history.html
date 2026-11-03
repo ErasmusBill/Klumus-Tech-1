@@ -3,144 +3,206 @@
 
 {% block title %}Promotion History - {{ student.user.get_full_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  .profile-card {
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  }
+
+  .timeline-container {
+    position: relative;
+    padding-left: 36px;
+  }
+  .timeline-container::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 14px;
+    width: 2px;
+    background: #e2e8f0;
+  }
+
+  .timeline-node {
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .timeline-marker {
+    position: absolute;
+    left: -36px;
+    top: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #eff6ff;
+    border: 2px solid #3b82f6;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    z-index: 2;
+  }
+
+  .timeline-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: all 0.15s ease;
+  }
+  .timeline-card:hover {
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border-color: #cbd5e1;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h3 class="page-title">Promotion History - {{ student.user.get_full_name }}</h3>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-history' %}">All History</a></li>
-                <li class="breadcrumb-item active">{{ student.user.get_full_name }}</li>
-            </ul>
-        </div>
-        <div class="col-auto text-right float-right ml-auto">
-            <a href="{% url 'teacher:individual-promotion' student.id %}" class="btn btn-primary">
-                <i class="fas fa-user-edit"></i> Manage Promotion
-            </a>
-        </div>
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <ul class="breadcrumb mb-1 bg-transparent p-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:promotion-dashboard' %}">Promotion Management</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:view-class-students' student.student_class.code|default:student.student_class %}">{{ student.get_student_class_display }}</a></li>
+        <li class="breadcrumb-item active">{{ student.user.get_full_name }}</li>
+      </ul>
+      <h3 class="page-title mb-0 font-weight-bold">Student Progression Timeline</h3>
     </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <a href="{% url 'teacher:view-class-students' student.student_class.code|default:student.student_class %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm mr-2">
+        <i class="fas fa-arrow-left mr-1"></i> Class Roster
+      </a>
+      {% if can_manage %}
+      <a href="{% url 'teacher:individual-promotion' student.id %}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm font-weight-bold">
+        <i class="fas fa-user-edit mr-1"></i> Manage / Edit Promotion
+      </a>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <div class="row">
-    <div class="col-md-4">
-        <!-- Student Summary -->
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">Student Summary</h4>
+  <!-- Left Column: Student Summary -->
+  <div class="col-lg-4 mb-4">
+    <div class="card profile-card">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          {% if student.user.profile_picture %}
+            <img src="{{ student.user.profile_picture.url }}" alt="{{ student.user.get_full_name }}" class="rounded-circle shadow-sm" style="width: 85px; height: 85px; object-fit: cover;">
+          {% elif student.student_image %}
+            <img src="{{ student.student_image.url }}" alt="{{ student.user.get_full_name }}" class="rounded-circle shadow-sm" style="width: 85px; height: 85px; object-fit: cover;">
+          {% else %}
+            <div class="rounded-circle font-weight-bold d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 85px; height: 85px; font-size: 1.8rem; background: #eff6ff; color: #1d4ed8;">
+              {{ student.user.initials }}
             </div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    {% if student.student_image %}
-                        <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" 
-                             class="rounded-circle" width="80" height="80">
-                    {% elif student.user.profile_picture %}
-                        <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ student.user.get_full_name }}" 
-                             class="rounded-circle" width="80" height="80">
-                    {% else %}
-                        <div class="avatar-placeholder rounded-circle bg-light d-inline-flex align-items-center justify-content-center" 
-                             style="width: 80px; height: 80px;">
-                            <i class="fas fa-user-graduate fa-2x text-muted"></i>
-                        </div>
-                    {% endif %}
-                </div>
-                
-                <h5 class="text-center">{{ student.user.get_full_name }}</h5>
-                <p class="text-center text-muted">{{ student.student_id }}</p>
-                
-                <div class="student-info">
-                    <p><strong>Current Class:</strong> {{ student.get_student_class_display }}</p>
-                    <p><strong>Admission No:</strong> {{ student.admission_number }}</p>
-                    <p><strong>Total Promotions:</strong> {{ promotions.count }}</p>
-                    <p><strong>Status:</strong> 
-                        <span class="badge badge-{% if student.is_active %}success{% else %}danger{% endif %}">
-                            {{ student.is_active|yesno:"Active,Inactive" }}
-                        </span>
-                    </p>
-                </div>
-            </div>
+          {% endif %}
         </div>
-    </div>
 
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">Promotion History</h4>
+        <h4 class="font-weight-bold text-dark mb-1">{{ student.user.get_full_name }}</h4>
+        <div class="text-muted small mb-3">ID: {{ student.student_id|default:student.admission_number|default:"-" }}</div>
+
+        <div class="d-flex justify-content-center gap-2 mb-3">
+          <span class="badge badge-light border text-primary px-3 py-1 font-weight-bold">
+            {{ student.get_student_class_display }}
+          </span>
+          <span class="badge badge-{% if student.promotion_status == 'promoted' %}success{% elif student.promotion_status == 'retained' %}warning{% else %}secondary{% endif %} px-3 py-1">
+            {{ student.get_promotion_status_display }}
+          </span>
+        </div>
+
+        <div class="border-top pt-3 text-left">
+          <div class="d-flex justify-content-between mb-2 small">
+            <span class="text-muted">Admission No:</span>
+            <span class="font-weight-semibold text-dark">{{ student.admission_number|default:"-" }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2 small">
+            <span class="text-muted">Total Milestones:</span>
+            <span class="font-weight-semibold text-dark">{{ promotions.count }}</span>
+          </div>
+          <div class="d-flex justify-content-between small">
+            <span class="text-muted">Enrollment Status:</span>
+            <span class="badge badge-{% if student.is_active %}success{% else %}danger{% endif %} px-2 py-1">
+              {{ student.is_active|yesno:"Active,Inactive" }}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-top">
+          <a href="{% url 'teacher:view-result' student.id %}" class="btn btn-outline-secondary btn-sm btn-block rounded-pill">
+            <i class="fas fa-file-invoice mr-1"></i> View Academic Report Card
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Promotion Milestones Timeline -->
+  <div class="col-lg-8">
+    <div class="card profile-card">
+      <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h5 class="mb-0 font-weight-bold text-dark">
+          <i class="fas fa-stream text-primary mr-2"></i> Progression Audit Trail
+        </h5>
+        <span class="badge badge-light border text-muted px-2 py-1 font-weight-semibold">
+          {{ promotions.count }} Records
+        </span>
+      </div>
+
+      <div class="card-body p-4">
+        {% if promotions %}
+        <div class="timeline-container">
+          {% for promo in promotions %}
+          <div class="timeline-node">
+            <div class="timeline-marker">
+              <i class="fas fa-check"></i>
             </div>
-            <div class="card-body">
-                {% if promotions %}
-                <div class="timeline">
-                    {% for promotion in promotions %}
-                    <div class="timeline-item">
-                        <div class="timeline-point"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-date">{{ promotion.promotion_date|date:"M d, Y" }}</div>
-                            <h5 class="mb-1">
-                                {% if promotion.to_class %}
-                                    Promoted from {{ promotion.get_from_class_display }} to {{ promotion.get_to_class_display }}
-                                {% else %}
-                                    Graduated from {{ promotion.get_from_class_display }}
-                                {% endif %}
-                            </h5>
-                            <p class="text-muted mb-1">
-                                Academic Year: {{ promotion.academic_year }}
-                                {% if promotion.promoted_by %}
-                                    • By: {{ promotion.promoted_by.get_full_name }}
-                                {% endif %}
-                            </p>
-                            {% if promotion.remarks %}
-                                <p class="mb-0"><small>{{ promotion.remarks }}</small></p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="timeline-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="badge badge-primary px-2 py-1" style="font-size: 0.75rem;">
+                  Session {{ promo.academic_year }}
+                </span>
+                <small class="text-muted font-weight-semibold">
+                  <i class="far fa-calendar-alt mr-1"></i> {{ promo.promotion_date|date:"F d, Y" }}
+                </small>
+              </div>
+
+              <h6 class="font-weight-bold text-dark mt-2 mb-1">
+                {% if promo.to_class %}
+                  Advanced from <span class="text-primary">{{ promo.get_from_class_display }}</span> to <span class="text-success">{{ promo.get_to_class_display }}</span>
                 {% else %}
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <p>No promotion history found for this student.</p>
-                </div>
+                  Graduated from <span class="text-purple">{{ promo.get_from_class_display }}</span>
                 {% endif %}
+              </h6>
+
+              <div class="d-flex align-items-center text-muted small mt-2">
+                <i class="fas fa-user-check text-secondary mr-1"></i> Authorized by:
+                <strong class="text-dark ml-1">{{ promo.promoted_by.get_full_name|default:"Administrator" }}</strong>
+              </div>
+
+              {% if promo.remarks %}
+                <div class="bg-white border rounded p-2 mt-2 small text-dark">
+                  <i class="fas fa-comment-alt text-muted mr-1"></i> {{ promo.remarks }}
+                </div>
+              {% endif %}
             </div>
+          </div>
+          {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-history fa-3x mb-3 opacity-50"></i>
+          <h5>No Progression Milestones Yet</h5>
+          <p class="small text-muted mb-0">Promotion records will appear here as the student advances across academic sessions.</p>
+        </div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-point {
-    position: absolute;
-    left: -30px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    background-color: #007bff;
-    border-radius: 50%;
-}
-
-.timeline-content {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    border-left: 3px solid #007bff;
-}
-
-.timeline-date {
-    font-size: 0.875rem;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-</style>
 {% endblock %}

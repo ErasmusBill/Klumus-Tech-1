@@ -1,61 +1,783 @@
 {% extends "teacher/base.html" %}
-{% load static %}
+{% load static media_tags %}
+
+{% block title %}AI Academic Insights & Risk Forecasting - {{ school.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ai-hero {
+    background: linear-gradient(135deg, #090d16 0%, #0f172a 45%, #1e1b4b 100%);
+    border-radius: 16px;
+    padding: 26px 30px;
+    color: #ffffff;
+    box-shadow: 0 12px 28px -5px rgba(15, 23, 42, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .ai-hero::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    bottom: -30px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .stat-card {
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .pulse-red {
+    background: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulseRed 2s infinite;
+  }
+  @keyframes pulseRed {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+
+  .pulse-amber { background: #f59e0b; }
+  .pulse-green { background: #10b981; }
+
+  .filter-panel {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  }
+
+  .table-ai {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .table-ai thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 14px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .table-ai tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  .table-ai tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  .table-ai td {
+    padding: 13px 14px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .grade-badge-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.9rem;
+  }
+  .grade-A { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .grade-B { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .grade-C { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .grade-D { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+  .grade-F { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+  .risk-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+  }
+  .risk-High { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  .risk-Medium { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .risk-Low { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+  .action-btn-pill {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .protocol-box {
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    height: 100%;
+  }
+
+  @media print {
+    .sidebar, .header, .page-header, .filter-panel, .btn-no-print, .action-cell, .breadcrumb, #riskChartRow {
+      display: none !important;
+    }
+    .card, .table-responsive {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    body {
+      background: #ffffff !important;
+      font-size: 11pt;
+    }
+    .ai-hero {
+      background: none !important;
+      color: #000000 !important;
+      border: 1px solid #000000;
+      padding: 12px;
+    }
+    .ai-hero h2, .ai-hero p, .ai-hero span {
+      color: #000000 !important;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-3 text-center">AI Academic Performance Dashboard</h2>
-
-  <canvas id="riskChart" class="mb-5" height="120"></canvas>
-
-  <table class="table table-bordered table-striped">
-    <thead class="table-dark">
-      <tr>
-        <th>Student</th>
-        <th>Predicted Grade</th>
-        <th>Risk Level</th>
-        <th>Date</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in data %}
-      <tr>
-        <td>{{ item.student.user.get_full_name|default:item.student.user.username }}</td>
-        <td>{{ item.predicted_grade }}</td>
-        <td>
-          {% if item.risk_level == "High" %}
-            <span class="badge bg-danger">{{ item.risk_level }}</span>
-          {% elif item.risk_level == "Medium" %}
-            <span class="badge bg-warning text-dark">{{ item.risk_level }}</span>
-          {% else %}
-            <span class="badge bg-success">{{ item.risk_level }}</span>
-          {% endif %}
-        </td>
-        <td>{{ item.created_at|date:"Y-m-d" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<!-- Standard Navigation Header -->
+<div class="page-header mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <ul class="breadcrumb mb-1 bg-transparent p-0 small">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">AI Insights</li>
+      </ul>
+      <h3 class="page-title mb-0 font-weight-bold">Predictive Academic Insights</h3>
+    </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 shadow-sm btn-no-print" onclick="window.print()">
+        <i class="fas fa-print mr-1"></i> Print Intelligence Brief
+      </button>
+      <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 mr-2 shadow-sm btn-no-print" id="btnExportCSV">
+        <i class="fas fa-file-excel mr-1"></i> Export Forecast (CSV)
+      </button>
+      <a href="{% url 'teacher:list-result' %}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm btn-no-print font-weight-bold">
+        <i class="fas fa-chart-line mr-1"></i> Grade Records Hub
+      </a>
+    </div>
+  </div>
 </div>
 
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
+      <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- AI Intelligence Hero Banner -->
+<div class="ai-hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge badge-warning px-3 py-1 font-weight-bold mr-2" style="background-color: #6366f1; color: #ffffff; font-size: 0.8rem;">
+          <i class="fas fa-brain mr-1"></i> Machine Learning Predictor v2.0
+        </span>
+        <span class="badge badge-light px-3 py-1 font-weight-bold mr-2 text-dark" style="font-size: 0.8rem;">
+          <i class="fas fa-shield-virus mr-1 text-danger"></i> Early Academic Warning Engine
+        </span>
+        <span class="text-white-50 small">
+          <i class="fas fa-user-check mr-1"></i> {{ total_analyzed }} Students Evaluated
+        </span>
+      </div>
+      <h2 class="font-weight-bold text-white mb-1" style="font-size: 1.85rem; letter-spacing: -0.02em;">
+        AI Academic Performance & Risk Forecasting
+      </h2>
+      <p class="text-white-50 mb-0 small">
+        Continuous machine learning synthesis across term assessments, exam scores, and attendance trajectories to forecast final grades and identify at-risk students before exams.
+      </p>
+    </div>
+    <div class="col-lg-4 text-lg-right mt-3 mt-lg-0 btn-no-print">
+      <div class="d-inline-flex flex-column align-items-lg-end text-lg-right">
+        <span class="badge badge-dark px-3 py-2 text-white-50 border border-secondary mb-2" style="font-size: 0.8rem;">
+          <i class="fas fa-circle text-success mr-1" style="font-size: 0.6rem;"></i> Model Operational & Synced
+        </span>
+        <small class="text-white-50">
+          Last refreshed: {{ data.0.created_at|date:"M d, Y"|default:"Today" }}
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Summary Cards Row -->
+<div class="row mb-4 stat-row">
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #eff6ff; color: #1d4ed8;">
+          <i class="fas fa-users-cog"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Coverage</span>
+          <h3 class="mb-0 font-weight-bold text-dark">{{ total_analyzed }} <small class="text-muted font-weight-normal" style="font-size: 0.9rem;">/ {{ total_school_students }}</small></h3>
+          <small class="text-success font-weight-semibold">Active Roster</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100" style="border-left: 4px solid #ef4444;">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #fee2e2; color: #b91c1c;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">High Risk Alert</span>
+          <h3 class="mb-0 font-weight-bold text-danger d-flex align-items-center">
+            <span class="pulse-dot pulse-red"></span>{{ high_risk_count }}
+          </h3>
+          <small class="text-danger font-weight-semibold">Requires Immediate Support</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100" style="border-left: 4px solid #f59e0b;">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #fef3c7; color: #b45309;">
+          <i class="fas fa-eye"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Medium Risk / Watch</span>
+          <h3 class="mb-0 font-weight-bold text-warning">{{ medium_risk_count }}</h3>
+          <small class="text-muted font-weight-semibold">Targeted Practice Advised</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+    <div class="card stat-card h-100" style="border-left: 4px solid #10b981;">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon mr-3" style="background: #dcfce7; color: #15803d;">
+          <i class="fas fa-award"></i>
+        </div>
+        <div>
+          <span class="text-muted text-uppercase font-weight-bold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Low Risk / On Track</span>
+          <h3 class="mb-0 font-weight-bold text-success">{{ low_risk_count }}</h3>
+          <small class="text-success font-weight-semibold">Advancing Strong</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Chart.js Row -->
+<div class="row mb-4" id="riskChartRow">
+  <!-- Chart 1: Risk Distribution -->
+  <div class="col-lg-5 mb-3 mb-lg-0">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 font-weight-bold text-dark">
+          <i class="fas fa-chart-pie text-primary mr-2"></i> Risk Breakdown Distribution
+        </h6>
+        <span class="badge badge-light border text-muted px-2 py-1 small">Cohort Ratio</span>
+      </div>
+      <div class="card-body p-4 d-flex flex-column justify-content-center align-items-center">
+        <div style="width: 100%; max-width: 260px; height: 210px; position: relative;">
+          <canvas id="riskDoughnutChart"></canvas>
+        </div>
+        <div class="d-flex justify-content-center gap-3 mt-3 w-100 text-center">
+          <div class="px-2">
+            <span class="small font-weight-bold text-danger d-block">● High</span>
+            <strong class="text-dark">{{ high_risk_count }}</strong>
+          </div>
+          <div class="px-2">
+            <span class="small font-weight-bold text-warning d-block">● Medium</span>
+            <strong class="text-dark">{{ medium_risk_count }}</strong>
+          </div>
+          <div class="px-2">
+            <span class="small font-weight-bold text-success d-block">● Low</span>
+            <strong class="text-dark">{{ low_risk_count }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: Grade Predictions Bar Chart -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 font-weight-bold text-dark">
+          <i class="fas fa-chart-bar text-success mr-2"></i> Projected Final Grade Distribution
+        </h6>
+        <span class="badge badge-light border text-muted px-2 py-1 small">A to F Model Forecast</span>
+      </div>
+      <div class="card-body p-4">
+        <div style="width: 100%; height: 230px;">
+          <canvas id="gradesBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pedagogical Intervention Guidance Panel -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-header bg-white border-bottom py-3 px-4">
+    <h6 class="mb-0 font-weight-bold text-dark d-flex align-items-center">
+      <i class="fas fa-chalkboard-teacher text-primary mr-2"></i> AI Actionable Intervention Framework
+    </h6>
+  </div>
+  <div class="card-body p-4">
+    <div class="row">
+      <div class="col-md-4 mb-3 mb-md-0">
+        <div class="protocol-box" style="border-left: 3px solid #ef4444;">
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge badge-danger mr-2 px-2 py-1">High Risk Protocol</span>
+          </div>
+          <h6 class="font-weight-bold text-dark mb-1">Immediate Remediation</h6>
+          <p class="text-muted small mb-2">
+            Schedule 1-on-1 tutoring sessions, activate click-to-call parent alert, and assign tailored foundational practice sets.
+          </p>
+          <small class="text-danger font-weight-semibold">Focus: Core concept gaps & exam attendance</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-3 mb-md-0">
+        <div class="protocol-box" style="border-left: 3px solid #f59e0b;">
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge badge-warning mr-2 px-2 py-1">Medium Risk Protocol</span>
+          </div>
+          <h6 class="font-weight-bold text-dark mb-1">Targeted Skill Reinforcement</h6>
+          <p class="text-muted small mb-2">
+            Pair with peer mentors, review homework completion regularity, and provide weekly revision quizzes.
+          </p>
+          <small class="text-warning font-weight-semibold">Focus: Consistency & mid-term scores</small>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="protocol-box" style="border-left: 3px solid #10b981;">
+          <div class="d-flex align-items-center mb-2">
+            <span class="badge badge-success mr-2 px-2 py-1">Low Risk Protocol</span>
+          </div>
+          <h6 class="font-weight-bold text-dark mb-1">Accelerated Enrichment</h6>
+          <p class="text-muted small mb-2">
+            Introduce advanced problem sets, recommend for academic competitions, and encourage student-led study circles.
+          </p>
+          <small class="text-success font-weight-semibold">Focus: Distinction & academic leadership</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Multi-filter & Table Card -->
+<div class="card filter-panel mb-4 overflow-hidden border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom py-3 px-4">
+    <form method="GET" action="{% url 'teacher:ai_dashboard' %}" id="filterForm">
+      <div class="row align-items-center">
+        <!-- Search Input -->
+        <div class="col-lg-4 col-md-6 mb-2 mb-lg-0">
+          <div class="input-group input-group-sm">
+            <div class="input-group-prepend">
+              <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+            </div>
+            <input type="text" name="search" class="form-control bg-light border-left-0" placeholder="Search by student name or ID..." value="{{ selected_search }}">
+          </div>
+        </div>
+
+        <!-- Risk Filter -->
+        <div class="col-lg-3 col-md-6 mb-2 mb-lg-0">
+          <select name="risk" class="form-control form-control-sm" onchange="this.form.submit()">
+            <option value="">All Risk Levels ({{ total_analyzed }})</option>
+            <option value="High" {% if selected_risk == "High" %}selected{% endif %}>High Risk Only ({{ high_risk_count }})</option>
+            <option value="Medium" {% if selected_risk == "Medium" %}selected{% endif %}>Medium Risk Only ({{ medium_risk_count }})</option>
+            <option value="Low" {% if selected_risk == "Low" %}selected{% endif %}>Low Risk / Safe ({{ low_risk_count }})</option>
+          </select>
+        </div>
+
+        <!-- Class Filter -->
+        <div class="col-lg-3 col-md-6 mb-2 mb-lg-0">
+          <select name="class" class="form-control form-control-sm" onchange="this.form.submit()">
+            <option value="">All School Classes</option>
+            {% for sc in available_classes %}
+              <option value="{{ sc.code|default:sc.name }}" {% if selected_class == sc.code or selected_class == sc.name %}selected{% endif %}>
+                {{ sc.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Grade Filter & Submit -->
+        <div class="col-lg-2 col-md-6 d-flex align-items-center justify-content-lg-end gap-1">
+          <select name="grade" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
+            <option value="">All Grades</option>
+            <option value="A" {% if selected_grade == "A" %}selected{% endif %}>Grade A</option>
+            <option value="B" {% if selected_grade == "B" %}selected{% endif %}>Grade B</option>
+            <option value="C" {% if selected_grade == "C" %}selected{% endif %}>Grade C</option>
+            <option value="D" {% if selected_grade == "D" %}selected{% endif %}>Grade D</option>
+            <option value="F" {% if selected_grade == "F" %}selected{% endif %}>Grade F</option>
+          </select>
+          <a href="{% url 'teacher:ai_dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill" title="Reset Filters">
+            <i class="fas fa-undo"></i>
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-ai mb-0" id="predictionsTable">
+      <thead>
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th style="min-width: 230px;">Student</th>
+          <th style="min-width: 120px;">Class</th>
+          <th class="text-center" style="min-width: 110px;">Actual Avg</th>
+          <th class="text-center" style="min-width: 120px;">Predicted Grade</th>
+          <th class="text-center" style="min-width: 130px;">Risk Level</th>
+          <th style="min-width: 190px;">Recommended Action</th>
+          <th class="text-right action-cell btn-no-print" style="min-width: 160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data %}
+        <tr class="student-ai-row" id="row_{{ item.student.student_id }}">
+          <td class="text-muted font-weight-bold">{{ forloop.counter }}</td>
+
+          <!-- Student Info -->
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="avatar avatar-sm mr-2 flex-shrink-0">
+                {% if item.student.user.profile_picture %}
+                  <img class="avatar-img rounded-circle" src="{{ item.student.user.profile_picture.url }}" alt="{{ item.student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                {% elif item.student.student_image %}
+                  <img class="avatar-img rounded-circle" src="{{ item.student.student_image.url }}" alt="{{ item.student.user.get_full_name }}" style="width: 36px; height: 36px; object-fit: cover;">
+                {% else %}
+                  <span class="avatar-title rounded-circle font-weight-bold" style="width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background-color: #eff6ff; color: #1d4ed8;">
+                    {{ item.student.user.initials }}
+                  </span>
+                {% endif %}
+              </div>
+              <div>
+                <a href="{% url 'teacher:view-result' item.student.id %}" class="font-weight-bold text-dark text-decoration-none">
+                  {{ item.student.user.get_full_name|default:item.student.user.username }}
+                </a>
+                <div class="small text-muted">ID: {{ item.student.student_id|default:item.student.admission_number|default:"-" }}</div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Class -->
+          <td>
+            <span class="badge badge-light border text-primary font-weight-bold px-2 py-1">
+              {{ item.student.get_student_class_display|default:"Assigned" }}
+            </span>
+          </td>
+
+          <!-- Actual Cumulative Avg -->
+          <td class="text-center">
+            {% if item.actual_avg is not None %}
+              <span class="font-weight-bold text-dark" style="font-size: 0.9rem;">
+                {{ item.actual_avg }}%
+              </span>
+              <div class="small text-muted">{{ item.results_count }} subj</div>
+            {% else %}
+              <span class="text-muted small">No Tests</span>
+            {% endif %}
+          </td>
+
+          <!-- Predicted Grade -->
+          <td class="text-center">
+            <span class="grade-badge-sm grade-{{ item.predicted_grade }} shadow-xs">
+              {{ item.predicted_grade }}
+            </span>
+          </td>
+
+          <!-- Risk Level -->
+          <td class="text-center">
+            <span class="risk-badge risk-{{ item.risk_level }} shadow-xs">
+              {% if item.risk_level == "High" %}
+                <span class="pulse-dot pulse-red"></span> High Risk
+              {% elif item.risk_level == "Medium" %}
+                <span class="pulse-dot pulse-amber"></span> Medium Risk
+              {% else %}
+                <span class="pulse-dot pulse-green"></span> Low Risk
+              {% endif %}
+            </span>
+          </td>
+
+          <!-- AI Recommendation -->
+          <td>
+            {% if item.risk_level == "High" %}
+              <small class="text-danger font-weight-semibold d-block">
+                <i class="fas fa-exclamation-circle mr-1"></i> Remedial intervention
+              </small>
+              <small class="text-muted">Parent alert & 1-on-1 coaching</small>
+            {% elif item.risk_level == "Medium" %}
+              <small class="text-warning font-weight-semibold d-block">
+                <i class="fas fa-tasks mr-1"></i> Practice reinforcement
+              </small>
+              <small class="text-muted">Focus on weak assessments</small>
+            {% else %}
+              <small class="text-success font-weight-semibold d-block">
+                <i class="fas fa-check-circle mr-1"></i> On track for distinction
+              </small>
+              <small class="text-muted">Advanced enrichment tasks</small>
+            {% endif %}
+          </td>
+
+          <!-- Actions -->
+          <td class="text-right action-cell btn-no-print">
+            <div class="d-inline-flex align-items-center gap-1">
+              <button type="button" class="btn btn-sm btn-outline-primary action-btn-pill shadow-xs" onclick="rePredictStudent('{{ item.student.student_id }}', this)" title="Re-run prediction model">
+                <i class="fas fa-sync-alt"></i> Re-predict
+              </button>
+              <a href="{% url 'teacher:view-result' item.student.id %}" class="btn btn-sm btn-outline-secondary action-btn-pill shadow-xs" title="View Full Report Card">
+                <i class="fas fa-file-invoice"></i> Report
+              </a>
+              {% if item.student.parent and item.student.parent.primary_phone %}
+                <a href="tel:{{ item.student.parent.primary_phone }}" class="btn btn-sm btn-outline-success action-btn-pill shadow-xs" title="Call Parent ({{ item.student.parent.guardian_display_name }})">
+                  <i class="fas fa-phone"></i>
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="fas fa-brain fa-3x mb-3 opacity-50"></i>
+            <h5>No Prediction Records Found</h5>
+            <p class="small text-muted mb-0">No students match the selected filter criteria or no performance models have been evaluated yet.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById("riskChart").getContext("2d");
-const chartData = {
-  labels: [{% for r in risk_summary %}"{{ r.risk_level }}",{% endfor %}],
-  datasets: [{
-    label: "Number of Students",
-    data: [{% for r in risk_summary %}{{ r.count }},{% endfor %}],
-    borderWidth: 1
-  }]
-};
+document.addEventListener('DOMContentLoaded', function() {
+  // Chart 1: Risk Distribution Doughnut
+  const doughnutCtx = document.getElementById('riskDoughnutChart');
+  if (doughnutCtx) {
+    new Chart(doughnutCtx.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+        datasets: [{
+          data: [{{ high_risk_count }}, {{ medium_risk_count }}, {{ low_risk_count }}],
+          backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+          borderWidth: 2,
+          borderColor: '#ffffff',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = {{ total_analyzed|default:1 }};
+                const val = context.raw || 0;
+                const pct = Math.round((val / total) * 100);
+                return ` ${context.label}: ${val} students (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
 
-new Chart(ctx, {
-  type: "bar",
-  data: chartData,
-  options: {
-    responsive: true,
-    scales: { y: { beginAtZero: true } }
+  // Chart 2: Grade Predictions Bar Chart
+  const barCtx = document.getElementById('gradesBarChart');
+  if (barCtx) {
+    new Chart(barCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Grade A', 'Grade B', 'Grade C', 'Grade D', 'Grade F'],
+        datasets: [{
+          label: 'Projected Students',
+          data: [
+            {% for g in grade_distribution %}{{ g.count }},{% endfor %}
+          ],
+          backgroundColor: [
+            'rgba(16, 185, 129, 0.85)',
+            'rgba(59, 130, 246, 0.85)',
+            'rgba(245, 158, 11, 0.85)',
+            'rgba(249, 115, 22, 0.85)',
+            'rgba(239, 68, 68, 0.85)'
+          ],
+          borderColor: [
+            '#10b981',
+            '#3b82f6',
+            '#f59e0b',
+            '#f97316',
+            '#ef4444'
+          ],
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            },
+            grid: {
+              color: '#f1f5f9'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // CSV Export
+  const exportBtn = document.getElementById('btnExportCSV');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      const table = document.getElementById('predictionsTable');
+      if (!table) return;
+
+      const rowsData = [];
+      const headers = ['#', 'Student Name', 'Student ID', 'Class', 'Actual Avg', 'Predicted Grade', 'Risk Level'];
+      rowsData.push(headers.map(h => `"${h}"`).join(','));
+
+      const tbodyRows = table.querySelectorAll('tbody tr.student-ai-row');
+      tbodyRows.forEach((tr, idx) => {
+        const cells = tr.querySelectorAll('td');
+        if (cells.length < 6) return;
+
+        const num = idx + 1;
+        const name = cells[1].querySelector('a') ? cells[1].querySelector('a').innerText.trim() : '';
+        const studentId = cells[1].querySelector('.small') ? cells[1].querySelector('.small').innerText.replace('ID:', '').trim() : '';
+        const studentClass = cells[2].innerText.trim();
+        const avg = cells[3].innerText.trim();
+        const grade = cells[4].innerText.trim();
+        const risk = cells[5].innerText.trim();
+
+        const row = [num, name, studentId, studentClass, avg, grade, risk];
+        rowsData.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+      });
+
+      if (rowsData.length <= 1) {
+        alert('No data to export.');
+        return;
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + rowsData.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `ai_performance_forecast_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
   }
 });
+
+// Single student AJAX re-predict
+function rePredictStudent(studentId, btn) {
+  if (!studentId) return;
+
+  const originalContent = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+  btn.disabled = true;
+
+  fetch(`/ai/predict/${studentId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Prediction service returned an error status.');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.error) {
+        alert('Analysis Note: ' + data.error);
+      } else {
+        alert(`Analysis Updated for ${data.student}:\nPredicted Grade: ${data.predicted_grade}\nRisk Level: ${data.risk_level}`);
+        location.reload();
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Could not refresh AI prediction. Please verify student test marks are recorded.');
+    })
+    .finally(() => {
+      btn.innerHTML = originalContent;
+      btn.disabled = false;
+    });
+}
 </script>
 {% endblock %}

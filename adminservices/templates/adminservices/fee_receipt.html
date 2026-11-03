@@ -250,7 +250,7 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>{{ fee.get_fee_type_display }}</td>
+                    <td>{{ fee.display_name|default:fee.get_fee_type_display }}</td>
                     <td>{{ payment_method }}</td>
                     <td>{{ fee.due_date|date:"M d, Y" }}</td>
                     <td style="text-align: right;">₵{{ fee.amount_required|floatformat:2 }}</td>
@@ -269,7 +269,7 @@
             </div>
             {% if fee.discount > 0 %}
             <div class="summary-row">
-                <span>Scholarship/Discount:</span>
+                <span>Discount:</span>
                 <span>- ₵{{ fee.discount|floatformat:2 }}</span>
             </div>
             {% endif %}

@@ -19,6 +19,31 @@
             line-height: normal;
         }
 
+        .school-brand-logo {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            flex-shrink: 0;
+        }
+
+        .school-brand-placeholder {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #2563eb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(37, 99, 235, 0.15);
+        }
+
         .header .header-left .school-brand-name {
             margin: 0;
             font-size: 1.1rem;
@@ -36,7 +61,10 @@
         /* Responsive header tweaks */
         @media (max-width: 991.98px) {
             .top-nav-search { display: none; }
-            .header .header-left .logo { display: none !important; }
+            .header .header-left .logo {
+                display: flex !important;
+                max-width: 180px;
+            }
             .header .header-left .school-brand-name {
                 font-size: 1rem;
                 max-width: 160px;
@@ -57,15 +85,24 @@
     <div class="main-wrapper">
         <div class="header">
             <div class="header-left">
-                <a href="{% url 'student:student-dashboard' %}" class="logo">
-                    <h2 class="school-brand-name">
-                        {% if request.user.is_authenticated and request.user.student_profile and request.user.student_profile.school %}
-                            {{ request.user.student_profile.school.name }}
+                {% with student_profile=request.user.student_profile %}
+                    <a href="{% url 'student:student-dashboard' %}" class="logo d-flex align-items-center">
+                        {% if student_profile and student_profile.school and student_profile.school.logo %}
+                            <img src="{{ student_profile.school.logo.url }}" alt="{{ student_profile.school.name }}" class="school-brand-logo mr-2">
                         {% else %}
-                            KIDDO CARE
+                            <div class="school-brand-placeholder mr-2">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
                         {% endif %}
-                    </h2>
-                </a>
+                        <h2 class="school-brand-name mb-0">
+                            {% if student_profile and student_profile.school and student_profile.school.name %}
+                                {{ student_profile.school.name }}
+                            {% else %}
+                                KIDDO CARE
+                            {% endif %}
+                        </h2>
+                    </a>
+                {% endwith %}
             </div>
             <a href="javascript:void(0);" id="toggle_btn">
                 <i class="fas fa-align-left"></i>
@@ -127,11 +164,11 @@
                     <a href="#" class="dropdown-toggle nav-link" data-toggle="dropdown">
                         <span class="user-img">
                             {% if request.user.profile_picture %}
-                                <img class="rounded-circle" src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                                <img class="rounded-circle" src="{{ request.user.profile_picture.url }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
                             {% elif request.user.student_profile and request.user.student_profile.student_image %}
-                                <img class="rounded-circle" src="{{ request.user.student_profile.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                                <img class="rounded-circle" src="{{ request.user.student_profile.student_image.url }}" width="31" height="31" alt="{{ request.user.get_full_name }}">
                             {% else %}
-                                <img class="rounded-circle" src="{% static 'assets/img/profiles/avatar-01.jpg' %}" width="31" height="31" alt="{{ request.user.get_full_name }}">
+                                <span class="rounded-circle bg-primary text-white font-weight-bold d-inline-flex align-items-center justify-content-center" style="width: 31px; height: 31px; font-size: 13px;">{{ request.user.initials }}</span>
                             {% endif %}
                         </span>
                     </a>
@@ -139,11 +176,11 @@
                         <div class="user-header">
                             <div class="avatar avatar-sm">
                                 {% if request.user.profile_picture %}
-                                    <img src="{{ request.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                    <img src="{{ request.user.profile_picture.url }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
                                 {% elif request.user.student_profile and request.user.student_profile.student_image %}
-                                    <img src="{{ request.user.student_profile.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
+                                    <img src="{{ request.user.student_profile.student_image.url }}" alt="{{ request.user.get_full_name }}" class="avatar-img rounded-circle">
                                 {% else %}
-                                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="User Image" class="avatar-img rounded-circle">
+                                    <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold">{{ request.user.initials }}</span>
                                 {% endif %}
                             </div>
                             <div class="user-text">
@@ -177,6 +214,9 @@
                         </li>
                         <li>
                             <a href="{% url 'student:enrolled-courses' %}"><i class="fas fa-book-reader"></i> <span>Enrolled Courses</span></a>
+                        </li>
+                        <li class="{% if request.resolver_match.url_name == 'student-timetable' %}active{% endif %}">
+                            <a href="{% url 'student:student-timetable' %}"><i class="fas fa-calendar-alt"></i> <span>Class Timetable</span></a>
                         </li>
 
                         <!-- Assignments Management -->

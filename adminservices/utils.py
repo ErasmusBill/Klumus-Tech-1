@@ -118,6 +118,12 @@ def get_student_parent_contacts(student) -> Tuple[List[str], List[str]]:
             if parent.mother_phone:
                 phones.append(parent.mother_phone)
                 
+            # Guardian contact information
+            if getattr(parent, 'guardian_email', None):
+                emails.append(parent.guardian_email)
+            if getattr(parent, 'guardian_phone', None):
+                phones.append(parent.guardian_phone)
+
             # Emergency contact (if available)
             if hasattr(parent, 'emergency_contact_phone') and parent.emergency_contact_phone:
                 phones.append(parent.emergency_contact_phone)

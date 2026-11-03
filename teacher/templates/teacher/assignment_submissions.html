@@ -1,214 +1,372 @@
 {% extends 'teacher/base.html' %}
 {% load static %}
 
-{% block title %}Submissions - {{ assignment.title }}{% endblock %}
+{% block title %}Submissions - {{ assignment.title }} | Kiddo Care{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sub-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --sub-surface: #ffffff;
+    --sub-border: #e2e8f0;
+    --sub-border-light: #f1f5f9;
+    --sub-text: #0f172a;
+    --sub-text-muted: #64748b;
+    --sub-primary: #3b82f6;
+    --sub-primary-light: #eff6ff;
+    --sub-success: #10b981;
+    --sub-success-light: #ecfdf5;
+    --sub-warning: #f59e0b;
+    --sub-warning-light: #fffbeb;
+    --sub-danger: #ef4444;
+    --sub-danger-light: #fef2f2;
+    --sub-purple: #8b5cf6;
+    --sub-purple-light: #f5f3ff;
+    --sub-radius-lg: 16px;
+    --sub-radius-md: 12px;
+    --sub-radius-sm: 8px;
+    --sub-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+  }
+
+  .submissions-page {
+    font-family: var(--sub-font);
+    color: var(--sub-text);
+  }
+
+  /* Header Hero */
+  .sub-header-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #38bdf8 100%);
+    border-radius: var(--sub-radius-lg);
+    padding: 1.85rem 2rem;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  }
+  .sub-header-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+    color: #ffffff;
+  }
+  .sub-header-subtitle {
+    font-size: 0.92rem;
+    opacity: 0.92;
+    margin-bottom: 0;
+  }
+
+  /* Stat cards */
+  .sub-stat-card {
+    background: var(--sub-surface);
+    border: 1px solid var(--sub-border);
+    border-radius: var(--sub-radius-md);
+    padding: 1rem 1.15rem;
+    box-shadow: var(--sub-shadow-sm);
+    text-align: center;
+  }
+  .sub-stat-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--sub-text);
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
+  }
+  .sub-stat-lbl {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--sub-text-muted);
+  }
+
+  /* Table Card */
+  .sub-card {
+    background: var(--sub-surface);
+    border: 1px solid var(--sub-border);
+    border-radius: var(--sub-radius-lg);
+    box-shadow: var(--sub-shadow-sm);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .sub-card-header {
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--sub-border);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .sub-table {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .sub-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--sub-text-muted);
+    background: #f8fafc;
+    padding: 0.95rem 1.15rem;
+    border-bottom: 1px solid var(--sub-border);
+  }
+  .sub-table td {
+    padding: 0.95rem 1.15rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--sub-border-light);
+    font-size: 0.88rem;
+  }
+  .sub-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .sub-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    flex-shrink: 0;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-wrapper px-4">
-    <div class="content container-fluid">
+<div class="submissions-page">
 
-        <div class="page-header border-0 mb-4">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h3 class="page-title text-2xl font-extrabold text-slate-800">Submission Tracking</h3>
-                    <ul class="breadcrumb bg-transparent p-0">
-                        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}" class="text-indigo-600">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'teacher:assignment-list' %}" class="text-indigo-600">Assignments</a></li>
-                        <li class="breadcrumb-item active text-slate-400">{{ assignment.title|truncatechars:20 }}</li>
-                    </ul>
-                </div>
-                <div class="col-auto">
-                    <a href="{% url 'teacher:bulk-download-submissions' assignment.id %}" class="btn btn-primary shadow-sm rounded-pill px-4 py-2 font-bold">
-                        <i class="fas fa-file-archive me-2"></i> Bulk Download
-                    </a>
-                </div>
-            </div>
+  <!-- ==================== HEADER ==================== -->
+  <div class="sub-header-hero">
+    <div class="row align-items-center">
+      <div class="col-lg-8 mb-3 mb-lg-0">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-white text-primary fw-bold px-2 py-1">
+            <i class="fas fa-book me-1"></i> {{ assignment.subject.name }}
+          </span>
+          <span class="badge bg-white bg-opacity-25 text-white fw-bold px-2 py-1">
+            <i class="fas fa-users me-1"></i> {{ assignment.get_student_class_display }}
+          </span>
         </div>
-
-        <div class="card border-0 rounded-[2rem] shadow-sm mb-4 bg-indigo-900 text-white overflow-hidden">
-            <div class="card-body p-4 p-md-5 position-relative">
-                <div class="row align-items-center position-relative z-10">
-                    <div class="col-lg-8">
-                        <span class="badge bg-indigo-500 rounded-pill px-3 py-1 mb-2">Currently Reviewing</span>
-                        <h2 class="font-extrabold text-white mb-2">{{ assignment.title }}</h2>
-                        <p class="text-indigo-100 opacity-90 mb-0">
-                            <i class="fas fa-book-open me-2"></i> {{ assignment.subject.name }}
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-users me-2"></i> {{ assignment.get_student_class_display }}
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-calendar-alt me-2"></i> Due: {{ assignment.due_date|date:"M d, Y" }}
-                        </p>
-                    </div>
-                    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                        <div class="d-inline-block bg-white bg-opacity-10 p-3 rounded-3xl backdrop-blur-sm">
-                            <p class="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">Pass Mark</p>
-                            <h4 class="mb-0 font-extrabold text-white">{{ assignment.total_marks }} Pts</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="position-absolute rounded-circle bg-white opacity-10" style="width: 200px; height: 200px; right: -50px; top: -50px;"></div>
-            </div>
+        <h1 class="sub-header-title">{{ assignment.title }}</h1>
+        <p class="sub-header-subtitle">
+          <i class="fas fa-calendar-alt me-1"></i> Due: <strong>{{ assignment.due_date|date:"F j, Y" }}</strong>
+          &bull; Total Marks: <strong>{{ assignment.total_marks }} pts</strong>
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <div class="d-flex align-items-center justify-content-lg-end gap-2 flex-wrap">
+          {% if submissions %}
+            <a href="{% url 'teacher:bulk-download-submissions' assignment.id %}" class="btn btn-light btn-sm fw-bold shadow-sm">
+              <i class="fas fa-file-archive me-1 text-primary"></i> Bulk Download (ZIP)
+            </a>
+          {% endif %}
+          <a href="{% url 'teacher:edit-assignment' assignment.id %}" class="btn btn-outline-light btn-sm fw-bold">
+            <i class="fas fa-edit me-1"></i> Edit
+          </a>
+          <a href="{% url 'teacher:assignment-list' %}" class="btn btn-outline-light btn-sm fw-bold">
+            <i class="fas fa-arrow-left me-1"></i> Back
+          </a>
         </div>
-
-        <div class="row g-4 mb-4">
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white">
-                    <div class="bg-indigo-50 text-indigo-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-list-ul"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-800 mb-0">{{ submission_stats.total }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white border-bottom border-4 border-success">
-                    <div class="bg-emerald-50 text-emerald-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-check-double"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-800 mb-0">{{ submission_stats.graded }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Graded</p>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white">
-                    <div class="bg-blue-50 text-blue-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-inbox"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-800 mb-0">{{ submission_stats.submitted }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Submitted</p>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white border-bottom border-4 border-warning">
-                    <div class="bg-orange-50 text-orange-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-800 mb-0">{{ submission_stats.pending }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">In Review</p>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white border-bottom border-4 border-danger">
-                    <div class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-running"></i>
-                    </div>
-                    <h4 class="font-extrabold text-danger mb-0">{{ submission_stats.late }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Late</p>
-                </div>
-            </div>
-            <div class="col-xl-2 col-md-4 col-6">
-                <div class="card border-0 rounded-3xl shadow-sm text-center p-3 h-100 bg-white">
-                    <div class="bg-slate-50 text-slate-600 w-12 h-12 rounded-2xl d-flex align-items-center justify-content-center mx-auto mb-2">
-                        <i class="fas fa-user-slash"></i>
-                    </div>
-                    <h4 class="font-extrabold text-slate-400 mb-0">{{ submission_stats.not_submitted }}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Missing</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="card border-0 shadow-sm rounded-[2rem] overflow-hidden">
-            <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="font-extrabold text-slate-800 mb-0">Student Submissions</h5>
-                <div class="input-group w-auto">
-                    <span class="input-group-text bg-light border-0 rounded-start-pill px-3">
-                        <i class="fas fa-search text-slate-400 text-xs"></i>
-                    </span>
-                    <input type="text" class="form-control form-control-sm bg-light border-0 rounded-end-pill px-3" placeholder="Search student...">
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr class="text-xs font-bold text-slate-400 uppercase">
-                            <th class="px-4 py-3">Student Name</th>
-                            <th class="py-3">Submission Date</th>
-                            <th class="py-3 text-center">Status</th>
-                            <th class="py-3 text-center">Score</th>
-                            <th class="px-4 py-3 text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for submission in submissions %}
-                        <tr>
-                            <td class="px-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm bg-indigo-50 rounded-circle me-3 p-1">
-                                        <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" class="rounded-circle w-100">
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-slate-800">{{ submission.student.user.get_full_name }}</div>
-                                        <div class="text-[10px] font-bold text-indigo-400">{{ submission.student.student_id }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                {% if submission.submission_date %}
-                                    <div class="text-sm font-semibold text-slate-700">{{ submission.submission_date|date:"M d, Y" }}</div>
-                                    <div class="text-[10px] text-muted">{{ submission.submission_date|date:"H:i" }}</div>
-                                {% else %}
-                                    <span class="text-xs text-slate-300 italic">No activity</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <span class="badge rounded-pill px-3 py-2
-                                    {% if submission.status == 'graded' %}bg-soft-success text-success
-                                    {% elif submission.status == 'submitted' %}bg-soft-info text-info
-                                    {% elif submission.status == 'late' %}bg-soft-warning text-warning
-                                    {% else %}bg-soft-secondary text-slate-400{% endif %}">
-                                    {{ submission.get_status_display }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                {% if submission.marks_obtained %}
-                                    <div class="text-sm font-extrabold text-slate-800">{{ submission.marks_obtained }} <span class="text-slate-300 font-medium">/ {{ submission.assignment.total_marks }}</span></div>
-                                {% else %}
-                                    <span class="text-slate-300">--</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 text-end">
-                                <div class="dropdown">
-                                    <button class="btn btn-light btn-sm rounded-pill p-2 px-3 dropdown-toggle no-arrow" data-bs-toggle="dropdown">
-                                        <i class="fas fa-ellipsis-h text-slate-400"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2 mt-2">
-                                        <a href="{% url 'teacher:grade-assignment' submission.id %}" class="dropdown-item rounded-2 text-success font-bold py-2">
-                                            <i class="fas fa-edit me-2"></i> Grade Work
-                                        </a>
-                                        {% if submission.submission_file %}
-                                        <a href="{% url 'teacher:download-submission' submission.id %}" class="dropdown-item rounded-2 text-indigo-600 font-bold py-2">
-                                            <i class="fas fa-download me-2"></i> Get File
-                                        </a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center py-5">
-                                <div class="py-4">
-                                    <i class="fas fa-inbox fa-3x text-slate-100 mb-3"></i>
-                                    <p class="text-slate-400 font-medium">Wait for students to start submitting.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="fas fa-info-circle me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ==================== SUBMISSION STATS RIBBON ==================== -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card">
+        <div class="sub-stat-val text-dark">{{ submission_stats.total }}</div>
+        <div class="sub-stat-lbl">Enrolled Students</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card border-bottom border-3 border-primary">
+        <div class="sub-stat-val text-primary">{{ submission_stats.submitted }}</div>
+        <div class="sub-stat-lbl">Submitted</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card border-bottom border-3 border-success">
+        <div class="sub-stat-val text-success">{{ submission_stats.graded }}</div>
+        <div class="sub-stat-lbl">Graded</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card border-bottom border-3 border-warning">
+        <div class="sub-stat-val text-warning">{{ submission_stats.pending }}</div>
+        <div class="sub-stat-lbl">To Grade</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card border-bottom border-3 border-danger">
+        <div class="sub-stat-val text-danger">{{ submission_stats.late }}</div>
+        <div class="sub-stat-lbl">Late</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="sub-stat-card">
+        <div class="sub-stat-val text-muted">{{ submission_stats.not_submitted }}</div>
+        <div class="sub-stat-lbl">Missing</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SEARCH & FILTER TOOLBAR ==================== -->
+  <div class="card p-3 rounded-4 border-0 shadow-sm mb-4 bg-white">
+    <form method="get" action="{% url 'teacher:assignment-submissions' assignment.id %}" class="row g-2 align-items-center">
+      <div class="col-lg-5 col-md-6">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by student name or ID..." value="{{ search_query }}">
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-4">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">-- All Submission Statuses --</option>
+          <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted (Pending Grading)</option>
+          <option value="graded" {% if status_filter == 'graded' %}selected{% endif %}>Graded</option>
+          <option value="late" {% if status_filter == 'late' %}selected{% endif %}>Late Submission</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        </select>
+      </div>
+      <div class="col-lg-3 col-md-2 text-end d-flex gap-1 justify-content-end">
+        <button type="submit" class="btn btn-primary btn-sm fw-bold w-100">
+          <i class="fas fa-filter me-1"></i> Filter
+        </button>
+        {% if search_query or status_filter %}
+          <a href="{% url 'teacher:assignment-submissions' assignment.id %}" class="btn btn-light btn-sm text-danger" title="Clear filters">
+            <i class="fas fa-times"></i>
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- ==================== SUBMISSIONS TABLE ==================== -->
+  <div class="sub-card">
+    <div class="sub-card-header">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold text-dark fs-6">
+          <i class="fas fa-user-check text-primary me-1"></i> Student Submissions
+        </span>
+        <span class="badge bg-light text-muted border">{{ submissions|length }} records</span>
+      </div>
+    </div>
+
+    {% if submissions %}
+      <div class="table-responsive">
+        <table class="sub-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Submitted At</th>
+              <th>File / Content</th>
+              <th>Score / Marks</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sub in submissions %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="sub-avatar">
+                      {{ sub.student.user.initials }}
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark">{{ sub.student.user.get_full_name }}</div>
+                      <small class="text-muted">{{ sub.student.student_id }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ sub.submission_date|date:"M d, Y" }}</div>
+                  <small class="text-muted">{{ sub.submission_date|date:"H:i" }}</small>
+                  {% if sub.status == 'late' %}
+                    <span class="badge bg-danger-subtle text-danger ms-1">Late</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if sub.submission_file %}
+                    <a href="{% url 'teacher:download-submission' sub.id %}" class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size: 0.8rem;">
+                      <i class="fas fa-file-download me-1"></i> Download File
+                    </a>
+                  {% elif sub.submission_text %}
+                    <span class="badge bg-light text-dark border">
+                      <i class="fas fa-font me-1"></i> Text Response
+                    </span>
+                  {% else %}
+                    <span class="text-muted small">No file</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if sub.status == 'graded' and sub.marks_obtained is not None %}
+                    <div class="fw-bold text-success fs-6">
+                      {{ sub.marks_obtained }} <span class="text-muted small">/ {{ assignment.total_marks }}</span>
+                    </div>
+                    {% if sub.feedback %}
+                      <small class="text-muted d-block text-truncate" style="max-width: 200px;">
+                        <i class="fas fa-comment text-primary me-1"></i> {{ sub.feedback }}
+                      </small>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                      <i class="fas fa-clock me-1"></i> Ungraded
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if sub.status == 'graded' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2">Graded</span>
+                  {% elif sub.status == 'late' %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2">Late Submission</span>
+                  {% else %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">Submitted</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'teacher:grade-assignment' sub.id %}" class="btn btn-sm {% if sub.status == 'graded' %}btn-outline-secondary{% else %}btn-success fw-bold{% endif %}">
+                    <i class="fas {% if sub.status == 'graded' %}fa-edit{% else %}fa-check-circle{% endif %} me-1"></i>
+                    {% if sub.status == 'graded' %}Edit Grade{% else %}Grade Now{% endif %}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <div class="sub-avatar mx-auto mb-3" style="width: 56px; height: 56px; background: #f1f5f9; color: #94a3b8; font-size: 1.5rem;">
+          <i class="fas fa-inbox"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">No Submissions Found</h5>
+        <p class="text-muted small mb-0">
+          {% if search_query or status_filter %}
+            No submissions matched your filter criteria.
+          {% else %}
+            No students have submitted work for this assignment yet.
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
 </div>
-
-<style>
-    /* Premium Badge Styles */
-    .bg-soft-success { background-color: #dcfce7 !important; }
-    .bg-soft-info { background-color: #e0f2fe !important; }
-    .bg-soft-warning { background-color: #fef3c7 !important; }
-    .bg-soft-secondary { background-color: #f1f5f9 !important; }
-
-    .no-arrow::after { display: none; }
-    .transition-all:hover { transform: translateY(-2px); }
-</style>
 {% endblock %}

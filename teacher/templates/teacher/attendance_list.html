@@ -3,169 +3,524 @@
 
 {% block title %}Attendance Records - KIDDO CARE{% endblock %}
 
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --att-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --att-surface: #ffffff;
+    --att-border: #e2e8f0;
+    --att-border-light: #f1f5f9;
+    --att-text: #0f172a;
+    --att-text-muted: #64748b;
+    --att-primary: #3b82f6;
+    --att-primary-light: #eff6ff;
+    --att-success: #10b981;
+    --att-success-light: #ecfdf5;
+    --att-warning: #f59e0b;
+    --att-warning-light: #fffbeb;
+    --att-danger: #ef4444;
+    --att-danger-light: #fef2f2;
+    --att-info: #06b6d4;
+    --att-radius-lg: 16px;
+    --att-radius-md: 12px;
+    --att-radius-sm: 8px;
+    --att-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    --att-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+  }
+
+  .attendance-list-page {
+    font-family: var(--att-font);
+    color: var(--att-text);
+  }
+
+  /* Page Header Card */
+  .att-header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #38bdf8 100%);
+    border-radius: var(--att-radius-lg);
+    padding: 1.75rem 2rem;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  }
+  .att-header-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+  }
+  .att-header-subtitle {
+    font-size: 0.92rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+
+  /* Metric Stat Cards */
+  .att-metric-card {
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    border-radius: var(--att-radius-lg);
+    padding: 1.25rem 1.35rem;
+    box-shadow: var(--att-shadow-sm);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .att-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--att-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
+  .att-icon-blue { background: #eff6ff; color: #2563eb; }
+  .att-icon-green { background: #ecfdf5; color: #059669; }
+  .att-icon-red { background: #fef2f2; color: #dc2626; }
+  .att-icon-amber { background: #fffbeb; color: #d97706; }
+
+  .att-metric-val {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--att-text);
+    margin-bottom: 0.2rem;
+  }
+  .att-metric-lbl {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--att-text-muted);
+  }
+
+  /* Filter Toolbar */
+  .att-filter-card {
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    border-radius: var(--att-radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--att-shadow-sm);
+  }
+
+  /* Table styling */
+  .att-table-card {
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    border-radius: var(--att-radius-lg);
+    box-shadow: var(--att-shadow-sm);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .att-table-header {
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--att-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: #ffffff;
+  }
+  .att-table {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .att-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--att-text-muted);
+    background: #f8fafc;
+    padding: 0.95rem 1.15rem;
+    border-bottom: 1px solid var(--att-border);
+  }
+  .att-table td {
+    padding: 0.85rem 1.15rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--att-border-light);
+    font-size: 0.88rem;
+  }
+  .att-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .att-avatar-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    flex-shrink: 0;
+  }
+
+  /* Status Badges */
+  .att-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .att-badge-present { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .att-badge-absent { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .att-badge-late { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .att-badge-excused { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="teacher-page-shell">
-<div class="row">
-  <div class="col-sm-12">
-    <div class="card teacher-list-card">
-      <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
-        <h4 class="card-title">Attendance Records</h4>
-        <div class="teacher-action-row">
-          <button id="export-csv" class="btn btn-success mr-2">
-            <i class="fas fa-file-csv"></i> Export CSV
+<div class="attendance-list-page">
+
+  <!-- ==================== HEADER ==================== -->
+  <div class="att-header-card">
+    <div class="row align-items-center">
+      <div class="col-lg-7 mb-2 mb-lg-0">
+        <h1 class="att-header-title">
+          <i class="fas fa-clipboard-list me-2"></i> Attendance Records
+        </h1>
+        <p class="att-header-subtitle">
+          {% if teacher and teacher.is_class_teacher and teacher.class_teacher_class %}
+            Class: <strong>{{ teacher.class_teacher_class }}</strong> &bull; Total records: <strong>{{ attendances|length }}</strong>
+          {% else %}
+            View, filter, and track attendance history across your school
+          {% endif %}
+        </p>
+      </div>
+      <div class="col-lg-5 text-lg-end">
+        <div class="d-flex align-items-center justify-content-lg-end gap-2">
+          <button id="export-csv" class="btn btn-light btn-sm fw-bold shadow-sm" type="button">
+            <i class="fas fa-file-csv me-1 text-success"></i> Export CSV
           </button>
-          <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add New
+          <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-warning btn-sm fw-bold shadow-sm text-dark">
+            <i class="fas fa-plus-circle me-1"></i> Take Attendance
           </a>
         </div>
       </div>
-      <div class="card-body">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          {% endfor %}
-        {% endif %}
+    </div>
+  </div>
 
-        {% if attendances %}
-          <div class="table-responsive">
-            <table id="attendance-table" class="table table-hover table-center mb-0">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Name</th>
-                  <th>Class</th>
-                  <th>Status</th>
-                  <th>Marked By</th>
-                  <th class="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for att in attendances %}
-                <tr>
-                  <td data-label="Date">{{ att.date|date:"Y-m-d" }}</td>
-                  <td data-label="Type">
-                    <span class="badge badge-{% if att.attendance_type == 'student' %}info{% else %}warning{% endif %}">
-                      {{ att.get_attendance_type_display }}
-                    </span>
-                  </td>
-                  <td data-label="Name">
-                    {% if att.student %}
-                      {{ att.student.user.get_full_name }}
-                    {% elif att.teacher %}
-                      {{ att.teacher.user.get_full_name }}
-                    {% else %}
-                      —
-                    {% endif %}
-                  </td>
-                  <td data-label="Class">{{ att.get_class_attendance_display }}</td>
-                  <td data-label="Status">
-                    <span class="badge badge-{% if att.status == 'present' %}success{% elif att.status == 'absent' %}danger{% elif att.status == 'late' %}warning{% else %}secondary{% endif %}">
-                      {{ att.get_status_display }}
-                    </span>
-                  </td>
-                  <td data-label="Marked By">
-                    {{ att.marked_by.get_full_name|default:att.marked_by.username }}
-                  </td>
-                  <td class="text-right" data-label="Actions">
-                    <a href="{% url 'teacher:attendance-update' attendance_id=att.id %}" class="btn btn-sm btn-warning">
-                      <i class="fas fa-edit"></i>
-                    </a>
-                    <a href="{% url 'teacher:attendance-delete' attendance_id=att.id %}" class="btn btn-sm btn-danger">
-                      <i class="fas fa-trash"></i>
-                    </a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="fas fa-info-circle me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ==================== TODAY'S METRIC STATS ==================== -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+      <div class="att-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="att-metric-lbl">Today's Rate</div>
+            <div class="att-metric-val">{{ today_rate }}%</div>
           </div>
-        {% else %}
-          <div class="text-center py-4">
-            <p class="text-muted">No attendance records found.</p>
+          <div class="att-icon-box att-icon-blue">
+            <i class="fas fa-chart-pie"></i>
           </div>
-        {% endif %}
+        </div>
+        <div class="small text-muted mt-2 border-top pt-2">
+          {{ today_records_count }} student{{ today_records_count|pluralize }} marked today
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+      <div class="att-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="att-metric-lbl">Present Today</div>
+            <div class="att-metric-val text-success">{{ today_present }}</div>
+          </div>
+          <div class="att-icon-box att-icon-green">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2 border-top pt-2">
+          Recorded on-time attendance
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+      <div class="att-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="att-metric-lbl">Absent Today</div>
+            <div class="att-metric-val text-danger">{{ today_absent }}</div>
+          </div>
+          <div class="att-icon-box att-icon-red">
+            <i class="fas fa-user-times"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2 border-top pt-2">
+          Absences flagged today
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6">
+      <div class="att-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="att-metric-lbl">Late / Excused</div>
+            <div class="att-metric-val text-warning">{{ today_late }}</div>
+          </div>
+          <div class="att-icon-box att-icon-amber">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2 border-top pt-2">
+          Needs attention or follow-up
+        </div>
       </div>
     </div>
   </div>
-</div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
+  <!-- ==================== FILTER & SEARCH TOOLBAR ==================== -->
+  <div class="att-filter-card">
+    <form method="get" action="{% url 'teacher:attendance-list' %}" class="row g-2 align-items-center">
+      <div class="col-lg-4 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search by student name or ID..." value="{{ search_query }}">
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light text-muted"><i class="fas fa-calendar-alt"></i></span>
+          <input type="date" name="date" class="form-control" value="{{ date_filter }}" title="Filter by date">
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-4">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">-- All Statuses --</option>
+          <option value="present" {% if status_filter == 'present' %}selected{% endif %}>Present</option>
+          <option value="absent" {% if status_filter == 'absent' %}selected{% endif %}>Absent</option>
+          <option value="late" {% if status_filter == 'late' %}selected{% endif %}>Late</option>
+          <option value="excused" {% if status_filter == 'excused' %}selected{% endif %}>Excused</option>
+        </select>
+      </div>
+
+      <div class="col-lg-2 col-md-12 text-md-end d-flex gap-2 justify-content-end">
+        <button type="submit" class="btn btn-primary btn-sm fw-bold w-100">
+          <i class="fas fa-filter me-1"></i> Filter
+        </button>
+        {% if search_query or date_filter or status_filter %}
+          <a href="{% url 'teacher:attendance-list' %}" class="btn btn-light btn-sm text-danger" title="Clear all filters">
+            <i class="fas fa-times"></i>
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- ==================== ATTENDANCE RECORDS TABLE ==================== -->
+  <div class="att-table-card">
+    <div class="att-table-header">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold text-dark fs-6">
+          <i class="fas fa-history text-primary me-1"></i> Records History
+        </span>
+        <span class="badge bg-light text-muted border">{{ attendances|length }} entries</span>
+      </div>
+      <div>
+        <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-sm btn-outline-primary">
+          <i class="fas fa-plus me-1"></i> Take Today's Attendance
+        </a>
+      </div>
+    </div>
+
+    {% if attendances %}
+      <div class="table-responsive">
+        <table id="attendance-table" class="att-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Student Name</th>
+              <th>Class</th>
+              <th>Status</th>
+              <th>Remarks</th>
+              <th>Marked By</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for att in attendances %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-dark">{{ att.date|date:"M d, Y" }}</div>
+                  <small class="text-muted">{{ att.date|date:"l" }}</small>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="att-avatar-sm">
+                      {% if att.student %}
+                        {{ att.student.user.initials }}
+                      {% elif att.teacher %}
+                        {{ att.teacher.user.initials }}
+                      {% else %}
+                        U
+                      {% endif %}
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark">
+                        {% if att.student %}
+                          {{ att.student.user.get_full_name }}
+                        {% elif att.teacher %}
+                          {{ att.teacher.user.get_full_name }}
+                        {% else %}
+                          —
+                        {% endif %}
+                      </div>
+                      <small class="text-muted">
+                        {% if att.student %}{{ att.student.student_id }}{% endif %}
+                      </small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">
+                    {{ att.get_class_attendance_display|default:"—" }}
+                  </span>
+                </td>
+                <td>
+                  {% if att.status == 'present' %}
+                    <span class="att-badge att-badge-present"><i class="fas fa-check"></i> Present</span>
+                  {% elif att.status == 'absent' %}
+                    <span class="att-badge att-badge-absent"><i class="fas fa-times"></i> Absent</span>
+                  {% elif att.status == 'late' %}
+                    <span class="att-badge att-badge-late"><i class="fas fa-clock"></i> Late</span>
+                  {% elif att.status == 'excused' %}
+                    <span class="att-badge att-badge-excused"><i class="fas fa-shield-alt"></i> Excused</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ att.get_status_display }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if att.remarks %}
+                    <span class="text-dark small"><i class="fas fa-comment-dots text-muted me-1"></i> {{ att.remarks }}</span>
+                  {% else %}
+                    <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <small class="text-muted">
+                    {{ att.marked_by.get_full_name|default:att.marked_by.username }}
+                  </small>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'teacher:attendance-update' attendance_id=att.id %}" class="btn btn-outline-secondary" title="Edit Record">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'teacher:attendance-delete' attendance_id=att.id %}" class="btn btn-outline-danger" title="Delete Record">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <div class="att-icon-box mx-auto mb-3" style="width: 56px; height: 56px; background: #f1f5f9; color: #94a3b8; font-size: 1.5rem;">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">No Attendance Records Found</h5>
+        <p class="text-muted small mb-3">
+          {% if search_query or date_filter or status_filter %}
+            No records match the chosen search or filter criteria.
+          {% else %}
+            No attendance entries have been recorded yet for your class.
+          {% endif %}
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+          {% if search_query or date_filter or status_filter %}
+            <a href="{% url 'teacher:attendance-list' %}" class="btn btn-light btn-sm fw-bold">
+              Clear Filters
+            </a>
+          {% endif %}
+          <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-primary btn-sm fw-bold">
+            <i class="fas fa-clipboard-check me-1"></i> Take Attendance Now
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ==================== CSV EXPORT SCRIPT ==================== -->
 <script>
-(function() {
-    function exportTableToCSV() {
-        const table = document.getElementById('attendance-table');
-        if (!table) {
-            alert('No attendance table found.');
-            return;
+document.addEventListener('DOMContentLoaded', () => {
+  const exportBtn = document.getElementById('export-csv');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      const table = document.getElementById('attendance-table');
+      if (!table) {
+        alert('No attendance data available to export.');
+        return;
+      }
+
+      let csv = [];
+      const rows = table.querySelectorAll('tr');
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = [];
+        const cols = rows[i].querySelectorAll('td, th');
+
+        // Skip the last column (Actions)
+        for (let j = 0; j < cols.length - 1; j++) {
+          let text = cols[j].textContent || cols[j].innerText || "";
+          text = text.trim().replace(/\s+/g, ' ');
+          if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+            text = '"' + text.replace(/"/g, '""') + '"';
+          }
+          row.push(text);
         }
 
-        let csv = [];
-        const rows = table.querySelectorAll('tr');
-
-        for (let i = 0; i < rows.length; i++) {
-            const row = [];
-            const cols = rows[i].querySelectorAll('td, th');
-
-            // Skip the "Actions" column (last column)
-            for (let j = 0; j < cols.length - 1; j++) {
-                // Extract visible text (ignores icons, badges, etc.)
-                let text = cols[j].textContent || cols[j].innerText || "";
-                // Clean extra whitespace and trim
-                text = text.trim().replace(/\s+/g, ' ');
-                // Escape commas, quotes, and newlines
-                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-                    text = '"' + text.replace(/"/g, '""') + '"';
-                }
-                row.push(text);
-            }
-
-            // Only add row if it has data (avoids empty header/footer rows)
-            if (row.some(cell => cell !== '')) {
-                csv.push(row.join(','));
-            }
+        if (row.some(c => c !== '')) {
+          csv.push(row.join(','));
         }
+      }
 
-        if (csv.length === 0) {
-            alert('No data to export.');
-            return;
-        }
+      if (csv.length === 0) {
+        alert('No attendance data to export.');
+        return;
+      }
 
-        // Create CSV content
-        const csvString = csv.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-
-        // Create download link
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `attendance_records_${new Date().toISOString().split('T')[0]}.csv`;
-        link.style.display = 'none';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }
-
-    // Attach event listener when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            const exportBtn = document.getElementById('export-csv');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', exportTableToCSV);
-            }
-        });
-    } else {
-        const exportBtn = document.getElementById('export-csv');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', exportTableToCSV);
-        }
-    }
-})();
+      const csvString = csv.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance_records_${new Date().toISOString().split('T')[0]}.csv`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+  }
+});
 </script>
 {% endblock %}

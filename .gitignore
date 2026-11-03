@@ -17,7 +17,7 @@ coverage/
 .my_env/
 venv/
 env/
-.venv/
+.venv
 
 # Database files
 *.sqlite3

@@ -1,204 +1,263 @@
-<!-- templates/student/assignment_detail.html -->
 {% extends 'student/base.html' %}
-{% load static %}
+{% load static media_tags %}
 
 {% block title %}{{ assignment.title }} | Student Portal{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-    <div class="content container-fluid">
+<div class="page-wrapper" style="background-color: #f8fafc; min-height: 100vh;">
+  <div class="content container-fluid px-lg-4 py-4">
 
-        <!-- Header & Breadcrumbs -->
-        <div class="page-header mb-4">
-            <div class="row align-items-center">
-                <div class="col">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{% url 'student:list-all-assignments' %}">Assignments</a></li>
-                            <li class="breadcrumb-item active">{{ assignment.title|truncatechars:30 }}</li>
-                        </ol>
-                    </nav>
-                    <h3 class="page-title text-primary">{{ assignment.title }}</h3>
+    <!-- Header & Breadcrumbs -->
+    <div class="page-header mb-4 border-0">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h3 class="page-title mb-1 font-weight-bold" style="color: #0f172a; letter-spacing: -0.01em;">
+            <i class="fas fa-file-alt text-primary mr-2"></i>{{ assignment.title }}
+          </h3>
+          <ul class="breadcrumb mb-0 bg-transparent p-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}" class="text-primary font-weight-semibold">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'student:list-all-assignments' %}" class="text-secondary font-weight-semibold">Assignments</a></li>
+            <li class="breadcrumb-item active text-muted">{{ assignment.title|truncatechars:28 }}</li>
+          </ul>
+        </div>
+        <div class="col-md-4 text-md-right mt-3 mt-md-0">
+          <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 font-weight-semibold shadow-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Assignments
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+          <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row">
+      <!-- Left Column: Assignment Content & Resources (col-lg-8) -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+          <div class="card-body p-4">
+            
+            <!-- Subject & Instructor Meta Strip -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-3 border-bottom">
+              <div class="d-flex align-items-center">
+                <div class="avatar-box bg-soft-primary text-primary rounded-3 mr-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                  <i class="fas fa-book-open"></i>
                 </div>
-                <div class="col-auto">
-                    <a href="{% url 'student:list-all-assignments' %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-chevron-left"></i> Back to List
-                    </a>
+                <div>
+                  <h5 class="mb-0 font-weight-bold text-dark">{{ assignment.subject.name }}</h5>
+                  <span class="text-muted small">
+                    <i class="fas fa-chalkboard-teacher mr-1"></i> Posted by <strong>{{ assignment.teacher.user.get_full_name|default:"Assigned Faculty" }}</strong>
+                  </span>
                 </div>
+              </div>
+              <div>
+                <span class="badge badge-light border text-muted px-3 py-2 font-weight-bold">
+                  Class: {{ assignment.get_student_class_display }}
+                </span>
+              </div>
             </div>
+
+            <!-- Description -->
+            <div class="assignment-section mb-4">
+              <h6 class="font-weight-bold text-uppercase text-muted small mb-2" style="letter-spacing: 0.05em;">Assignment Brief</h6>
+              <div class="text-dark p-3 rounded-3 bg-light border" style="font-size: 0.95rem; line-height: 1.6;">
+                {{ assignment.description|linebreaks }}
+              </div>
+            </div>
+
+            <!-- Special Instructions -->
+            {% if assignment.instructions %}
+            <div class="assignment-section mb-4">
+              <h6 class="font-weight-bold text-uppercase text-muted small mb-2" style="letter-spacing: 0.05em;">Special Instructions</h6>
+              <div class="p-3 rounded-3 border-left border-primary bg-light" style="border-left-width: 4px !important; font-size: 0.92rem;">
+                <i class="fas fa-info-circle text-primary mr-2"></i>{{ assignment.instructions|linebreaks }}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Attachment File -->
+            {% if assignment.attachment %}
+            <div class="assignment-section mb-2">
+              <h6 class="font-weight-bold text-uppercase text-muted small mb-2" style="letter-spacing: 0.05em;">Downloadable Course Material</h6>
+              <div class="p-3 rounded-3 border bg-white d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-xs">
+                <div class="d-flex align-items-center">
+                  <div class="mr-3 text-danger" style="font-size: 2rem;">
+                    <i class="far fa-file-pdf"></i>
+                  </div>
+                  <div>
+                    <h6 class="font-weight-bold text-dark mb-0">Reference Worksheet / Resource</h6>
+                    <small class="text-muted">Click to open or download the instructor's attachment</small>
+                  </div>
+                </div>
+                <a href="{{ assignment.attachment.url }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-4 font-weight-bold">
+                  <i class="fas fa-download mr-1"></i> Download File
+                </a>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Submission Status, Deadlines & Grading (col-lg-4) -->
+      <div class="col-lg-4">
+        
+        <!-- Progress Card -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+          <div class="card-header bg-white border-bottom py-3 px-4">
+            <h6 class="font-weight-bold text-dark mb-0">
+              <i class="fas fa-tasks text-primary mr-2"></i>Your Submission Status
+            </h6>
+          </div>
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="text-muted small font-weight-bold">Status:</span>
+              {% if submission.status == 'graded' %}
+                <span class="badge badge-success-soft font-weight-bold px-3 py-1">Graded</span>
+              {% elif submission.status == 'submitted' %}
+                <span class="badge badge-info-soft font-weight-bold px-3 py-1">Turned In</span>
+              {% elif submission.status == 'late' %}
+                <span class="badge badge-warning-soft font-weight-bold px-3 py-1">Submitted Late</span>
+              {% elif assignment.is_overdue %}
+                <span class="badge badge-danger-soft font-weight-bold px-3 py-1">Overdue</span>
+              {% else %}
+                <span class="badge badge-warning-soft font-weight-bold px-3 py-1">Pending</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="text-muted small font-weight-bold">Maximum Score:</span>
+              <span class="font-weight-bold text-dark">{{ assignment.total_marks }} Points</span>
+            </div>
+
+            <hr class="my-3">
+
+            <!-- Due Date & Countdown -->
+            <div class="text-center p-3 rounded-3 bg-light border mb-4">
+              <span class="text-uppercase text-muted font-weight-bold d-block small mb-1" style="font-size: 0.68rem;">Due Date</span>
+              <h5 class="font-weight-bold text-dark mb-1">{{ assignment.due_date|date:"l, M d, Y" }}</h5>
+              {% if submission.submission_date %}
+                <span class="text-success small font-weight-bold">
+                  <i class="fas fa-check-circle mr-1"></i>Submitted on {{ submission.submission_date|date:"M d, Y" }}
+                </span>
+              {% elif assignment.is_overdue %}
+                <span class="text-danger small font-weight-bold">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>Deadline Passed
+                </span>
+              {% else %}
+                <span class="text-primary small font-weight-bold">
+                  <i class="far fa-clock mr-1"></i>{{ assignment.due_date|timeuntil }} remaining
+                </span>
+              {% endif %}
+            </div>
+
+            <!-- Action Button -->
+            <div>
+              {% if submission.status == 'pending' and not assignment.is_overdue %}
+                <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary btn-block rounded-pill font-weight-bold py-2 shadow-sm">
+                  <i class="fas fa-upload mr-1"></i> Submit Work Now
+                </a>
+              {% elif submission.status == 'pending' and assignment.is_overdue %}
+                <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-outline-danger btn-block rounded-pill font-weight-bold py-2 shadow-sm">
+                  <i class="fas fa-exclamation-triangle mr-1"></i> Submit Late Work
+                </a>
+              {% elif submission.status in 'submitted,late' and not assignment.is_overdue %}
+                <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-outline-primary btn-block rounded-pill font-weight-bold py-2 shadow-sm">
+                  <i class="fas fa-edit mr-1"></i> Update Your Submission
+                </a>
+              {% endif %}
+            </div>
+          </div>
         </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show border-0 shadow-sm" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        <!-- Grade & Feedback Card (if graded) -->
+        {% if submission.status == 'graded' %}
+        <div class="card shadow-sm border-0 rounded-4 mb-4 bg-soft-success">
+          <div class="card-body p-4 text-center">
+            <span class="text-uppercase text-success font-weight-bold small d-block mb-1">Teacher Grade &amp; Evaluation</span>
+            <div class="display-4 font-weight-bold text-success mb-1">
+              {{ submission.marks_obtained }}<span style="font-size: 1.2rem; color: #64748b;"> / {{ assignment.total_marks }}</span>
+            </div>
+
+            {% if submission.feedback %}
+            <div class="mt-3 text-left">
+              <span class="small font-weight-bold text-success d-block mb-1">
+                <i class="fas fa-comment-dots mr-1"></i>Instructor's Feedback:
+              </span>
+              <div class="bg-white p-3 rounded-3 small border font-italic text-dark shadow-xs">
+                "{{ submission.feedback }}"
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
         {% endif %}
 
-        <div class="row">
-            <!-- Left Column: Assignment Content -->
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="avatar avatar-lg bg-primary-light me-3">
-                                <i class="fas fa-book-open text-primary"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0">{{ assignment.subject.name }}</h5>
-                                <span class="text-muted small">Posted by {{ assignment.teacher.user.get_full_name }}</span>
-                            </div>
-                        </div>
-
-                        <div class="assignment-description mb-5">
-                            <h6 class="fw-bold text-uppercase small text-muted mb-3">Description</h6>
-                            <div class="text-dark lead-sm">
-                                {{ assignment.description|linebreaks }}
-                            </div>
-                        </div>
-
-                        {% if assignment.instructions %}
-                        <div class="assignment-instructions mb-5">
-                            <h6 class="fw-bold text-uppercase small text-muted mb-3">Special Instructions</h6>
-                            <div class="p-3 rounded-3 border-start border-4 border-info bg-light">
-                                {{ assignment.instructions|linebreaks }}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if assignment.attachment %}
-                        <div class="assignment-files border rounded-3 p-3 d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <i class="far fa-file-pdf fa-2x text-danger me-3"></i>
-                                <div>
-                                    <p class="mb-0 fw-bold">Resource Materials</p>
-                                    <small class="text-muted">Click to download and review</small>
-                                </div>
-                            </div>
-                            <a href="{{ assignment.attachment.url }}" target="_blank" class="btn btn-primary">
-                                <i class="fas fa-download me-1"></i> Download
-                            </a>
-                        </div>
-                        {% endif %}
-                    </div>
+        <!-- Files Handed In Card -->
+        {% if submission.submission_file or submission.submission_text %}
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+          <div class="card-header bg-white border-bottom py-3 px-4">
+            <h6 class="font-weight-bold text-dark mb-0">
+              <i class="fas fa-folder-open text-primary mr-2"></i>Your Submitted Hand-in
+            </h6>
+          </div>
+          <div class="card-body p-4">
+            {% if submission.submission_file %}
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-file-alt text-primary fa-lg mr-2"></i>
+                    <span class="font-weight-bold text-dark small text-truncate" style="max-width: 160px;">Uploaded Assignment File</span>
+                  </div>
+                  <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold">
+                    View &rarr;
+                  </a>
                 </div>
+              </div>
+            {% endif %}
+
+            {% if submission.submission_text %}
+              <div class="mb-3">
+                <span class="small font-weight-bold text-muted d-block mb-1">Written Response:</span>
+                <div class="bg-light p-3 rounded-3 border small text-dark" style="max-height: 140px; overflow-y: auto;">
+                  {{ submission.submission_text|linebreaks }}
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="text-muted small text-center pt-2 border-top">
+              <i class="far fa-clock mr-1"></i>Recorded: {{ submission.submission_date|date:"M d, Y &bull; H:i" }}
             </div>
-
-            <!-- Right Column: Submission Status & Action -->
-            <div class="col-lg-4">
-                <!-- Status Card -->
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-transparent border-0 pt-4">
-                        <h5 class="card-title mb-0">Your Progress</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Progress Timeline -->
-                        <div class="submission-status-box mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Status:</span>
-                                <span class="badge rounded-pill
-                                    {% if submission.status == 'graded' %}bg-success
-                                    {% elif submission.status == 'submitted' %}bg-info
-                                    {% elif submission.status == 'late' %}bg-warning text-dark
-                                    {% else %}bg-secondary{% endif %} px-3">
-                                    {{ submission.get_status_display }}
-                                </span>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted small">Points:</span>
-                                <span class="fw-bold">{{ assignment.total_marks }} Total</span>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Deadline Counter -->
-                        <div class="text-center mb-4">
-                            <p class="text-muted small mb-1 text-uppercase">Due Date</p>
-                            <h4 class="mb-2">{{ assignment.due_date|date:"l, M d" }}</h4>
-                            {% if assignment.is_overdue %}
-                                <div class="text-danger fw-bold"><i class="fas fa-exclamation-circle"></i> Closed</div>
-                            {% else %}
-                                <div class="text-info"><i class="far fa-clock"></i> {{ assignment.due_date|timeuntil }} left</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Action Button -->
-                        <div class="d-grid gap-2">
-                            {% if assignment.status == "published" and not assignment.is_overdue %}
-                                <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-lg btn-primary shadow">
-                                    <i class="fas fa-{% if submission.status == 'pending' %}upload{% else %}edit{% endif %} me-2"></i>
-                                    {% if submission.status == 'pending' %}Submit Now{% else %}Update Work{% endif %}
-                                </a>
-                            {% elif assignment.is_overdue and submission.status == 'pending' %}
-                                <button class="btn btn-lg btn-light" disabled>
-                                    <i class="fas fa-lock me-2"></i> Submission Closed
-                                </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Grading Card (Only if Graded) -->
-                {% if submission.status == 'graded' %}
-                <div class="card shadow-sm border-0 bg-success-light mb-4">
-                    <div class="card-body text-center py-4">
-                        <h6 class="text-success text-uppercase small fw-bold mb-3">Final Grade</h6>
-                        <div class="display-4 fw-bold text-success mb-0">
-                            {{ submission.marks_obtained }}<small class="fs-6 text-muted">/{{ assignment.total_marks }}</small>
-                        </div>
-
-                        {% if submission.feedback %}
-                        <div class="mt-4 text-start">
-                            <p class="small fw-bold text-success mb-1">Teacher's Feedback:</p>
-                            <div class="bg-white p-3 rounded-3 small shadow-sm italic">
-                                "{{ submission.feedback }}"
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Files Submitted Card -->
-                {% if submission.submission_file or submission.submission_text %}
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-transparent border-0 pt-4">
-                        <h6 class="card-title mb-0">Your Hand-in</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if submission.submission_file %}
-                        <a href="{{ submission.submission_file.url }}" target="_blank" class="btn btn-sm btn-outline-info w-100 mb-2">
-                            <i class="fas fa-file-alt me-2"></i> View Uploaded File
-                        </a>
-                        {% endif %}
-
-                        {% if submission.submission_text %}
-                        <div class="bg-light p-2 rounded small text-truncate">
-                            {{ submission.submission_text|truncatewords:10 }}
-                        </div>
-                        {% endif %}
-
-                        <p class="text-muted x-small mt-2 text-center">
-                            Submitted on {{ submission.submission_date|date:"M d, H:i" }}
-                        </p>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+          </div>
         </div>
+        {% endif %}
+
+      </div>
     </div>
+
+  </div>
 </div>
 
 <style>
-    .bg-primary-light { background-color: rgba(13, 110, 253, 0.1); }
-    .bg-success-light { background-color: rgba(25, 135, 84, 0.08); }
-    .avatar-lg { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
-    .lead-sm { font-size: 1.05rem; line-height: 1.6; }
-    .x-small { font-size: 0.75rem; }
+  .bg-soft-primary { background-color: #eff6ff; color: #2563eb; }
+  .bg-soft-success { background-color: #ecfdf5; color: #059669; }
+  .bg-soft-warning { background-color: #fffbeb; color: #d97706; }
+  .bg-soft-danger  { background-color: #fef2f2; color: #dc2626; }
+
+  .badge-primary-soft { background: #eff6ff; color: #1d4ed8; }
+  .badge-success-soft { background: #ecfdf5; color: #047857; }
+  .badge-warning-soft { background: #fffbeb; color: #b45309; }
+  .badge-danger-soft  { background: #fef2f2; color: #b91c1c; }
+  .badge-info-soft    { background: #e0f2fe; color: #0369a1; }
 </style>
 {% endblock %}

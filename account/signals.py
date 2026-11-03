@@ -1,6 +1,7 @@
 # signals.py
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
 from .models import (
@@ -190,16 +191,48 @@ def handle_student_deactivation(sender, instance, **kwargs):
 
 
 def _resolve_school_id(instance):
-    if hasattr(instance, "school_id") and getattr(instance, "school_id"):
-        return instance.school_id
-    if hasattr(instance, "student_id") and getattr(instance, "student_id") and hasattr(instance, "student"):
-        return instance.student.school_id
-    if hasattr(instance, "teacher_id") and getattr(instance, "teacher_id") and hasattr(instance, "teacher"):
-        return instance.teacher.school_id
-    if hasattr(instance, "subject_id") and getattr(instance, "subject_id") and hasattr(instance, "subject"):
-        return instance.subject.school_id
-    if hasattr(instance, "assignment_id") and getattr(instance, "assignment_id") and hasattr(instance, "assignment"):
-        return instance.assignment.subject.school_id
+    if not instance:
+        return None
+    try:
+        if hasattr(instance, "school_id") and instance.school_id:
+            return instance.school_id
+    except (ObjectDoesNotExist, AttributeError):
+        pass
+
+    try:
+        if getattr(instance, "subject_id", None):
+            subject = getattr(instance, "subject", None)
+            if subject and getattr(subject, "school_id", None):
+                return subject.school_id
+    except (ObjectDoesNotExist, AttributeError):
+        pass
+
+    try:
+        if getattr(instance, "student_id", None):
+            student = getattr(instance, "student", None)
+            if student and getattr(student, "school_id", None):
+                return student.school_id
+    except (ObjectDoesNotExist, AttributeError):
+        pass
+
+    try:
+        if getattr(instance, "teacher_id", None):
+            teacher = getattr(instance, "teacher", None)
+            if teacher and getattr(teacher, "school_id", None):
+                return teacher.school_id
+    except (ObjectDoesNotExist, AttributeError):
+        pass
+
+    try:
+        if getattr(instance, "assignment_id", None):
+            assignment = getattr(instance, "assignment", None)
+            if assignment:
+                subject = getattr(assignment, "subject", None)
+                if subject and getattr(subject, "school_id", None):
+                    return subject.school_id
+    except (ObjectDoesNotExist, AttributeError):
+        pass
+
     return None
 
 
@@ -211,34 +244,38 @@ def _bump_sections_for_school(school_id, sections):
 
 
 def _invalidate_for_instance(instance):
-    school_id = _resolve_school_id(instance)
-    if isinstance(instance, Student):
-        _bump_sections_for_school(school_id, ["students", "admin_dashboard", "student_portal", "teacher_portal", "ai_predictions"])
-    elif isinstance(instance, Teacher):
-        _bump_sections_for_school(school_id, ["teachers", "admin_dashboard", "teacher_portal", "ai_predictions"])
-    elif isinstance(instance, Subject):
-        _bump_sections_for_school(school_id, ["subjects", "admin_dashboard", "teacher_portal", "student_portal", "assignments"])
-    elif isinstance(instance, Enrollment):
-        _bump_sections_for_school(school_id, ["student_portal", "teacher_portal"])
-    elif isinstance(instance, ResultSheet):
-        _bump_sections_for_school(school_id, ["results", "student_portal", "teacher_portal", "ai_predictions"])
-    elif isinstance(instance, Assignment):
-        _bump_sections_for_school(school_id, ["assignments", "student_portal", "teacher_portal"])
-    elif isinstance(instance, AssignmentSubmission):
-        _bump_sections_for_school(school_id, ["assignments", "student_portal", "teacher_portal"])
-    elif isinstance(instance, Fees):
-        _bump_sections_for_school(school_id, ["fees", "admin_dashboard", "student_portal"])
-    elif isinstance(instance, Attendance):
-        _bump_sections_for_school(school_id, ["attendance", "student_portal", "teacher_portal"])
-    elif isinstance(instance, Announcement):
-        _bump_sections_for_school(school_id, ["announcements", "admin_dashboard", "student_portal", "teacher_portal"])
-    elif isinstance(instance, Event):
-        _bump_sections_for_school(school_id, ["events", "student_portal", "teacher_portal"])
-    elif isinstance(instance, Package):
-        # Public home page package cards.
-        bump_cache_version("public", "home")
-    elif isinstance(instance, Notification):
-        bump_user_cache_version(instance.user_id, "notifications")
+    try:
+        school_id = _resolve_school_id(instance)
+        if isinstance(instance, Student):
+            _bump_sections_for_school(school_id, ["students", "admin_dashboard", "student_portal", "teacher_portal", "ai_predictions"])
+        elif isinstance(instance, Teacher):
+            _bump_sections_for_school(school_id, ["teachers", "admin_dashboard", "teacher_portal", "ai_predictions"])
+        elif isinstance(instance, Subject):
+            _bump_sections_for_school(school_id, ["subjects", "admin_dashboard", "teacher_portal", "student_portal", "assignments"])
+        elif isinstance(instance, Enrollment):
+            _bump_sections_for_school(school_id, ["student_portal", "teacher_portal"])
+        elif isinstance(instance, ResultSheet):
+            _bump_sections_for_school(school_id, ["results", "student_portal", "teacher_portal", "ai_predictions"])
+        elif isinstance(instance, Assignment):
+            _bump_sections_for_school(school_id, ["assignments", "student_portal", "teacher_portal"])
+        elif isinstance(instance, AssignmentSubmission):
+            _bump_sections_for_school(school_id, ["assignments", "student_portal", "teacher_portal"])
+        elif isinstance(instance, Fees):
+            _bump_sections_for_school(school_id, ["fees", "admin_dashboard", "student_portal"])
+        elif isinstance(instance, Attendance):
+            _bump_sections_for_school(school_id, ["attendance", "student_portal", "teacher_portal"])
+        elif isinstance(instance, Announcement):
+            _bump_sections_for_school(school_id, ["announcements", "admin_dashboard", "student_portal", "teacher_portal"])
+        elif isinstance(instance, Event):
+            _bump_sections_for_school(school_id, ["events", "student_portal", "teacher_portal"])
+        elif isinstance(instance, Package):
+            # Public home page package cards.
+            bump_cache_version("public", "home")
+        elif isinstance(instance, Notification):
+            bump_user_cache_version(instance.user_id, "notifications")
+    except Exception:
+        # Never fail a database operation or deletion because of cache invalidation
+        pass
 
 
 _INVALIDATION_MODELS = (

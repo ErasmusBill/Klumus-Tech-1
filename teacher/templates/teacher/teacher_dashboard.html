@@ -1,458 +1,1164 @@
 {% extends "teacher/base.html" %}
 {% load static media_tags %}
+
 {% block title %}Teacher Dashboard - {{ teacher.user.get_full_name }}{% endblock %}
 
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --td-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --td-bg: #f8fafc;
+    --td-surface: #ffffff;
+    --td-border: #e2e8f0;
+    --td-border-light: #f1f5f9;
+    --td-text: #0f172a;
+    --td-text-muted: #64748b;
+    --td-primary: #3b82f6;
+    --td-primary-dark: #1d4ed8;
+    --td-primary-light: #eff6ff;
+    --td-success: #10b981;
+    --td-success-light: #ecfdf5;
+    --td-warning: #f59e0b;
+    --td-warning-light: #fffbeb;
+    --td-danger: #ef4444;
+    --td-danger-light: #fef2f2;
+    --td-purple: #8b5cf6;
+    --td-purple-light: #f5f3ff;
+    --td-radius-lg: 16px;
+    --td-radius-md: 12px;
+    --td-radius-sm: 8px;
+    --td-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    --td-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+  }
+
+  .teacher-dashboard {
+    font-family: var(--td-font);
+    color: var(--td-text);
+  }
+
+  /* Hero Welcome Card */
+  .td-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #38bdf8 100%);
+    border-radius: var(--td-radius-lg);
+    padding: 2.25rem 2rem;
+    color: #ffffff;
+    box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.35);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+  }
+  .td-hero::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .td-hero-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+  }
+  .td-hero-subtitle {
+    font-size: 0.95rem;
+    opacity: 0.92;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+  .td-hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .td-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+  }
+  .td-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .td-btn-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    border-radius: var(--td-radius-md);
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .td-btn-hero-primary {
+    background: #ffffff;
+    color: #1e3a8a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  .td-btn-hero-primary:hover {
+    background: #f8fafc;
+    color: #1e3a8a;
+    transform: translateY(-2px);
+  }
+  .td-btn-hero-secondary {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+  .td-btn-hero-secondary:hover {
+    background: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    transform: translateY(-2px);
+  }
+
+  /* Smart Notice Alert Banners */
+  .td-alert-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--td-radius-md);
+    border-left: 4px solid;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--td-shadow-sm);
+  }
+  .td-alert-banner.warning {
+    background: #fffbeb;
+    border-color: #f59e0b;
+    color: #92400e;
+  }
+  .td-alert-banner.success {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #065f46;
+  }
+  .td-alert-banner.info {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #1e40af;
+  }
+
+  /* Metric KPI Cards */
+  .td-metric-card {
+    background: var(--td-surface);
+    border: 1px solid var(--td-border);
+    border-radius: var(--td-radius-lg);
+    padding: 1.35rem 1.25rem;
+    box-shadow: var(--td-shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .td-metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--td-shadow-hover);
+    border-color: #cbd5e1;
+  }
+  .td-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--td-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+  .td-icon-blue { background: #eff6ff; color: #2563eb; }
+  .td-icon-green { background: #ecfdf5; color: #059669; }
+  .td-icon-amber { background: #fffbeb; color: #d97706; }
+  .td-icon-purple { background: #f5f3ff; color: #7c3aed; }
+
+  .td-metric-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--td-text);
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+  }
+  .td-metric-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--td-text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .td-metric-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--td-text-muted);
+    border-top: 1px solid var(--td-border-light);
+    padding-top: 0.65rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Quick Actions Bar */
+  .td-quick-actions-bar {
+    background: var(--td-surface);
+    border: 1px solid var(--td-border);
+    border-radius: var(--td-radius-lg);
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.75rem;
+    box-shadow: var(--td-shadow-sm);
+  }
+  .td-action-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: var(--td-radius-md);
+    background: var(--td-border-light);
+    color: var(--td-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .td-action-chip:hover {
+    background: #e2e8f0;
+    color: var(--td-primary-dark);
+    transform: translateY(-1px);
+  }
+  .td-action-chip.highlight {
+    background: var(--td-primary-light);
+    color: var(--td-primary-dark);
+    border-color: #bfdbfe;
+  }
+  .td-action-chip.highlight:hover {
+    background: #dbeafe;
+  }
+
+  /* General Cards */
+  .td-card {
+    background: var(--td-surface);
+    border: 1px solid var(--td-border);
+    border-radius: var(--td-radius-lg);
+    box-shadow: var(--td-shadow-sm);
+    margin-bottom: 1.75rem;
+    overflow: hidden;
+  }
+  .td-card-header {
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--td-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+  }
+  .td-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--td-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .td-card-body {
+    padding: 1.35rem;
+  }
+
+  /* Table styling */
+  .td-table {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .td-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--td-text-muted);
+    border-bottom: 1px solid var(--td-border);
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+  }
+  .td-table td {
+    padding: 0.95rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--td-border-light);
+    font-size: 0.88rem;
+  }
+  .td-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  /* Class cards */
+  .td-class-box {
+    background: #f8fafc;
+    border: 1px solid var(--td-border);
+    border-radius: var(--td-radius-md);
+    padding: 1.15rem;
+    transition: all 0.2s ease;
+    position: relative;
+    height: 100%;
+  }
+  .td-class-box:hover {
+    border-color: var(--td-primary);
+    background: #ffffff;
+    box-shadow: var(--td-shadow-sm);
+    transform: translateY(-2px);
+  }
+  .td-class-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+    color: var(--td-text);
+  }
+
+  /* Badges */
+  .td-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .td-badge-primary { background: #eff6ff; color: #1d4ed8; }
+  .td-badge-success { background: #ecfdf5; color: #047857; }
+  .td-badge-warning { background: #fffbeb; color: #b45309; }
+  .td-badge-danger { background: #fef2f2; color: #b91c1c; }
+  .td-badge-purple { background: #f5f3ff; color: #6d28d9; }
+
+  /* AI Predictor Card */
+  .td-ai-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #c7d2fe;
+    position: relative;
+    overflow: hidden;
+  }
+  .td-ai-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+  }
+  .td-ai-glow-badge {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #ffffff;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  /* Avatar styling */
+  .td-avatar-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    flex-shrink: 0;
+  }
+  .td-avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.78rem;
+  }
+
+  /* Empty state */
+  .td-empty-state {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+  }
+  .td-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto 1rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
+<div class="teacher-dashboard">
+
+  <!-- ==================== WELCOME HERO BANNER ==================== -->
+  <div class="td-hero">
     <div class="row align-items-center">
-        <div class="col">
-            <h3 class="page-title">Welcome, {{ teacher.user.get_full_name }}!</h3>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
-                <li class="breadcrumb-item active">Overview</li>
-            </ul>
-        </div>
-        <div class="col-auto">
-            <div class="teacher-info">
-                <span class="badge bg-primary">{{ teacher.department.name|default:"Teacher" }}</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Stats Cards -->
-<div class="row">
-    <!-- My Students -->
-    <div class="col-xl-3 col-sm-6 col-12 mb-4">
-        <div class="card bg-secondary text-white shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ student_count }}</h2>
-                        <p class="mb-0">My Students</p>
-                    </div>
-                    <div class="icon-shape">
-                        <i class="fas fa-user-graduate fa-2x"></i>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small>Across {{ subject_count }} subjects</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- My Subjects -->
-    <div class="col-xl-3 col-sm-6 col-12 mb-4">
-        <div class="card bg-success text-white shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ subject_count }}</h2>
-                        <p class="mb-0">My Subjects</p>
-                    </div>
-                    <div class="icon-shape">
-                        <i class="fas fa-book-open fa-2x"></i>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ class_count }} classes</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pending Assignments to Grade -->
-    <div class="col-xl-3 col-sm-6 col-12 mb-4">
-        <div class="card bg-warning text-white shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ pending_grading_count }}</h2>
-                        <p class="mb-0">To Grade</p>
-                    </div>
-                    <div class="icon-shape">
-                        <i class="fas fa-tasks fa-2x"></i>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small>Pending submissions</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Total Assignments -->
-    <div class="col-xl-3 col-sm-6 col-12 mb-4">
-        <div class="card bg-info text-white shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-0">{{ assignment_count }}</h2>
-                        <p class="mb-0">Assignments</p>
-                    </div>
-                    <div class="icon-shape">
-                        <i class="fas fa-clipboard-list fa-2x"></i>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <small>{{ active_assignments_count }} active</small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Content Row -->
-<div class="row">
-    <!-- Recent Assignments & Quick Actions -->
-    <div class="col-xl-8 col-lg-7 mb-4">
-        <!-- Recent Assignments -->
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Recent Assignments</h5>
-                <a href="{% url 'teacher:assignment-list' %}" class="btn btn-sm btn-primary">View All</a>
-            </div>
-            <div class="card-body">
-                {% if recent_assignments %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Assignment</th>
-                                <th>Subject</th>
-                                <th>Due Date</th>
-                                <th>Submissions</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for assignment in recent_assignments %}
-                            <tr>
-                                <td>
-                                    <strong>{{ assignment.title }}</strong>
-                                    <br><small class="text-muted">{{ assignment.subject.name }}</small>
-                                </td>
-                                <td>{{ assignment.get_student_class_display }}</td>
-                                <td>
-                                    <span class="{% if assignment.is_overdue %}text-danger{% endif %}">
-                                        {{ assignment.due_date|date:"M d" }}
-                                    </span>
-                                    {% if assignment.is_overdue %}
-                                    <br><small class="text-danger">Overdue</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-{% if assignment.submissions.count > 0 %}info{% else %}secondary{% endif %}">
-                                        {{ assignment.submissions.count }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{% url 'teacher:assignment-submissions' assignment.id %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        View
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">No assignments created yet.</p>
-                    <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary">
-                        Create Your First Assignment
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions & Profile -->
-    <div class="col-xl-4 col-lg-5 mb-4">
-        <!-- Teacher Profile -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">My Profile</h5>
-            </div>
-            <div class="card-body text-center">
-                {% if teacher.user.profile_picture %}
-                    <img src="{{ teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}" 
-                         class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-                {% elif teacher.image %}
-                    <img src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}" 
-                         class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
-                {% else %}
-                    <img src="{% static 'assets/img/profiles/avatar-01.jpg' %}" alt="Profile" 
-                         class="rounded-circle mb-3" style="width: 100px; height: 100px;">
-                {% endif %}
-                <h5 class="mb-1">{{ teacher.user.get_full_name }}</h5>
-                <p class="text-muted mb-2">{{ teacher.qualification|default:"Teacher" }}</p>
-                <div class="text-start small">
-                    <p class="mb-1"><i class="fas fa-book me-2"></i> {{ subject_count }} Subjects</p>
-                    <p class="mb-1"><i class="fas fa-users me-2"></i> {{ student_count }} Students</p>
-                    <p class="mb-0"><i class="fas fa-building me-2"></i> {{ teacher.school.name }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary mb-2">
-                        <i class="fas fa-plus-circle me-2"></i>Create Assignment
-                    </a>
-                    {% if teacher_is_class_teacher %}
-                      <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-outline-primary mb-2">
-                          <i class="fas fa-clipboard-check me-2"></i>Take Attendance
-                      </a>
-                    {% endif %}
-                    <a href="{% url 'teacher:my-subjects' %}" class="btn btn-outline-success mb-2">
-                        <i class="fas fa-book-reader me-2"></i>My Subjects
-                    </a>
-                    <a href="{% url 'teacher:teacher-students' %}" class="btn btn-outline-info">
-                        <i class="fas fa-user-graduate me-2"></i>View Students
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Second Row: Pending Tasks & Class Overview -->
-<div class="row">
-    <!-- Pending Grading -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Pending Grading</h5>
-                <span class="badge bg-warning">{{ pending_grading_count }} to grade</span>
-            </div>
-            <div class="card-body">
-                {% if pending_submissions %}
-                <div class="list-group list-group-flush">
-                    {% for submission in pending_submissions %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">{{ submission.student.user.get_full_name }}</h6>
-                            <small class="text-muted">{{ submission.assignment.title }}</small>
-                            <br>
-                            <small class="text-muted">Submitted: {{ submission.submission_date|date:"M d, H:i" }}</small>
-                        </div>
-                        <a href="{% url 'teacher:grade-assignment' submission.id %}" 
-                           class="btn btn-sm btn-outline-success">Grade</a>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-check-circle fa-2x text-muted mb-2"></i>
-                    <p class="text-muted mb-0">All caught up! No pending grading.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- My Classes -->
-    <div class="col-xl-6 col-lg-6 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header">
-                <h5 class="card-title mb-0">My Classes</h5>
-            </div>
-            <div class="card-body">
-                {% if teacher_classes %}
-                <div class="row">
-                    {% for class_info in teacher_classes %}
-                    <div class="col-md-6 mb-3">
-                        <div class="class-card p-3 border rounded">
-                            <h6 class="mb-2">{{ class_info.class_display }}</h6>
-                            <div class="d-flex justify-content-between text-sm text-muted">
-                                <span>{{ class_info.student_count }} students</span>
-                                <span>{{ class_info.subject_count }} subjects</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-chalkboard-teacher fa-2x text-muted mb-2"></i>
-                    <p class="text-muted mb-0">No classes assigned yet.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Upcoming Deadlines -->
-{% if upcoming_deadlines %}
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Upcoming Deadlines</h5>
-                <span class="badge bg-info">{{ upcoming_deadlines|length }} due soon</span>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for assignment in upcoming_deadlines %}
-                    <div class="col-md-4 mb-3">
-                        <div class="deadline-card alert alert-warning">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="alert-heading mb-1">{{ assignment.title }}</h6>
-                                    <p class="mb-1 small">{{ assignment.subject.name }} - {{ assignment.get_student_class_display }}</p>
-                                    <p class="mb-0 small text-danger">
-                                        <i class="fas fa-clock"></i> Due in {{ assignment.due_date|timeuntil }}
-                                    </p>
-                                </div>
-                                <span class="badge bg-warning">{{ assignment.submissions.count }} submitted</span>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-<!-- AI Performance Predictor -->
-<div class="row mt-4">
-  <div class="col-12">
-    <div class="card shadow-sm">
-      <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-robot me-2"></i> AI Student Performance Predictor</h5>
-      </div>
-      <div class="card-body text-center">
-        <p class="text-muted">
-          Use AI to analyze your students’ recent academic data and predict their performance.
+      <div class="col-lg-7 col-md-12 mb-3 mb-lg-0">
+        <h1 class="td-hero-title">{{ greeting_time }}, {{ teacher.user.get_full_name }}! 👋</h1>
+        <p class="td-hero-subtitle">
+          Welcome to your teaching hub &bull; {{ today_date|date:"l, F j, Y" }}
         </p>
-        <div class="input-group mb-3 justify-content-center" style="max-width: 400px; margin: 0 auto;">
-          <input type="text" id="studentIdInput" class="form-control" placeholder="Enter Student Index (e.g., STU-001)">
-
-          <button class="btn btn-success" type="button" onclick="predictPerformance()">
-            <i class="fas fa-magic me-2"></i> Predict
-          </button>
+        <div class="td-hero-badges">
+          <span class="td-hero-badge">
+            <i class="fas fa-building"></i> {{ teacher.department.name|default:"Academics" }}
+          </span>
+          {% if teacher.qualification %}
+            <span class="td-hero-badge">
+              <i class="fas fa-graduation-cap"></i> {{ teacher.qualification }}
+            </span>
+          {% endif %}
+          {% if teacher_is_class_teacher %}
+            <span class="td-hero-badge" style="background: rgba(245, 158, 11, 0.35); border-color: rgba(251, 191, 36, 0.6);">
+              <i class="fas fa-star text-warning"></i> Class Teacher ({{ teacher.class_teacher_class }})
+            </span>
+          {% endif %}
         </div>
-        <div id="result" class="mt-4"></div>
+      </div>
+      <div class="col-lg-5 col-md-12 text-lg-end">
+        <div class="td-hero-actions">
+          <a href="{% url 'teacher:add-assignment' %}" class="td-btn-hero td-btn-hero-primary">
+            <i class="fas fa-plus-circle"></i> Create Assignment
+          </a>
+          <a href="{% url 'teacher:my-subjects' %}" class="td-btn-hero td-btn-hero-secondary">
+            <i class="fas fa-edit"></i> Enter Grades
+          </a>
+          {% if can_take_attendance %}
+            <a href="{% url 'teacher:mark-attendance' %}" class="td-btn-hero td-btn-hero-secondary">
+              <i class="fas fa-clipboard-check"></i> Take Attendance
+            </a>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- ==================== SMART DAILY FOCUS BANNER ==================== -->
+  {% if can_take_attendance %}
+    {% if not today_attendance_taken %}
+      <div class="td-alert-banner warning">
+        <div class="d-flex align-items-center gap-3">
+          <div class="td-icon-box td-icon-amber" style="width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div>
+            <strong>Today's Attendance Required:</strong> You haven't taken student attendance for <strong>{{ teacher.class_teacher_class }}</strong> yet today.
+          </div>
+        </div>
+        <div>
+          <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-warning btn-sm fw-bold">
+            <i class="fas fa-clipboard-check me-1"></i> Mark Attendance Now
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="td-alert-banner success">
+        <div class="d-flex align-items-center gap-3">
+          <div class="td-icon-box td-icon-green" style="width: 40px; height: 40px; font-size: 1rem;">
+            <i class="fas fa-check"></i>
+          </div>
+          <div>
+            <strong>Attendance Recorded:</strong> Today's attendance for <strong>{{ teacher.class_teacher_class }}</strong> is marked:
+            <span class="ms-1 badge bg-success">{{ today_attendance_summary.present }} Present</span>
+            <span class="badge bg-danger">{{ today_attendance_summary.absent }} Absent</span>
+            {% if today_attendance_summary.late %}
+              <span class="badge bg-warning text-dark">{{ today_attendance_summary.late }} Late</span>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <a href="{% url 'teacher:attendance-list' %}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-eye me-1"></i> View Records
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <!-- ==================== KEY METRIC STAT CARDS ==================== -->
+  <div class="row g-3 mb-4">
+    <!-- Active Students -->
+    <div class="col-xl-3 col-sm-6">
+      <div class="td-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="td-metric-label">My Students</div>
+            <div class="td-metric-value">{{ student_count }}</div>
+          </div>
+          <div class="td-icon-box td-icon-blue">
+            <i class="fas fa-user-graduate"></i>
+          </div>
+        </div>
+        <div class="td-metric-footer">
+          <span><i class="fas fa-layer-group me-1"></i> Across {{ subject_count }} subject{{ subject_count|pluralize }}</span>
+          <a href="{% url 'teacher:teacher-students' %}" class="text-primary text-decoration-none fw-semibold">View &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Subjects -->
+    <div class="col-xl-3 col-sm-6">
+      <div class="td-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="td-metric-label">My Subjects</div>
+            <div class="td-metric-value">{{ subject_count }}</div>
+          </div>
+          <div class="td-icon-box td-icon-green">
+            <i class="fas fa-book-open"></i>
+          </div>
+        </div>
+        <div class="td-metric-footer">
+          <span><i class="fas fa-school me-1"></i> In {{ class_count }} class{{ class_count|pluralize:"es" }}</span>
+          <a href="{% url 'teacher:my-subjects' %}" class="text-success text-decoration-none fw-semibold">Manage &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Grading -->
+    <div class="col-xl-3 col-sm-6">
+      <div class="td-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="td-metric-label">To Grade</div>
+            <div class="td-metric-value">{{ pending_grading_count }}</div>
+          </div>
+          <div class="td-icon-box td-icon-amber">
+            <i class="fas fa-clipboard-check"></i>
+          </div>
+        </div>
+        <div class="td-metric-footer">
+          {% if pending_grading_count > 0 %}
+            <span class="text-danger fw-semibold"><i class="fas fa-bell me-1"></i> Action needed</span>
+            <a href="#pending-grading-section" class="text-amber text-decoration-none fw-semibold" style="color: #d97706;">Grade &rarr;</a>
+          {% else %}
+            <span class="text-success fw-semibold"><i class="fas fa-check-circle me-1"></i> All caught up</span>
+            <span class="text-muted">Done</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Assignments -->
+    <div class="col-xl-3 col-sm-6">
+      <div class="td-metric-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="td-metric-label">Active Assignments</div>
+            <div class="td-metric-value">{{ active_assignments_count }}</div>
+          </div>
+          <div class="td-icon-box td-icon-purple">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+        </div>
+        <div class="td-metric-footer">
+          <span><i class="fas fa-folder me-1"></i> {{ assignment_count }} total created</span>
+          <a href="{% url 'teacher:assignment-list' %}" class="text-purple text-decoration-none fw-semibold" style="color: #7c3aed;">All &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== QUICK SHORTCUTS BAR ==================== -->
+  <div class="td-quick-actions-bar d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold text-muted small text-uppercase me-2"><i class="fas fa-bolt text-warning me-1"></i> Quick Actions:</span>
+      <a href="{% url 'teacher:add-assignment' %}" class="td-action-chip highlight">
+        <i class="fas fa-plus"></i> New Assignment
+      </a>
+      <a href="{% url 'teacher:my-subjects' %}" class="td-action-chip">
+        <i class="fas fa-pencil-alt text-primary"></i> Enter Grades
+      </a>
+      {% if can_take_attendance %}
+        <a href="{% url 'teacher:mark-attendance' %}" class="td-action-chip">
+          <i class="fas fa-clipboard-check text-success"></i> Take Attendance
+        </a>
+      {% endif %}
+      <a href="{% url 'teacher:teacher-students' %}" class="td-action-chip">
+        <i class="fas fa-users text-info"></i> Student Directory
+      </a>
+      <a href="{% url 'teacher:list-result' %}" class="td-action-chip">
+        <i class="fas fa-chart-line text-purple"></i> View Results
+      </a>
+      {% if teacher_is_class_teacher %}
+        <a href="{% url 'teacher:promotion-dashboard' %}" class="td-action-chip">
+          <i class="fas fa-user-graduate text-warning"></i> Promotion
+        </a>
+      {% endif %}
+    </div>
+    <div class="d-none d-md-block">
+      <a href="#ai-predictor-section" class="td-action-chip" style="background: #fdf2f8; color: #be185d; border-color: #fbcfe8;">
+        <i class="fas fa-magic"></i> AI Predictor
+      </a>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN CONTENT ROW ==================== -->
+  <div class="row">
+
+    <!-- ==================== LEFT COLUMN (WORKFLOW) ==================== -->
+    <div class="col-xl-8 col-lg-7">
+
+      <!-- 1. Pending Submissions to Grade -->
+      <div class="td-card" id="pending-grading-section">
+        <div class="td-card-header">
+          <h2 class="td-card-title">
+            <i class="fas fa-tasks text-warning"></i> Pending Grading
+            {% if pending_grading_count > 0 %}
+              <span class="badge bg-warning text-dark ms-2">{{ pending_grading_count }} to grade</span>
+            {% endif %}
+          </h2>
+          {% if pending_submissions %}
+            <a href="{% url 'teacher:assignment-list' %}" class="btn btn-sm btn-outline-primary">All Assignments</a>
+          {% endif %}
+        </div>
+        <div class="td-card-body p-0">
+          {% if pending_submissions %}
+            <div class="table-responsive">
+              <table class="td-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Assignment</th>
+                    <th>Class &bull; Subject</th>
+                    <th>Submitted</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sub in pending_submissions %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="td-avatar-circle td-avatar-sm">
+                            {{ sub.student.user.initials }}
+                          </div>
+                          <div>
+                            <div class="fw-bold text-dark">{{ sub.student.user.get_full_name }}</div>
+                            <small class="text-muted">{{ sub.student.student_id }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="fw-semibold text-dark">{{ sub.assignment.title }}</div>
+                      </td>
+                      <td>
+                        <span class="td-badge td-badge-primary">{{ sub.assignment.get_student_class_display }}</span>
+                        <div class="small text-muted mt-1">{{ sub.assignment.subject.name }}</div>
+                      </td>
+                      <td>
+                        <div>{{ sub.submission_date|date:"M d, H:i" }}</div>
+                        {% if sub.status == 'late' %}
+                          <span class="badge bg-danger mt-1">Late</span>
+                        {% else %}
+                          <span class="badge bg-info mt-1">On Time</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-end">
+                        <a href="{% url 'teacher:grade-assignment' sub.id %}" class="btn btn-sm btn-success fw-bold">
+                          <i class="fas fa-check-circle me-1"></i> Grade
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="td-empty-state">
+              <div class="td-empty-icon text-success" style="background: #ecfdf5;">
+                <i class="fas fa-check-double"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-1">All Caught Up!</h5>
+              <p class="text-muted small mb-3">There are currently no student submissions waiting for your grading.</p>
+              <a href="{% url 'teacher:add-assignment' %}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-plus me-1"></i> Create New Assignment
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 2. Recent & Active Assignments -->
+      <div class="td-card">
+        <div class="td-card-header">
+          <h2 class="td-card-title">
+            <i class="fas fa-clipboard-list text-primary"></i> Recent Assignments
+          </h2>
+          <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'teacher:add-assignment' %}" class="btn btn-sm btn-primary">
+              <i class="fas fa-plus me-1"></i> New
+            </a>
+            <a href="{% url 'teacher:assignment-list' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+          </div>
+        </div>
+        <div class="td-card-body p-0">
+          {% if recent_assignments %}
+            <div class="table-responsive">
+              <table class="td-table">
+                <thead>
+                  <tr>
+                    <th>Assignment Title</th>
+                    <th>Class / Subject</th>
+                    <th>Due Date</th>
+                    <th>Submissions</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for assignment in recent_assignments %}
+                    <tr>
+                      <td>
+                        <div class="fw-bold text-dark">{{ assignment.title }}</div>
+                        <small class="text-muted">Total marks: {{ assignment.total_marks }}</small>
+                      </td>
+                      <td>
+                        <span class="td-badge td-badge-purple">{{ assignment.get_student_class_display }}</span>
+                        <div class="small text-muted mt-1">{{ assignment.subject.name }}</div>
+                      </td>
+                      <td>
+                        {% if assignment.is_overdue %}
+                          <span class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>{{ assignment.due_date|date:"M d, Y" }}</span>
+                          <div class="small text-danger">Overdue</div>
+                        {% else %}
+                          <span class="text-dark fw-semibold">{{ assignment.due_date|date:"M d, Y" }}</span>
+                          <div class="small text-muted">Due in {{ assignment.due_date|timeuntil }}</div>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <a href="{% url 'teacher:assignment-submissions' assignment.id %}" class="badge bg-{% if assignment.submission_count > 0 %}primary{% else %}secondary{% endif %} text-decoration-none">
+                          <i class="fas fa-inbox me-1"></i> {{ assignment.submission_count }} Submitted
+                        </a>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                          <a href="{% url 'teacher:assignment-submissions' assignment.id %}" class="btn btn-outline-primary" title="View Submissions">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <a href="{% url 'teacher:edit-assignment' assignment.id %}" class="btn btn-outline-secondary" title="Edit Assignment">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="td-empty-state">
+              <div class="td-empty-icon">
+                <i class="fas fa-tasks"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-1">No Assignments Yet</h5>
+              <p class="text-muted small mb-3">Create your first assignment to engage students and collect submissions.</p>
+              <a href="{% url 'teacher:add-assignment' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Create Assignment
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 3. My Classes Overview -->
+      <div class="td-card">
+        <div class="td-card-header">
+          <h2 class="td-card-title">
+            <i class="fas fa-chalkboard-teacher text-success"></i> My Teaching Classes
+          </h2>
+          <span class="badge bg-light text-dark">{{ teacher_classes|length }} Assigned</span>
+        </div>
+        <div class="td-card-body">
+          {% if teacher_classes %}
+            <div class="row g-3">
+              {% for item in teacher_classes %}
+                <div class="col-md-6">
+                  <div class="td-class-box">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div class="td-class-name">
+                        {{ item.class_display }}
+                      </div>
+                      {% if item.is_class_teacher %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-star me-1"></i>Class Teacher</span>
+                      {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 text-muted small">
+                      <span><i class="fas fa-users me-1 text-primary"></i><strong>{{ item.student_count }}</strong> Students</span>
+                      <span><i class="fas fa-book me-1 text-success"></i><strong>{{ item.subject_count }}</strong> Subject{{ item.subject_count|pluralize }}</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                      {% if item.is_class_teacher %}
+                        <a href="{% url 'teacher:mark-attendance' %}" class="btn btn-xs btn-outline-success py-1 px-2" style="font-size: 0.78rem;">
+                          <i class="fas fa-clipboard-check me-1"></i>Attendance
+                        </a>
+                      {% endif %}
+                      <a href="{% url 'teacher:teacher-students' %}" class="btn btn-xs btn-outline-primary py-1 px-2" style="font-size: 0.78rem;">
+                        <i class="fas fa-user-graduate me-1"></i>Students
+                      </a>
+                      <a href="{% url 'teacher:my-subjects' %}" class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size: 0.78rem;">
+                        <i class="fas fa-edit me-1"></i>Grades
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="td-empty-state">
+              <div class="td-empty-icon">
+                <i class="fas fa-chalkboard"></i>
+              </div>
+              <h5 class="fw-bold text-dark mb-1">No Classes Assigned</h5>
+              <p class="text-muted small mb-0">Contact your school administrator to assign you to classes and subjects.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== RIGHT COLUMN (PROFILE, DEADLINES, AI) ==================== -->
+    <div class="col-xl-4 col-lg-5">
+
+      <!-- 1. Teacher Profile Summary Card -->
+      <div class="td-card">
+        <div class="td-card-header">
+          <h2 class="td-card-title">
+            <i class="fas fa-user-circle text-primary"></i> My Profile
+          </h2>
+          <a href="{% url 'account:change-password' %}" class="btn btn-sm btn-link text-muted p-0" title="Account settings">
+            <i class="fas fa-cog"></i>
+          </a>
+        </div>
+        <div class="td-card-body text-center">
+          <div class="mb-3 position-relative d-inline-block">
+            {% if teacher.user.profile_picture %}
+              <img src="{{ teacher.user.profile_picture.url }}" alt="{{ teacher.user.get_full_name }}" 
+                   class="rounded-circle shadow-sm" style="width: 88px; height: 88px; object-fit: cover; border: 3px solid #e2e8f0;">
+            {% elif teacher.image %}
+              <img src="{{ teacher.image.url }}" alt="{{ teacher.user.get_full_name }}" 
+                   class="rounded-circle shadow-sm" style="width: 88px; height: 88px; object-fit: cover; border: 3px solid #e2e8f0;">
+            {% else %}
+              <div class="td-avatar-circle mx-auto shadow-sm" style="width: 88px; height: 88px; font-size: 2rem;">
+                {{ teacher.user.initials }}
+              </div>
+            {% endif %}
+          </div>
+          <h5 class="fw-bold text-dark mb-1">{{ teacher.user.get_full_name }}</h5>
+          <p class="text-muted small mb-3">
+            {{ teacher.qualification|default:"Faculty Member" }} &bull; {{ teacher.department.name|default:"General" }}
+          </p>
+
+          <div class="row g-2 text-center pt-2 border-top">
+            <div class="col-4">
+              <div class="p-2 rounded bg-light">
+                <div class="fw-bold text-dark">{{ subject_count }}</div>
+                <div class="x-small text-muted" style="font-size: 0.72rem;">Subjects</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded bg-light">
+                <div class="fw-bold text-dark">{{ student_count }}</div>
+                <div class="x-small text-muted" style="font-size: 0.72rem;">Students</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded bg-light">
+                <div class="fw-bold text-dark">{{ class_count }}</div>
+                <div class="x-small text-muted" style="font-size: 0.72rem;">Classes</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-start mt-3 pt-3 border-top small text-muted">
+            <div class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i> {{ teacher.user.email }}</div>
+            <div class="mb-2"><i class="fas fa-school me-2 text-primary"></i> {{ teacher.school.name }}</div>
+            {% if teacher.is_class_teacher and teacher.class_teacher_class %}
+              <div class="mb-0"><i class="fas fa-user-tie me-2 text-warning"></i> Class Teacher: <strong>{{ teacher.class_teacher_class }}</strong></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Teaching Schedule Widget -->
+      <div class="td-card mb-4">
+        <div class="td-card-header d-flex justify-content-between align-items-center">
+          <h2 class="td-card-title mb-0">
+            <i class="fas fa-calendar-day text-primary"></i> Today's Schedule ({{ today_day_name }})
+          </h2>
+          <a href="{% url 'teacher:timetable' %}" class="btn btn-sm btn-link text-primary p-0 fw-bold text-decoration-none">
+            Full Schedule &rarr;
+          </a>
+        </div>
+        <div class="td-card-body p-0">
+          {% if today_schedule %}
+            <div class="list-group list-group-flush">
+              {% for item in today_schedule %}
+                <div class="list-group-item p-3 border-0 border-bottom {% if item.status == 'current' %}bg-primary-subtle{% endif %}">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                      <h6 class="fw-bold text-dark mb-1">{{ item.entry.subject.name }}</h6>
+                      <div class="small text-muted">
+                        <span class="badge bg-secondary-subtle text-dark border me-1">{{ item.entry.student_class }}</span>
+                        {% if item.entry.room_number %}
+                          <span><i class="fas fa-door-open me-1 text-muted"></i>{{ item.entry.room_number }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold text-dark small">{{ item.entry.start_time|time:"H:i" }} - {{ item.entry.end_time|time:"H:i" }}</div>
+                      {% if item.status == 'current' %}
+                        <span class="badge bg-success text-white mt-1"><i class="fas fa-satellite-dish me-1"></i> In Progress</span>
+                      {% elif item.status == 'upcoming' %}
+                        <span class="badge bg-info-subtle text-info mt-1"><i class="fas fa-clock me-1"></i> Upcoming</span>
+                      {% else %}
+                        <span class="badge bg-light text-muted mt-1"><i class="fas fa-check me-1"></i> Completed</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="p-4 text-center text-muted small">
+              <i class="fas fa-coffee fa-2x text-muted mb-2 opacity-50"></i>
+              <p class="mb-1 fw-bold text-dark">No Classes Scheduled Today</p>
+              <p class="mb-2 text-muted">You have no teaching periods on {{ today_day_name }}.</p>
+              <a href="{% url 'teacher:timetable' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="fas fa-calendar-alt me-1"></i> View Full Weekly Timetable
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 2. Upcoming Deadlines Widget -->
+      <div class="td-card">
+        <div class="td-card-header">
+          <h2 class="td-card-title">
+            <i class="fas fa-clock text-danger"></i> Upcoming Deadlines
+          </h2>
+          <span class="badge bg-danger-subtle text-danger">{{ upcoming_deadlines|length }}</span>
+        </div>
+        <div class="td-card-body p-0">
+          {% if upcoming_deadlines %}
+            <div class="list-group list-group-flush">
+              {% for item in upcoming_deadlines %}
+                <div class="list-group-item p-3 border-0 border-bottom">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="me-2">
+                      <div class="fw-bold text-dark mb-1">{{ item.title }}</div>
+                      <div class="small text-muted">
+                        <span class="badge bg-light text-dark me-1">{{ item.get_student_class_display }}</span>
+                        {{ item.subject.name }}
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge bg-warning text-dark mb-1">
+                        <i class="fas fa-calendar-alt me-1"></i> {{ item.due_date|date:"M d" }}
+                      </span>
+                      <div class="x-small text-muted" style="font-size: 0.72rem;">{{ item.due_date|timeuntil }} left</div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="p-4 text-center text-muted small">
+              <i class="fas fa-calendar-check fa-2x text-muted mb-2"></i>
+              <p class="mb-0">No upcoming assignment deadlines scheduled.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 3. AI Student Performance Predictor (Enhanced & Intuitive) -->
+      <div class="td-card td-ai-card" id="ai-predictor-section">
+        <div class="td-card-header bg-transparent border-bottom-0 pb-0">
+          <h2 class="td-card-title">
+            <i class="fas fa-brain text-purple"></i> AI Performance Predictor
+          </h2>
+          <span class="td-ai-glow-badge">
+            <i class="fas fa-sparkles"></i> AI Powered
+          </span>
+        </div>
+        <div class="td-card-body">
+          <p class="text-muted small mb-3">
+            Analyze historical academic metrics, attendance, and assignment trends to forecast student outcomes and risk level.
+          </p>
+
+          <!-- Student Selector (Intuitive Dropdown) -->
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark">Select Student to Analyze:</label>
+            <select id="studentSelect" class="form-select form-select-sm" onchange="syncStudentInput(this.value)">
+              <option value="">-- Choose from your students --</option>
+              {% for s in predictor_students %}
+                <option value="{{ s.student_id }}">
+                  {{ s.user.get_full_name }} ({{ s.student_id }} &bull; {{ s.student_class }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Direct Input Fallback -->
+          <div class="input-group input-group-sm mb-3">
+            <span class="input-group-text bg-light text-muted"><i class="fas fa-id-card"></i></span>
+            <input type="text" id="studentIdInput" class="form-control" placeholder="Or enter Student ID (e.g. STU-000001)">
+            <button class="btn btn-primary" type="button" id="predictBtn" onclick="predictPerformance()">
+              <i class="fas fa-magic me-1"></i> Predict
+            </button>
+          </div>
+
+          <!-- Prediction Result Container -->
+          <div id="result"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
 
+<!-- ==================== JAVASCRIPT ==================== -->
 <script>
-function legacyPredictPerformance() {
-  const studentId = document.getElementById('studentIdInput').value.trim();
-
-  if (!studentId) {
-    document.getElementById('result').innerHTML = `
-      <div class="alert alert-warning mt-3">Please enter a Student ID.</div>
-    `;
-    return;
+function syncStudentInput(val) {
+  if (val) {
+    document.getElementById("studentIdInput").value = val;
+    predictPerformance();
   }
-
-  fetch(`/ai/predict/${studentId}/`)
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('result').innerHTML = `
-        <div class="alert alert-info mt-3 text-start">
-          <h5 class="mb-2">${data.student}</h5>
-          <p><strong>Predicted Grade:</strong> ${data.predicted_grade}</p>
-          <p><strong>Risk Level:</strong> ${data.risk_level}</p>
-          <p>${data.message}</p>
-        </div>
-      `;
-    })
-    .catch(err => {
-      document.getElementById('result').innerHTML = `
-        <div class="alert alert-danger mt-3">❌ Error fetching prediction. Try again.</div>
-      `;
-    });
 }
-</script>
 
-<script>
-// Override with explicit API error handling.
 function predictPerformance() {
-  const studentId = document.getElementById("studentIdInput").value.trim();
+  const inputEl = document.getElementById("studentIdInput");
+  const studentId = inputEl.value.trim();
   const resultContainer = document.getElementById("result");
+  const btn = document.getElementById("predictBtn");
 
   if (!studentId) {
     resultContainer.innerHTML = `
-      <div class="alert alert-warning mt-3">Please enter a Student ID.</div>
+      <div class="alert alert-warning py-2 px-3 small border-0 shadow-sm mt-3">
+        <i class="fas fa-exclamation-circle me-1"></i> Please select or enter a Student ID.
+      </div>
     `;
     return;
   }
 
-  fetch(`/ai/predict/${studentId}/`)
+  // Loading state
+  const originalBtnHtml = btn.innerHTML;
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Analyzing...`;
+  btn.disabled = true;
+
+  resultContainer.innerHTML = `
+    <div class="p-3 text-center bg-light rounded mt-3">
+      <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+      <div class="small text-muted">Running AI predictive model on student data...</div>
+    </div>
+  `;
+
+  fetch(`/ai/predict/${encodeURIComponent(studentId)}/`)
     .then(async (response) => {
       let data = {};
       try {
         data = await response.json();
-      } catch (error) {
+      } catch (err) {
         data = {};
       }
 
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to fetch prediction.");
+        throw new Error(data.error || "Unable to retrieve prediction for this student.");
       }
       return data;
     })
     .then((data) => {
+      let riskBadgeClass = "bg-success";
+      let riskIcon = "fa-shield-alt";
+      let riskText = data.risk_level || "Normal";
+
+      if (riskText.toLowerCase().includes("high")) {
+        riskBadgeClass = "bg-danger";
+        riskIcon = "fa-exclamation-triangle";
+      } else if (riskText.toLowerCase().includes("medium")) {
+        riskBadgeClass = "bg-warning text-dark";
+        riskIcon = "fa-exclamation-circle";
+      }
+
       resultContainer.innerHTML = `
-        <div class="alert alert-info mt-3 text-start">
-          <h5 class="mb-2">${data.student}</h5>
-          <p><strong>Predicted Grade:</strong> ${data.predicted_grade}</p>
-          <p><strong>Risk Level:</strong> ${data.risk_level}</p>
-          <p>${data.message}</p>
+        <div class="card border-0 shadow-sm mt-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e0e7ff;">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">${data.student}</h6>
+                <small class="text-muted">ID: ${data.student_id}</small>
+              </div>
+              <span class="badge ${riskBadgeClass} py-1 px-2">
+                <i class="fas ${riskIcon} me-1"></i> ${riskText} Risk
+              </span>
+            </div>
+
+            <div class="row g-2 my-2 text-center">
+              <div class="col-6">
+                <div class="p-2 rounded" style="background: #f1f5f9;">
+                  <small class="text-muted d-block text-uppercase" style="font-size: 0.68rem; font-weight: 700;">Predicted Grade</small>
+                  <span class="fs-4 fw-black text-primary">${data.predicted_grade || "N/A"}</span>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 rounded" style="background: #f1f5f9;">
+                  <small class="text-muted d-block text-uppercase" style="font-size: 0.68rem; font-weight: 700;">Status</small>
+                  <span class="fs-5 fw-bold text-dark">${riskText}</span>
+                </div>
+              </div>
+            </div>
+
+            ${data.message ? `
+              <p class="small text-muted mb-0 mt-2 p-2 rounded bg-light border">
+                <i class="fas fa-info-circle text-primary me-1"></i> ${data.message}
+              </p>
+            ` : ""}
+          </div>
         </div>
       `;
     })
     .catch((err) => {
       resultContainer.innerHTML = `
-        <div class="alert alert-danger mt-3">${err.message}</div>
+        <div class="alert alert-danger py-2 px-3 small border-0 shadow-sm mt-3">
+          <i class="fas fa-times-circle me-1"></i> ${err.message}
+        </div>
       `;
+    })
+    .finally(() => {
+      btn.innerHTML = originalBtnHtml;
+      btn.disabled = false;
     });
 }
 </script>
-
-<style>
-.icon-shape {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.class-card {
-    transition: transform 0.2s ease;
-}
-
-.class-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.deadline-card {
-    border-left: 4px solid #ffc107;
-}
-
-.sm-box {
-    padding: 20px;
-    text-align: center;
-}
-</style>
 {% endblock %}

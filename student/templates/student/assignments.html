@@ -1,259 +1,769 @@
 {% extends 'student/base.html' %}
 {% load static media_tags %}
 
-{% block title %}My Assignments | Student Portal{% endblock %}
+{% block title %}My Coursework &amp; Assignments | Student Portal{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
-    <div class="content container-fluid">
+<div class="page-wrapper" style="background-color: #f8fafc; min-height: 100vh;">
+  <div class="content container-fluid px-lg-4 py-4">
 
-        <!-- Header Section -->
-        <div class="page-header mb-4">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h3 class="page-title text-primary"><i class="fas fa-book-reader me-2"></i>My Assignments</h3>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
-                            <li class="breadcrumb-item active">Assignments</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="col-auto">
-                    <div class="student-assignment-count">
-                        <span class="badge bg-primary-light text-primary rounded-pill px-3">
-                            {{ assignments.count }} Total Tasks
-                        </span>
-                    </div>
-                </div>
-            </div>
+    <!-- Header Section -->
+    <div class="page-header mb-4 border-0">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <h3 class="page-title mb-1 font-weight-bold" style="color: #0f172a; letter-spacing: -0.01em;">
+            <i class="fas fa-tasks text-primary mr-2"></i>My Coursework &amp; Assignments
+          </h3>
+          <ul class="breadcrumb mb-0 bg-transparent p-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}" class="text-primary font-weight-semibold">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'student:enrolled-courses' %}" class="text-secondary font-weight-semibold">Enrolled Courses</a></li>
+            <li class="breadcrumb-item active text-muted">Assignments</li>
+          </ul>
         </div>
-
-        <!-- Quick Stats Row -->
-        <div class="row mb-4">
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm text-center py-3 stat-card">
-                    <div class="stat-icon bg-primary-light text-primary mx-auto mb-2">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <h4 class="mb-0 fw-bold">{{ assignments.count }}</h4>
-                    <p class="text-muted small mb-0">Total</p>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm text-center py-3 stat-card">
-                    <div class="stat-icon bg-success-light text-success mx-auto mb-2">
-                        <i class="fas fa-check-double"></i>
-                    </div>
-                    <h4 class="mb-0 fw-bold">{{ submitted_count }}</h4>
-                    <p class="text-muted small mb-0">Completed</p>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm text-center py-3 stat-card">
-                    <div class="stat-icon bg-warning-light text-warning mx-auto mb-2">
-                        <i class="fas fa-hourglass-half"></i>
-                    </div>
-                    <h4 class="mb-0 fw-bold">{{ pending_count }}</h4>
-                    <p class="text-muted small mb-0">Pending</p>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm text-center py-3 stat-card">
-                    <div class="stat-icon bg-danger-light text-danger mx-auto mb-2">
-                        <i class="fas fa-exclamation-circle"></i>
-                    </div>
-                    <h4 class="mb-0 fw-bold">{{ overdue_count }}</h4>
-                    <p class="text-muted small mb-0">Overdue</p>
-                </div>
-            </div>
+        <div class="col-md-5 text-md-right mt-3 mt-md-0 d-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+          <a href="{% url 'student:enrolled-courses' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-semibold shadow-sm mr-2">
+            <i class="fas fa-book-open mr-1"></i> My Courses
+          </a>
+          <a href="{% url 'student:view-result' student.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold shadow-sm">
+            <i class="fas fa-chart-line mr-1"></i> Grades &amp; Results
+          </a>
         </div>
-
-        <!-- Smart Search & Filter Bar -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-3">
-                <div class="row g-2 align-items-center">
-                    <div class="col-lg-4 col-md-12">
-                        <div class="input-group input-group-merge">
-                            <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" class="form-control bg-light border-0" id="searchInput" placeholder="Find by title or teacher...">
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-4 col-6">
-                        <select class="form-select border-0 bg-light" id="subjectFilter">
-                            <option value="">All Subjects</option>
-                            {% for subject in subjects %}
-                            <option value="{{ subject.name }}">{{ subject.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-4 col-6">
-                        <select class="form-select border-0 bg-light" id="statusFilter">
-                            <option value="">All Statuses</option>
-                            <option value="pending">Not Started</option>
-                            <option value="submitted">Turned In</option>
-                            <option value="overdue">Missed</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-2 col-md-4 col-12">
-                        <button class="btn btn-primary w-100" id="resetFilters">
-                            <i class="fas fa-sync-alt me-1"></i> Reset
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Assignments Table Card -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 pb-0">
-                <h5 class="fw-bold mb-0">Academic Tasks</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    {% if assignments %}
-                    <table class="table table-hover align-middle custom-table" id="assignmentsTable">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="border-0">Assignment</th>
-                                <th class="border-0">Instructor</th>
-                                <th class="border-0">Subject</th>
-                                <th class="border-0">Deadline</th>
-                                <th class="border-0">Status</th>
-                                <th class="border-0 text-center">Score</th>
-                                <th class="border-0 text-end">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for assignment in assignments %}
-                            <tr class="assignment-row"
-                                data-subject="{{ assignment.subject.name }}"
-                                data-status="{% if assignment.is_overdue %}overdue{% else %}pending{% endif %}">
-
-                                <td style="min-width: 250px;">
-                                    <a href="{% url 'student:assignment-detail' assignment.id %}" class="fw-bold text-dark d-block mb-1">
-                                        {{ assignment.title }}
-                                    </a>
-                                    <span class="text-muted small text-truncate d-inline-block" style="max-width: 200px;">
-                                        {{ assignment.description|striptags }}
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xs me-2">
-                                            <img class="rounded-circle" src="{% if assignment.teacher.user.profile_picture %}{{ assignment.teacher.user.profile_picture.url }}{% else %}{% static 'assets/img/profiles/avatar-01.jpg' %}{% endif %}" alt="T">
-                                        </div>
-                                        <span class="small text-nowrap">{{ assignment.teacher.user.get_full_name }}</span>
-                                    </div>
-                                </td>
-
-                                <td><span class="badge bg-light text-dark fw-normal border">{{ assignment.subject.name }}</span></td>
-
-                                <td>
-                                    <div class="small">
-                                        <div class="fw-bold {% if assignment.is_overdue %}text-danger{% endif %}">
-                                            {{ assignment.due_date|date:"M d, Y" }}
-                                        </div>
-                                        <span class="text-muted x-small">{{ assignment.due_date|timeuntil }} left</span>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    {% with submission=assignment.submissions.all|first %}
-                                        {% if submission %}
-                                            <span class="badge rounded-pill {% if submission.status == 'graded' %}bg-success-light text-success{% else %}bg-info-light text-info{% endif %}">
-                                                {{ submission.get_status_display }}
-                                            </span>
-                                        {% else %}
-                                            <span class="badge rounded-pill {% if assignment.is_overdue %}bg-danger-light text-danger{% else %}bg-warning-light text-warning{% endif %}">
-                                                {% if assignment.is_overdue %}Not Submitted{% else %}Pending{% endif %}
-                                            </span>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-
-                                <td class="text-center">
-                                    <span class="fw-bold text-muted">{{ assignment.total_marks }}</span>
-                                </td>
-
-                                <td class="text-end">
-                                    <div class="btn-group shadow-sm">
-                                        <a href="{% url 'student:assignment-detail' assignment.id %}" class="btn btn-white btn-sm px-3" title="View Details">
-                                            <i class="fas fa-eye text-primary"></i>
-                                        </a>
-                                        {% with submission=assignment.submissions.all|first %}
-                                            {% if not submission and not assignment.is_overdue %}
-                                            <a href="{% url 'student:submit-assignment' assignment.id %}" class="btn btn-primary btn-sm px-3">
-                                                <i class="fas fa-upload"></i> Turn In
-                                            </a>
-                                            {% endif %}
-                                        {% endwith %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <img src="{% static 'assets/img/no-tasks.svg' %}" alt="None" style="width: 120px;" class="mb-3 opacity-50">
-                        <h5 class="text-muted">Clean Desk! No assignments found.</h5>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Quick Stats Cards Row -->
+    <div class="row mb-4">
+      <!-- 1. Total Assignments -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Total Assigned</span>
+              <div class="metric-icon bg-soft-primary text-primary">
+                <i class="fas fa-clipboard-list"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-dark mb-0 font-weight-bold">{{ total_count }}</h2>
+              <span class="badge badge-primary-soft ml-2 small font-weight-bold">All Tasks</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Published for your class</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Pending / Action Required -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">To Hand In</span>
+              <div class="metric-icon bg-soft-warning text-warning">
+                <i class="fas fa-hourglass-half"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-warning mb-0 font-weight-bold">{{ pending_count }}</h2>
+              <span class="badge badge-warning-soft ml-2 small font-weight-bold">Pending</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Active deadlines ahead</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Completed / Turned In -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Turned In</span>
+              <div class="metric-icon bg-soft-success text-success">
+                <i class="fas fa-check-double"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val text-success mb-0 font-weight-bold">{{ submitted_count }}</h2>
+              <span class="badge badge-success-soft ml-2 small font-weight-bold">{{ graded_count }} Graded</span>
+            </div>
+            <small class="text-muted mt-2 d-block">Successfully completed</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Overdue -->
+      <div class="col-xl-3 col-sm-6 mb-3 mb-xl-0">
+        <div class="card metric-card shadow-sm h-100 border-0">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="metric-label">Past Deadline</span>
+              <div class="metric-icon {% if overdue_count > 0 %}bg-soft-danger text-danger{% else %}bg-soft-success text-success{% endif %}">
+                <i class="fas fa-calendar-times"></i>
+              </div>
+            </div>
+            <div class="d-flex align-items-baseline mb-1">
+              <h2 class="metric-val {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %} mb-0 font-weight-bold">
+                {{ overdue_count }}
+              </h2>
+              {% if overdue_count > 0 %}
+                <span class="badge badge-danger-soft ml-2 small font-weight-bold">Missed</span>
+              {% else %}
+                <span class="badge badge-success-soft ml-2 small font-weight-bold">None Late</span>
+              {% endif %}
+            </div>
+            <small class="text-muted mt-2 d-block">Unsubmitted past due</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Smart Filter & Search Control Panel -->
+    <div class="card filter-panel-card mb-4 shadow-sm border-0">
+      <div class="card-body p-3">
+        <!-- Top Row: Status Tabs & View Switcher -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-3 mb-3 border-bottom">
+          <!-- Status Filter Tabs -->
+          <div class="d-flex align-items-center flex-wrap gap-1 status-tabs-wrap">
+            <button type="button" class="btn btn-sm status-filter-pill active mr-1 mb-1" data-status="all">
+              All Tasks ({{ total_count }})
+            </button>
+            <button type="button" class="btn btn-sm status-filter-pill mr-1 mb-1" data-status="pending">
+              <i class="fas fa-clock mr-1"></i> Pending ({{ pending_count }})
+            </button>
+            <button type="button" class="btn btn-sm status-filter-pill mr-1 mb-1" data-status="submitted">
+              <i class="fas fa-check mr-1"></i> Turned In ({{ submitted_count }})
+            </button>
+            <button type="button" class="btn btn-sm status-filter-pill mr-1 mb-1" data-status="graded">
+              <i class="fas fa-award mr-1"></i> Graded ({{ graded_count }})
+            </button>
+            {% if overdue_count > 0 %}
+            <button type="button" class="btn btn-sm status-filter-pill status-pill-danger mr-1 mb-1" data-status="overdue">
+              <i class="fas fa-exclamation-circle mr-1"></i> Overdue ({{ overdue_count }})
+            </button>
+            {% endif %}
+          </div>
+
+          <!-- View Mode Toggle -->
+          <div class="btn-group btn-group-sm rounded-pill shadow-xs p-1 bg-light border" role="group" aria-label="View switcher">
+            <button type="button" id="gridToggleBtn" class="btn btn-sm btn-primary rounded-pill px-3 font-weight-bold" title="Grid View">
+              <i class="fas fa-th-large mr-1"></i> Cards
+            </button>
+            <button type="button" id="listToggleBtn" class="btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold" title="Table View">
+              <i class="fas fa-list mr-1"></i> Table
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Search & Subject Dropdown -->
+        <div class="row align-items-center g-2">
+          <!-- Live Search Input -->
+          <div class="col-lg-6 col-md-6 mb-2 mb-md-0">
+            <div class="input-group search-input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+              </div>
+              <input type="text"
+                     id="assignmentSearchInput"
+                     class="form-control border-left-0 pl-0"
+                     placeholder="Search by assignment title, instructions, or teacher..."
+                     value="{{ search_query }}">
+            </div>
+          </div>
+
+          <!-- Subject Dropdown Filter -->
+          <div class="col-lg-4 col-md-4 col-8">
+            <select class="form-control custom-select rounded-pill px-3" id="subjectFilterSelect">
+              <option value="all">All Enrolled Subjects</option>
+              {% for subj in distinct_subjects %}
+                <option value="{{ subj.name|lower }}" {% if selected_subject == subj.name %}selected{% endif %}>
+                  {{ subj.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Reset Button -->
+          <div class="col-lg-2 col-md-2 col-4 text-right">
+            <button type="button" class="btn btn-outline-secondary btn-block rounded-pill font-weight-bold" id="resetFiltersBtn">
+              <i class="fas fa-redo-alt mr-1"></i> Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS / GRID VIEW (Default) -->
+    <div id="assignmentGridView" class="row">
+      {% for item in items %}
+      {% with a=item.assignment sub=item.submission %}
+      <div class="col-xl-4 col-md-6 mb-4 assignment-item"
+           data-title="{{ a.title|lower }}"
+           data-subject="{{ a.subject.name|lower }}"
+           data-teacher="{{ a.teacher.user.get_full_name|default:''|lower }}"
+           data-desc="{{ a.description|striptags|lower }}"
+           data-status="{{ item.status_key }}">
+
+        <div class="card assignment-card h-100 shadow-sm border-0">
+          <!-- Card Header Bar -->
+          <div class="card-status-bar status-bar-{{ item.status_key }}"></div>
+
+          <div class="card-body p-4 d-flex flex-column">
+            <!-- Top Metadata Badges -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <span class="badge badge-subject-pill">
+                <i class="fas fa-book mr-1"></i>{{ a.subject.name }}
+              </span>
+              {% if item.status_key == 'graded' %}
+                <span class="badge badge-success-soft font-weight-bold px-2 py-1">
+                  <i class="fas fa-award mr-1"></i>Graded
+                </span>
+              {% elif item.status_key == 'submitted' %}
+                <span class="badge badge-info-soft font-weight-bold px-2 py-1">
+                  <i class="fas fa-check mr-1"></i>Turned In
+                </span>
+              {% elif item.status_key == 'overdue' %}
+                <span class="badge badge-danger-soft font-weight-bold px-2 py-1">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
+                </span>
+              {% else %}
+                <span class="badge badge-warning-soft font-weight-bold px-2 py-1">
+                  <i class="fas fa-clock mr-1"></i>Pending
+                </span>
+              {% endif %}
+            </div>
+
+            <!-- Assignment Title -->
+            <h5 class="assignment-title font-weight-bold mb-2">
+              <a href="{% url 'student:assignment-detail' a.id %}" class="text-dark text-decoration-none">
+                {{ a.title }}
+              </a>
+            </h5>
+
+            <!-- Description / Instructions Snippet -->
+            <p class="assignment-desc text-muted small mb-3">
+              {{ a.description|striptags|truncatewords:20|default:"No instructions provided." }}
+            </p>
+
+            <!-- Deadline & Status Highlight Box -->
+            <div class="deadline-highlight-box p-3 rounded-3 mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="small font-weight-bold text-muted text-uppercase" style="font-size: 0.68rem;">Submission Deadline</span>
+                <span class="badge badge-light border font-weight-bold text-dark px-2 py-1 small">
+                  {{ a.total_marks }} Points
+                </span>
+              </div>
+              <div class="d-flex align-items-center justify-content-between">
+                <div class="font-weight-bold text-dark small">
+                  <i class="far fa-calendar-alt text-primary mr-1"></i>{{ a.due_date|date:"D, M d, Y" }}
+                </div>
+                <div class="small font-weight-bold {% if item.status_key == 'overdue' %}text-danger{% elif item.status_key == 'graded' or item.status_key == 'submitted' %}text-success{% else %}text-primary{% endif %}">
+                  {% if sub and sub.submission_date %}
+                    <i class="fas fa-check-circle mr-1"></i>Turned In {{ sub.submission_date|date:"M d" }}
+                  {% elif item.is_overdue %}
+                    <i class="fas fa-times-circle mr-1"></i>Closed
+                  {% elif item.days_diff == 0 %}
+                    <i class="fas fa-bell mr-1"></i>Due Today!
+                  {% elif item.days_diff and item.days_diff > 0 %}
+                    <i class="far fa-clock mr-1"></i>In {{ item.days_diff }} day{{ item.days_diff|pluralize }}
+                  {% else %}
+                    <i class="far fa-clock mr-1"></i>{{ a.due_date|timeuntil }} left
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- If Graded: Show Score Bar -->
+              {% if item.status_key == 'graded' and sub.marks_obtained is not None %}
+              <div class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between">
+                <span class="small font-weight-bold text-success">Awarded Score:</span>
+                <span class="badge badge-success font-weight-bold px-2 py-1">
+                  {{ sub.marks_obtained }} / {{ a.total_marks }}
+                </span>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Instructor Footer & Action -->
+            <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
+              <div class="d-flex align-items-center">
+                <div class="avatar-xs mr-2">
+                  {% if a.teacher.user.profile_picture %}
+                    <img src="{{ a.teacher.user.profile_picture.url }}" alt="{{ a.teacher.user.get_full_name }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">
+                  {% else %}
+                    <div class="avatar-xs-fallback rounded-circle">
+                      {{ a.teacher.user.initials|default:"T" }}
+                    </div>
+                  {% endif %}
+                </div>
+                <span class="small text-muted font-weight-semibold text-truncate" style="max-width: 120px;" title="{{ a.teacher.user.get_full_name }}">
+                  {{ a.teacher.user.get_full_name|default:"Assigned Faculty" }}
+                </span>
+              </div>
+
+              <div>
+                {% if item.status_key == 'pending' %}
+                  <a href="{% url 'student:submit-assignment' a.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold shadow-xs">
+                    <i class="fas fa-upload mr-1"></i> Turn In
+                  </a>
+                {% elif item.status_key == 'overdue' %}
+                  <a href="{% url 'student:submit-assignment' a.id %}" class="btn btn-outline-danger btn-sm rounded-pill px-3 font-weight-bold shadow-xs">
+                    <i class="fas fa-clock mr-1"></i> Late Submit
+                  </a>
+                {% else %}
+                  <a href="{% url 'student:assignment-detail' a.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold shadow-xs">
+                    <i class="fas fa-eye mr-1"></i> View Work
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+      {% empty %}
+      <div class="col-12 py-5 text-center">
+        <div class="empty-state-wrap p-5 bg-white rounded-4 shadow-sm">
+          <i class="fas fa-check-circle fa-3x text-success mb-3 opacity-75"></i>
+          <h5 class="font-weight-bold text-dark">Clean Desk!</h5>
+          <p class="text-muted small mb-3">No assignments have been published for your class and enrolled subjects yet.</p>
+          <a href="{% url 'student:student-dashboard' %}" class="btn btn-primary btn-sm rounded-pill px-4 font-weight-bold">
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- TABLE / LIST VIEW (Initially hidden, toggled via switcher) -->
+    <div id="assignmentListView" class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4" style="display: none;">
+      <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h5 class="font-weight-bold text-dark mb-0">
+          <i class="fas fa-table text-primary mr-2"></i>Assignments Roster
+        </h5>
+        <span class="badge badge-light border text-muted small px-3 py-1 font-weight-bold">
+          {{ total_count }} Assignments
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table assignments-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th style="width: 50px;" class="text-center">#</th>
+              <th style="min-width: 240px;">Assignment Title</th>
+              <th style="min-width: 150px;">Subject</th>
+              <th style="min-width: 160px;">Instructor</th>
+              <th class="text-center" style="width: 140px;">Deadline</th>
+              <th class="text-center" style="width: 100px;">Points</th>
+              <th class="text-center" style="width: 130px;">Status</th>
+              <th class="text-right" style="width: 140px;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            {% with a=item.assignment sub=item.submission %}
+            <tr class="assignment-item"
+                data-title="{{ a.title|lower }}"
+                data-subject="{{ a.subject.name|lower }}"
+                data-teacher="{{ a.teacher.user.get_full_name|default:''|lower }}"
+                data-desc="{{ a.description|striptags|lower }}"
+                data-status="{{ item.status_key }}">
+              <td class="text-center text-muted font-weight-bold small">{{ forloop.counter }}</td>
+              <td>
+                <a href="{% url 'student:assignment-detail' a.id %}" class="font-weight-bold text-dark text-decoration-none">
+                  {{ a.title }}
+                </a>
+                <small class="text-muted d-block text-truncate" style="max-width: 240px;">
+                  {{ a.description|striptags }}
+                </small>
+              </td>
+              <td>
+                <span class="badge badge-subject-pill">
+                  {{ a.subject.name }}
+                </span>
+              </td>
+              <td>
+                <span class="small font-weight-semibold text-dark">{{ a.teacher.user.get_full_name|default:"Assigned Faculty" }}</span>
+              </td>
+              <td class="text-center">
+                <div class="small font-weight-bold {% if item.status_key == 'overdue' %}text-danger{% else %}text-dark{% endif %}">
+                  {{ a.due_date|date:"M d, Y" }}
+                </div>
+                <small class="text-muted" style="font-size: 0.72rem;">
+                  {% if item.is_overdue %}Closed{% else %}{{ a.due_date|timeuntil }} left{% endif %}
+                </small>
+              </td>
+              <td class="text-center font-weight-bold text-dark small">
+                {% if item.status_key == 'graded' and sub.marks_obtained is not None %}
+                  <span class="text-success font-weight-bold">{{ sub.marks_obtained }}</span> / {{ a.total_marks }}
+                {% else %}
+                  {{ a.total_marks }} pts
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if item.status_key == 'graded' %}
+                  <span class="badge badge-success-soft font-weight-bold px-2 py-1">
+                    Graded
+                  </span>
+                {% elif item.status_key == 'submitted' %}
+                  <span class="badge badge-info-soft font-weight-bold px-2 py-1">
+                    Turned In
+                  </span>
+                {% elif item.status_key == 'overdue' %}
+                  <span class="badge badge-danger-soft font-weight-bold px-2 py-1">
+                    Overdue
+                  </span>
+                {% else %}
+                  <span class="badge badge-warning-soft font-weight-bold px-2 py-1">
+                    Pending
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-right">
+                {% if item.status_key == 'pending' or item.status_key == 'overdue' %}
+                  <a href="{% url 'student:submit-assignment' a.id %}" class="btn btn-primary btn-sm rounded-pill px-3 font-weight-bold">
+                    <i class="fas fa-upload mr-1"></i> Submit
+                  </a>
+                {% else %}
+                  <a href="{% url 'student:assignment-detail' a.id %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 font-weight-bold">
+                    <i class="fas fa-eye mr-1"></i> View
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <p class="small mb-0">No assignments posted for this session.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- No Matching Results Alert -->
+    <div id="noMatchAlert" class="card shadow-sm border-0 rounded-4 p-5 text-center bg-white mb-4" style="display: none;">
+      <i class="fas fa-search fa-3x text-muted mb-3 opacity-50"></i>
+      <h5 class="font-weight-bold text-dark">No Matching Assignments Found</h5>
+      <p class="text-muted small mb-3">No tasks match your current search and filter selections.</p>
+      <div>
+        <button type="button" id="resetFiltersAlertBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 font-weight-bold">
+          <i class="fas fa-redo-alt mr-1"></i> Reset Filters
+        </button>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <style>
-    /* Custom Color Badge Lights */
-    .bg-primary-light { background: rgba(13, 110, 253, 0.1) !important; }
-    .bg-success-light { background: rgba(25, 135, 84, 0.1) !important; }
-    .bg-warning-light { background: rgba(255, 193, 7, 0.1) !important; }
-    .bg-danger-light { background: rgba(220, 53, 69, 0.1) !important; }
-    .bg-info-light { background: rgba(13, 202, 240, 0.1) !important; }
+  /* Metric Cards */
+  .metric-card {
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+  .metric-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+  .metric-val {
+    font-size: 1.85rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .metric-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
 
-    .stat-icon { width: 45px; height: 45px; line-height: 45px; border-radius: 12px; font-size: 1.2rem; }
-    .stat-card:hover { transform: translateY(-3px); transition: 0.3s; }
-    .avatar-xs { width: 24px; height: 24px; }
-    .x-small { font-size: 0.75rem; }
+  /* Filter Panel */
+  .filter-panel-card {
+    border-radius: 16px;
+    background: #ffffff;
+  }
+  .status-filter-pill {
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .status-filter-pill:hover,
+  .status-filter-pill.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
+  .status-pill-danger.active {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+  }
 
-    .custom-table thead th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; }
-    .custom-table tbody tr:hover { background-color: #fcfcfc !important; }
+  .search-input-group .form-control {
+    border-radius: 20px;
+    font-size: 0.9rem;
+    padding: 10px 14px;
+  }
+  .search-input-group .input-group-text {
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+  }
 
-    .btn-white { background: #fff; border: 1px solid #dee2e6; }
-    .btn-white:hover { background: #f8f9fa; }
+  /* Assignment Cards */
+  .assignment-card {
+    border-radius: 18px;
+    background: #ffffff;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .assignment-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .card-status-bar {
+    height: 5px;
+    width: 100%;
+  }
+  .status-bar-pending {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  }
+  .status-bar-submitted {
+    background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  }
+  .status-bar-graded {
+    background: linear-gradient(90deg, #10b981, #059669);
+  }
+  .status-bar-overdue {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+  }
+
+  .badge-subject-pill {
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .assignment-title {
+    font-size: 1.15rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+  .assignment-desc {
+    line-height: 1.5;
+    min-height: 38px;
+  }
+
+  .deadline-highlight-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+
+  .avatar-xs-fallback {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Table */
+  .assignments-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-top: none;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .assignments-table tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  /* Soft badges */
+  .bg-soft-primary { background-color: #eff6ff; color: #2563eb; }
+  .bg-soft-success { background-color: #ecfdf5; color: #059669; }
+  .bg-soft-warning { background-color: #fffbeb; color: #d97706; }
+  .bg-soft-danger  { background-color: #fef2f2; color: #dc2626; }
+
+  .badge-primary-soft { background: #eff6ff; color: #1d4ed8; }
+  .badge-success-soft { background: #ecfdf5; color: #047857; }
+  .badge-warning-soft { background: #fffbeb; color: #b45309; }
+  .badge-danger-soft  { background: #fef2f2; color: #b91c1c; }
+  .badge-info-soft    { background: #e0f2fe; color: #0369a1; }
 </style>
 
 <script>
-$(document).ready(function() {
-    // Subject and Status Filter Logic
-    function applyFilters() {
-        const searchText = $('#searchInput').val().toLowerCase();
-        const subValue = $('#subjectFilter').val().toLowerCase();
-        const statValue = $('#statusFilter').val().toLowerCase();
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("assignmentSearchInput");
+  const subjectSelect = document.getElementById("subjectFilterSelect");
+  const statusButtons = document.querySelectorAll(".status-filter-pill");
+  const gridView = document.getElementById("assignmentGridView");
+  const listView = document.getElementById("assignmentListView");
+  const gridToggleBtn = document.getElementById("gridToggleBtn");
+  const listToggleBtn = document.getElementById("listToggleBtn");
+  const noMatchAlert = document.getElementById("noMatchAlert");
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  const resetAlertBtn = document.getElementById("resetFiltersAlertBtn");
 
-        $('#assignmentsTable tbody tr').each(function() {
-            const rowSubject = $(this).data('subject').toLowerCase();
-            const rowStatus = $(this).data('status').toLowerCase();
-            const rowText = $(this).text().toLowerCase();
+  let activeStatus = "all";
+  let activeSubject = "all";
+  let activeSearch = (searchInput ? searchInput.value : "").trim().toLowerCase();
 
-            const matchesSearch = rowText.includes(searchText);
-            const matchesSubject = subValue === '' || rowSubject === subValue;
-            const matchesStatus = statValue === '' || rowStatus === statValue;
+  function applyFilters() {
+    let visibleCount = 0;
+    const items = document.querySelectorAll(".assignment-item");
 
-            $(this).toggle(matchesSearch && matchesSubject && matchesStatus);
-        });
-    }
+    items.forEach(function (el) {
+      const title = el.getAttribute("data-title") || "";
+      const subject = el.getAttribute("data-subject") || "";
+      const teacher = el.getAttribute("data-teacher") || "";
+      const desc = el.getAttribute("data-desc") || "";
+      const status = el.getAttribute("data-status") || "";
 
-    $('#searchInput, #subjectFilter, #statusFilter').on('keyup change', applyFilters);
+      const matchesSearch = !activeSearch ||
+        title.includes(activeSearch) ||
+        subject.includes(activeSearch) ||
+        teacher.includes(activeSearch) ||
+        desc.includes(activeSearch);
 
-    $('#resetFilters').on('click', function() {
-        $('#searchInput, #subjectFilter, #statusFilter').val('');
-        $('#assignmentsTable tbody tr').show();
+      const matchesSubject = (activeSubject === "all") || (subject === activeSubject);
+
+      let matchesStatus = false;
+      if (activeStatus === "all") {
+        matchesStatus = true;
+      } else if (activeStatus === "submitted") {
+        matchesStatus = (status === "submitted" || status === "graded");
+      } else {
+        matchesStatus = (status === activeStatus);
+      }
+
+      if (matchesSearch && matchesSubject && matchesStatus) {
+        el.style.display = "";
+        if (el.tagName === "TR") {
+          el.style.display = "table-row";
+        }
+        visibleCount++;
+      } else {
+        el.style.display = "none";
+      }
     });
+
+    if (noMatchAlert) {
+      if (visibleCount === 0 && items.length > 0) {
+        noMatchAlert.style.display = "block";
+      } else {
+        noMatchAlert.style.display = "none";
+      }
+    }
+  }
+
+  // Live Search
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      activeSearch = this.value.trim().toLowerCase();
+      applyFilters();
+    });
+  }
+
+  // Subject Dropdown
+  if (subjectSelect) {
+    subjectSelect.addEventListener("change", function () {
+      activeSubject = this.value.toLowerCase();
+      applyFilters();
+    });
+  }
+
+  // Status Tab Pills
+  statusButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      statusButtons.forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      activeStatus = this.getAttribute("data-status") || "all";
+      applyFilters();
+    });
+  });
+
+  // Reset Filters
+  function resetAll() {
+    if (searchInput) searchInput.value = "";
+    if (subjectSelect) subjectSelect.value = "all";
+    activeSearch = "";
+    activeSubject = "all";
+    activeStatus = "all";
+    statusButtons.forEach(b => {
+      b.classList.remove("active");
+      if (b.getAttribute("data-status") === "all") b.classList.add("active");
+    });
+    applyFilters();
+  }
+
+  if (resetBtn) resetBtn.addEventListener("click", resetAll);
+  if (resetAlertBtn) resetAlertBtn.addEventListener("click", resetAll);
+
+  // View Mode Switcher
+  function setViewMode(mode) {
+    if (mode === "list") {
+      gridView.style.display = "none";
+      listView.style.display = "block";
+      listToggleBtn.className = "btn btn-sm btn-primary rounded-pill px-3 font-weight-bold";
+      gridToggleBtn.className = "btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold";
+    } else {
+      gridView.style.display = "flex";
+      listView.style.display = "none";
+      gridToggleBtn.className = "btn btn-sm btn-primary rounded-pill px-3 font-weight-bold";
+      listToggleBtn.className = "btn btn-sm btn-light text-muted rounded-pill px-3 font-weight-bold";
+    }
+    applyFilters();
+  }
+
+  if (gridToggleBtn && listToggleBtn) {
+    gridToggleBtn.addEventListener("click", function () {
+      setViewMode("grid");
+      try { localStorage.setItem("student_assignments_view", "grid"); } catch(e) {}
+    });
+    listToggleBtn.addEventListener("click", function () {
+      setViewMode("list");
+      try { localStorage.setItem("student_assignments_view", "list"); } catch(e) {}
+    });
+
+    try {
+      const savedMode = localStorage.getItem("student_assignments_view");
+      if (savedMode === "list") setViewMode("list");
+    } catch(e) {}
+  }
 });
 </script>
 {% endblock %}

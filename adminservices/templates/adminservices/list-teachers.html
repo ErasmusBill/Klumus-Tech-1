@@ -60,12 +60,12 @@
                   <h2 class="table-avatar">
                     <a href="{% url 'adminservices:teacher-detail' teacher.id %}" class="avatar avatar-sm mr-2">
                       {% if teacher.user.profile_picture %}
-                        <img class="avatar-img rounded-circle" src="{{ teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}">
+                        <img class="avatar-img rounded-circle" src="{{ teacher.user.profile_picture.url }}" alt="{{ teacher.user.get_full_name }}">
                       {% elif teacher.image %}
-                        <img class="avatar-img rounded-circle" src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="{{ teacher.user.get_full_name }}">
+                        <img class="avatar-img rounded-circle" src="{{ teacher.image.url }}" alt="{{ teacher.user.get_full_name }}">
                       {% else %}
-                        <span class="avatar-title rounded-circle bg-primary text-white">
-                          {{ teacher.user.get_full_name|default:teacher.user.username|first|upper }}
+                        <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold">
+                          {{ teacher.user.initials }}
                         </span>
                       {% endif %}
                     </a>

@@ -6,6 +6,7 @@ app_name = 'teacher'
 urlpatterns = [
     path('dashboard/', views.teacher_dashboard, name='teacher-dashboard'),
     path('my-subjects/', views.my_subjects, name='my-subjects'),
+    path('timetable/', views.teacher_timetable, name='timetable'),
     
     # Student management URLs
     path('students/', views.teacher_students, name='teacher-students'),

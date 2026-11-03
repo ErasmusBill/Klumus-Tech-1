@@ -561,19 +561,19 @@
           <div class="teacher-avatar-wrap">
             {% if teacher.user.profile_picture %}
               <img
-                src="{{ teacher.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                src="{{ teacher.user.profile_picture.url }}"
                 alt="{{ teacher.user.get_full_name }}"
                 class="teacher-avatar-image"
               >
             {% elif teacher.image %}
               <img
-                src="{{ teacher.image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}"
+                src="{{ teacher.image.url }}"
                 alt="{{ teacher.user.get_full_name }}"
                 class="teacher-avatar-image"
               >
             {% else %}
               <div class="teacher-avatar-fallback">
-                {{ teacher.user.get_full_name|default:teacher.user.username|first|upper }}
+                {{ teacher.user.initials }}
               </div>
             {% endif %}
           </div>

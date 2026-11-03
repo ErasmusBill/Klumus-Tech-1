@@ -1,7 +1,7 @@
 from django import forms
 from django.db import transaction
-from django.db.models import F
-from account.models import AssignmentSubmission, Student, Subject, Enrollment, School
+from django.db.models import F, Q
+from account.models import AssignmentSubmission, Student, Subject, Enrollment, School, SchoolClass
 
 
 class StudentEnrollmentForm(forms.ModelForm):
@@ -24,6 +24,8 @@ class StudentEnrollmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.student = kwargs.pop('student', None)
         super().__init__(*args, **kwargs)
+        school = getattr(self.student, 'school', None) or (self.instance.school if self.instance.pk else None)
+        self.fields['student_class'].queryset = SchoolClass.for_school(school, active_only=True)
         self.fields['student_class'].help_text = (
             "⚠️ Note: Changing class deactivates previous enrollments and assigns all subjects for the new class."
         )
@@ -61,8 +63,8 @@ class BulkStudentEnrollmentForm(forms.Form):
     Intuitive bulk action form for Admins.
     Uses descriptive querysets to prevent cross-school enrollment errors.
     """
-    student_class = forms.ChoiceField(
-        choices=Student.CLASS_CHOICES,
+    student_class = forms.ModelChoiceField(
+        queryset=SchoolClass.objects.filter(is_active=True).order_by('order', 'name'),
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Target Class Level'
     )
@@ -80,8 +82,13 @@ class BulkStudentEnrollmentForm(forms.Form):
 
         if self.user and self.user.role == 'admin':
             # Strictly limit to schools managed by this admin
+            managed = getattr(self.user, 'managed_school', None)
             self.fields['school'].queryset = School.objects.filter(admin=self.user)
-            self.fields['school'].initial = getattr(self.user, 'managed_school', None)
+            self.fields['school'].initial = managed
+            if managed:
+                self.fields['student_class'].queryset = SchoolClass.objects.filter(
+                    Q(school=managed) | Q(school__isnull=True), is_active=True
+                ).order_by('order', 'name')
         else:
             self.fields['school'].widget = forms.HiddenInput()
 

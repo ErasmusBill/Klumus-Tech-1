@@ -403,9 +403,9 @@
             <i class="fas fa-school"></i>
             {{ school.name|default:"School" }}
           </span>
-          <span class="fee-config-chip">
+          <span class="fee-config-chip" id="chipAcademicYear">
             <i class="fas fa-calendar-alt"></i>
-            {{ current_academic_year|default:"Current academic year" }}
+            <span id="chipAcademicYearText">{{ current_academic_year|default:"Current academic year" }}</span>
           </span>
           <span class="fee-config-chip">
             <i class="fas fa-layer-group"></i>
@@ -462,9 +462,16 @@
                 <div class="row fee-config-grid">
                   <div class="col-md-6">
                     <div class="fee-config-field {% if form.academic_year.errors %}field-has-error{% endif %}">
-                      <label for="{{ form.academic_year.id_for_label }}">Academic Year</label>
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="{{ form.academic_year.id_for_label }}" class="mb-0">Academic Year</label>
+                        <small class="text-primary font-weight-bold" id="academicYearStatusText">
+                          <i class="fas fa-magic mr-1"></i> Dynamic
+                        </small>
+                      </div>
                       {{ form.academic_year }}
-                      <div class="field-help">Use the year this structure applies to.</div>
+                      <datalist id="academic_year_suggestions"></datalist>
+                      <div class="mt-2 d-flex flex-wrap" id="academicYearQuickPills" style="gap: 6px;"></div>
+                      <div class="field-help">Current or upcoming school academic session. Select quick pill or type.</div>
                       {% for error in form.academic_year.errors %}
                         <div class="invalid-feedback">{{ error }}</div>
                       {% endfor %}
@@ -633,6 +640,98 @@
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // --- Dynamic Academic Year Calculation & Selector ---
+    const academicYearField = document.getElementById("{{ form.academic_year.id_for_label }}") || document.querySelector('input[name="academic_year"]');
+    const chipText = document.getElementById('chipAcademicYearText');
+    const pillsContainer = document.getElementById('academicYearQuickPills');
+    const datalist = document.getElementById('academic_year_suggestions');
+
+    // Fetch dynamic client date
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const nextYear = currentYear + 1;
+    const prevYear = currentYear - 1;
+
+    const primaryAcademicYear = currentYear + '/' + nextYear;
+    const upcomingAcademicYear = nextYear + '/' + (nextYear + 1);
+    const previousAcademicYear = prevYear + '/' + currentYear;
+
+    const yearOptions = [
+      { label: 'Current (' + primaryAcademicYear + ')', value: primaryAcademicYear },
+      { label: 'Next (' + upcomingAcademicYear + ')', value: upcomingAcademicYear },
+      { label: 'Prev (' + previousAcademicYear + ')', value: previousAcademicYear }
+    ];
+
+    if (datalist) {
+      datalist.innerHTML = '';
+      yearOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        datalist.appendChild(option);
+      });
+      const futureOpt = document.createElement('option');
+      futureOpt.value = (nextYear + 1) + '/' + (nextYear + 2);
+      datalist.appendChild(futureOpt);
+    }
+
+    if (academicYearField) {
+      academicYearField.setAttribute('list', 'academic_year_suggestions');
+      academicYearField.setAttribute('autocomplete', 'off');
+
+      if (!academicYearField.value.trim()) {
+        academicYearField.value = primaryAcademicYear;
+      }
+
+      if (chipText && academicYearField.value.trim()) {
+        chipText.textContent = academicYearField.value.trim();
+      }
+
+      academicYearField.addEventListener('input', function () {
+        if (chipText && this.value.trim()) {
+          chipText.textContent = this.value.trim();
+        }
+        updatePillActiveStates();
+      });
+
+      if (pillsContainer) {
+        pillsContainer.innerHTML = '';
+        yearOptions.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold';
+          btn.style.fontSize = '0.75rem';
+          btn.style.borderRadius = '999px';
+          btn.textContent = opt.label;
+          btn.dataset.value = opt.value;
+
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            academicYearField.value = opt.value;
+            if (chipText) {
+              chipText.textContent = opt.value;
+            }
+            updatePillActiveStates();
+            academicYearField.dispatchEvent(new Event('change'));
+          });
+
+          pillsContainer.appendChild(btn);
+        });
+        updatePillActiveStates();
+      }
+    }
+
+    function updatePillActiveStates() {
+      if (!pillsContainer || !academicYearField) return;
+      const currentVal = academicYearField.value.trim();
+      pillsContainer.querySelectorAll('button').forEach(btn => {
+        if (btn.dataset.value === currentVal) {
+          btn.className = 'btn btn-sm btn-primary py-0 px-2 font-weight-bold';
+        } else {
+          btn.className = 'btn btn-sm btn-outline-secondary py-0 px-2 font-weight-bold';
+        }
+      });
+    }
+
     const amountUrl = "{% url 'adminservices:fee-configuration-amount' %}";
     const studentClassField = document.getElementById("{{ form.student_class.id_for_label }}");
     const feeTypeField = document.getElementById("{{ form.fee_type.id_for_label }}");

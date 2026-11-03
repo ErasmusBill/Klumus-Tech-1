@@ -1,334 +1,553 @@
 {% load static media_tags %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Admission Form - {{ school.name }}</title>
+    <title>Admission Form - {{ student.user.get_full_name|default:student.student_id }}</title>
     <style>
+        @page {
+            size: A4;
+            margin: 15mm 15mm 15mm 15mm;
+        }
+
         @media print {
-            @page {
-                size: A4;
-                margin: 0.5in;
-            }
             body {
-                font-family: Arial, sans-serif;
+                font-family: 'Helvetica Neue', Arial, sans-serif;
                 margin: 0;
-                padding: 20px;
-                color: #333;
+                padding: 0;
+                color: #1a202c;
+                background: #fff;
             }
             .no-print {
                 display: none !important;
             }
+            .page-break {
+                page-break-before: always;
+            }
         }
         
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-            max-width: 800px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             margin: 0 auto;
+            padding: 24px;
+            color: #1e293b;
+            max-width: 850px;
+            background: #fff;
+            line-height: 1.45;
+        }
+
+        .no-print-bar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
         
         .header {
             text-align: center;
-            border-bottom: 3px double #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 2.5px solid #0f172a;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            position: relative;
         }
         
+        .school-logo {
+            height: 70px;
+            max-width: 180px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
         .school-name {
             font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 0 0 4px;
         }
         
         .school-address {
-            font-size: 14px;
-            margin-bottom: 10px;
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 3px;
         }
         
         .document-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 20px 0;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: #1e293b;
+            background: #f1f5f9;
+            padding: 7px 18px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 10px;
+            text-transform: uppercase;
+            border: 1px solid #cbd5e1;
         }
         
+        .form-meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 14px;
+            padding: 0 4px;
+        }
+
         .section {
-            margin: 30px 0;
+            margin-bottom: 20px;
         }
         
         .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-left: 4px solid #333;
-            margin-bottom: 15px;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
         }
         
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 0;
+            font-size: 12px;
         }
         
         .info-table td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            vertical-align: top;
+            padding: 7px 10px;
+            border: 1px solid #cbd5e1;
+            vertical-align: middle;
         }
         
         .info-table .label {
-            font-weight: bold;
-            background-color: #f9f9f9;
-            width: 30%;
+            font-weight: 700;
+            background-color: #f8fafc;
+            color: #475569;
+            width: 20%;
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.03em;
+        }
+
+        .info-table .val-bold {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .class-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            border: 1px solid #bfdbfe;
         }
         
         .photo-area {
-            width: 120px;
-            height: 150px;
-            border: 1px solid #ddd;
+            width: 115px;
+            height: 135px;
+            border: 1px solid #cbd5e1;
             text-align: center;
-            padding: 5px;
+            padding: 4px;
+            background: #fff;
+            vertical-align: middle !important;
+        }
+
+        .photo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
         }
         
         .photo-placeholder {
             width: 100%;
             height: 100%;
-            border: 1px dashed #ccc;
+            border: 1.5px dashed #94a3b8;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.3;
+            background: #f8fafc;
         }
         
         .declaration {
-            margin: 40px 0;
-            padding: 20px;
-            border: 1px solid #333;
-            background-color: #f9f9f9;
+            margin: 20px 0 16px;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: #334155;
+        }
+
+        .declaration-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            color: #0f172a;
+            font-size: 11.5px;
+        }
+
+        .declaration p {
+            margin: 0 0 6px;
+        }
+
+        .declaration p:last-child {
+            margin-bottom: 0;
         }
         
         .signature-area {
             display: flex;
             justify-content: space-between;
-            margin-top: 50px;
+            margin-top: 35px;
+            gap: 40px;
         }
         
         .signature {
             text-align: center;
-            width: 45%;
+            flex: 1;
         }
         
         .signature-line {
-            border-top: 1px solid #333;
-            margin: 60px 0 5px 0;
+            border-top: 1.5px solid #0f172a;
+            margin: 45px 0 6px 0;
+        }
+
+        .sig-title {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
         }
         
         .print-btn {
-            background-color: #28a745;
+            background-color: #2563eb;
             color: white;
-            padding: 10px 20px;
+            padding: 9px 18px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
         }
         
         .print-btn:hover {
-            background-color: #218838;
+            background-color: #1d4ed8;
         }
-        
-        .watermark {
-            opacity: 0.1;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 80px;
-            color: #333;
-            pointer-events: none;
+
+        .download-btn {
+            background-color: #059669;
+            color: white;
+            padding: 9px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        
-        .form-number {
-            text-align: right;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
+
+        .download-btn:hover {
+            background-color: #047857;
+            color: white;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 10px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="watermark">ADMISSION FORM</div>
+
+    <div class="no-print-bar no-print">
+        <div style="font-size: 13px; font-weight: 700; color: #334155;">
+            Official Student Admission Form &middot; {{ student.user.get_full_name }}
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="print-btn" onclick="window.print()">
+                🖨️ Print Form
+            </button>
+            <a href="{% url 'adminservices:download-admission-form' student.id %}" class="download-btn">
+                📥 Download PDF
+            </a>
+            <a href="{% url 'adminservices:student-detail' student.id %}" style="padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; color: #475569; font-weight: 700; font-size: 13px;">
+                Back to Profile
+            </a>
+        </div>
+    </div>
     
-    <button class="print-btn no-print" onclick="window.print()">🖨️ Print Admission Form</button>
-    
-    <div class="form-number">Form No: {{ form_number }}</div>
-    
+    <!-- Header -->
     <div class="header">
         {% if school.logo %}
-            <div style="margin-bottom: 10px;">
-                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" style="height: 70px; max-width: 200px; object-fit: contain;">
+            <div>
+                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" class="school-logo">
             </div>
         {% endif %}
         <div class="school-name">{{ school.name }}</div>
-        <div class="school-address">{{ school.address }}</div>
-        <div class="school-address">Phone: {{ school.phone_number }} | Email: {{ school.email }}</div>
-        <div class="document-title">STUDENT ADMISSION FORM</div>
+        <div class="school-address">{{ school.address|default:school.location|default:"Ghana" }}</div>
+        <div class="school-address">
+            {% if school.phone_number %}Phone: {{ school.phone_number }}{% endif %}
+            {% if school.phone_number and school.email %} | {% endif %}
+            {% if school.email %}Email: {{ school.email }}{% endif %}
+        </div>
+        <div>
+            <span class="document-title">Student Admission Form</span>
+        </div>
+    </div>
+
+    <!-- Meta Details Row -->
+    <div class="form-meta-row">
+        <div>Form No: <strong>{{ form_number }}</strong></div>
+        <div>Academic Year: <strong>{{ academic_year }}</strong></div>
+        <div>Issued On: <strong>{{ generated_date }}</strong></div>
     </div>
     
+    <!-- Section 1: Student Information -->
     <div class="section">
-        <div class="section-title">Student Information</div>
+        <div class="section-title">1. Student Identification & Demographics</div>
         <table class="info-table">
             <tr>
                 <td class="label">Full Name:</td>
-                <td>{{ student.user.get_full_name }}</td>
-                <td rowspan="4" class="photo-area">
+                <td class="val-bold" colspan="2" style="font-size: 14px; color: #0f172a;">
+                    {{ student.user.get_full_name }}
+                </td>
+                <td rowspan="5" class="photo-area">
                     {% if student.user.profile_picture %}
-                        <img src="{{ student.user.profile_picture|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Student Photo" style="max-width: 100%; max-height: 100%;">
+                        <img src="{{ student.user.profile_picture.url }}" alt="Student Photo" class="photo-img">
                     {% elif student.student_image %}
-                        <img src="{{ student.student_image|safe_media_url:'assets/img/profiles/avatar-01.jpg' }}" alt="Student Photo" style="max-width: 100%; max-height: 100%;">
+                        <img src="{{ student.student_image.url }}" alt="Student Photo" class="photo-img">
                     {% else %}
-                        <div class="photo-placeholder">
-                            Student Photo<br>(Passport Size)
+                        <div class="photo-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div style="font-size: 22px; font-weight: 800; color: #1e293b; background: #e2e8f0; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">{{ student.user.initials }}</div>
+                            <span style="font-size: 10px; color: #64748b;">Passport Photo<br>(Affix Here)</span>
                         </div>
                     {% endif %}
                 </td>
             </tr>
             <tr>
-                <td class="label">Date of Birth:</td>
-                <td>{{ student.user.date_of_birth }}</td>
-            </tr>
-            <tr>
-                <td class="label">Gender:</td>
-                <td>{{ student.user.get_gender_display }}</td>
-            </tr>
-            <tr>
                 <td class="label">Student ID:</td>
-                <td>{{ student.student_id }}</td>
+                <td class="val-bold">{{ student.student_id|upper }}</td>
+                <td class="label">Admission No:</td>
             </tr>
             <tr>
-                <td class="label">Admission Number:</td>
-                <td colspan="2">{{ student.admission_number }}</td>
+                <td class="label">Admitted Class:</td>
+                <td class="val-bold">
+                    <span class="class-badge">{{ student.get_student_class_display|default:student.student_class }}</span>
+                </td>
+                <td class="val-bold">{{ student.admission_number }}</td>
             </tr>
             <tr>
-                <td class="label">Grade/Class:</td>
-                <td colspan="2">{{ student.grade_level }}</td>
+                <td class="label">Date of Birth:</td>
+                <td>{{ student.user.date_of_birth|date:"F d, Y"|default:"Not specified" }}</td>
+                <td class="label">Gender:</td>
             </tr>
             <tr>
-                <td class="label">Address:</td>
-                <td colspan="2">{{ student.user.address }}</td>
+                <td class="label">Mobile Contact:</td>
+                <td>{{ student.mobile_number|default:student.user.phone_number|default:"N/A" }}</td>
+                <td class="val-bold">{{ student.user.get_gender_display|default:"Not specified" }}</td>
             </tr>
             <tr>
-                <td class="label">Email:</td>
-                <td colspan="2">{{ student.user.email }}</td>
+                <td class="label">Email Address:</td>
+                <td colspan="3">{{ student.user.email|default:"No personal email recorded" }}</td>
             </tr>
             <tr>
-                <td class="label">Phone:</td>
-                <td colspan="2">{{ student.user.phone_number }}</td>
+                <td class="label">Residential Address:</td>
+                <td colspan="3">{{ student.user.address|default:"Not specified" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Section 2: Academic Background -->
+    <div class="section">
+        <div class="section-title">2. Academic Enrollment & History</div>
+        <table class="info-table">
+            <tr>
+                <td class="label">Enrolled Class:</td>
+                <td class="val-bold" style="width: 30%;">
+                    {{ student.get_student_class_display|default:student.student_class }}
+                </td>
+                <td class="label" style="width: 20%;">Admission Date:</td>
+                <td class="val-bold" style="width: 30%;">
+                    {{ student.joining_date|date:"F d, Y"|default:generated_date }}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Previous Class:</td>
+                <td>{{ student.get_previous_class_display|default:"None (First Admission)" }}</td>
+                <td class="label">Previous School:</td>
+                <td>{{ student.previous_school|default:"None / First-time admission" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Academic Year:</td>
+                <td>{{ academic_year }}</td>
+                <td class="label">Admission Status:</td>
+                <td><strong style="color: #166534;">Confirmed & Registered</strong></td>
             </tr>
         </table>
     </div>
     
+    <!-- Section 3: Parent & Guardian Information -->
     <div class="section">
-        <div class="section-title">Parent/Guardian Information</div>
+        <div class="section-title">3. Parent & Guardian Information</div>
         <table class="info-table">
+            <!-- Father -->
             <tr>
-                <td class="label">Father's Name:</td>
-                <td>{{ student.parent.father_name|default:"N/A" }}</td>
-                <td class="label">Mother's Name:</td>
-                <td>{{ student.parent.mother_name|default:"N/A" }}</td>
-            </tr>
-            <tr>
-                <td class="label">Father's Phone:</td>
-                <td>{{ student.parent.father_phone|default:"N/A" }}</td>
-                <td class="label">Mother's Phone:</td>
-                <td>{{ student.parent.mother_phone|default:"N/A" }}</td>
+                <td class="label" style="width: 20%;">Father's Name:</td>
+                <td class="val-bold" style="width: 30%;">{{ student.parent.father_name|default:"N/A" }}</td>
+                <td class="label" style="width: 20%;">Father's Phone:</td>
+                <td style="width: 30%;">{{ student.parent.father_phone|default:"N/A" }}</td>
             </tr>
             <tr>
                 <td class="label">Father's Email:</td>
                 <td>{{ student.parent.father_email|default:"N/A" }}</td>
+                <td class="label">Father's Occupation:</td>
+                <td>{{ student.parent.father_occupation|default:"N/A" }}</td>
+            </tr>
+
+            <!-- Mother -->
+            <tr>
+                <td class="label">Mother's Name:</td>
+                <td class="val-bold">{{ student.parent.mother_name|default:"N/A" }}</td>
+                <td class="label">Mother's Phone:</td>
+                <td>{{ student.parent.mother_phone|default:"N/A" }}</td>
+            </tr>
+            <tr>
                 <td class="label">Mother's Email:</td>
                 <td>{{ student.parent.mother_email|default:"N/A" }}</td>
+                <td class="label">Mother's Occupation:</td>
+                <td>{{ student.parent.mother_occupation|default:"N/A" }}</td>
             </tr>
+
+            <!-- Guardian (if provided) -->
+            {% if student.parent.guardian_name %}
+            <tr>
+                <td class="label" style="background-color: #f1f5f9;">Guardian's Name:</td>
+                <td class="val-bold" style="background-color: #f8fafc;">{{ student.parent.guardian_name }}</td>
+                <td class="label" style="background-color: #f1f5f9;">Relationship:</td>
+                <td style="background-color: #f8fafc;">{{ student.parent.guardian_relation|default:"Guardian" }}</td>
+            </tr>
+            <tr>
+                <td class="label" style="background-color: #f1f5f9;">Guardian's Phone:</td>
+                <td style="background-color: #f8fafc;">{{ student.parent.guardian_phone|default:"N/A" }}</td>
+                <td class="label" style="background-color: #f1f5f9;">Guardian's Email:</td>
+                <td style="background-color: #f8fafc;">{{ student.parent.guardian_email|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label" style="background-color: #f1f5f9;">Guardian's Occupation:</td>
+                <td colspan="3" style="background-color: #f8fafc;">{{ student.parent.guardian_occupation|default:"N/A" }}</td>
+            </tr>
+            {% endif %}
+
+            <!-- Emergency Contact -->
             <tr>
                 <td class="label">Emergency Contact:</td>
-                <td colspan="3">
-                    {{ student.parent.emergency_contact_name|default:"N/A" }} - 
-                    {{ student.parent.emergency_contact_phone|default:"N/A" }}
+                <td class="val-bold">
+                    {{ student.parent.emergency_contact_name|default:student.parent.guardian_name|default:student.parent.father_name|default:student.parent.mother_name|default:"N/A" }}
+                </td>
+                <td class="label">Emergency Phone:</td>
+                <td>
+                    {{ student.parent.emergency_contact_phone|default:student.parent.guardian_phone|default:student.parent.father_phone|default:student.parent.mother_phone|default:"N/A" }}
+                    {% if student.parent.emergency_contact_relation %}
+                        <span style="color: #64748b; font-size: 11px;">({{ student.parent.emergency_contact_relation }})</span>
+                    {% endif %}
                 </td>
             </tr>
+
+            <!-- Addresses -->
             <tr>
-                <td class="label">Parent Address:</td>
-                <td colspan="3">{{ student.parent.address|default:"N/A" }}</td>
+                <td class="label">Parent Residential Address:</td>
+                <td colspan="3">{{ student.parent.present_address|default:student.user.address|default:"Same as student address" }}</td>
             </tr>
+            {% if student.parent.permanent_address %}
+            <tr>
+                <td class="label">Permanent Home Address:</td>
+                <td colspan="3">{{ student.parent.permanent_address }}</td>
+            </tr>
+            {% endif %}
         </table>
     </div>
-    
+
+    <!-- Section 4: Health & Medical Information -->
     <div class="section">
-        <div class="section-title">Academic Information</div>
+        <div class="section-title">4. Medical Background & Special Care</div>
         <table class="info-table">
             <tr>
-                <td class="label">Admission Date:</td>
-                <td>{{ student.admission_date }}</td>
-                <td class="label">Academic Year:</td>
-                <td>{{ academic_year }}</td>
+                <td class="label" style="width: 25%;">Known Allergies:</td>
+                <td colspan="3">{{ student.allergies|default:"None reported" }}</td>
             </tr>
             <tr>
-                <td class="label">Previous School:</td>
-                <td colspan="3">{{ student.previous_school|default:"N/A" }}</td>
+                <td class="label">Medical Conditions:</td>
+                <td colspan="3">{{ student.medical_conditions|default:"None reported" }}</td>
             </tr>
             <tr>
-                <td class="label">Department:</td>
-                <td colspan="3">{{ student.department.name|default:"N/A" }}</td>
+                <td class="label">Special Instructions / Notes:</td>
+                <td colspan="3">{{ student.notes|default:"None" }}</td>
             </tr>
         </table>
     </div>
     
+    <!-- Declaration -->
     <div class="declaration">
-        <div style="font-weight: bold; margin-bottom: 10px;">DECLARATION</div>
+        <div class="declaration-title">Official Declaration & Agreement</div>
         <p>
-            I hereby declare that the information provided in this admission form is true and correct to the best of my knowledge. 
-            I agree to abide by the rules and regulations of {{ school.name }} and understand that any false information may lead 
-            to cancellation of admission.
+            I hereby certify that all information submitted on this official admission record is true, correct, and complete. 
+            I agree on behalf of the student to uphold the standards, code of conduct, and disciplinary policies of 
+            <strong>{{ school.name }}</strong>.
         </p>
         <p>
-            I also understand that all fees paid are non-refundable and agree to pay the school fees as per the school's fee structure.
+            I understand that educational fees are payable according to the institution's designated fee schedule and that all payments are subject to the school's official regulations.
         </p>
     </div>
     
+    <!-- Signatures -->
     <div class="signature-area">
         <div class="signature">
             <div class="signature-line"></div>
-            <div>Parent/Guardian Signature</div>
-            <div style="font-size: 12px; margin-top: 5px;">Date: ________________</div>
+            <div class="sig-title">Parent / Guardian Signature</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Date: ________________________</div>
         </div>
         <div class="signature">
             <div class="signature-line"></div>
-            <div>School Administrator</div>
-            <div style="font-size: 12px; margin-top: 5px;">Date: ________________</div>
+            <div class="sig-title">School Head / Administrator</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Date & Official School Stamp</div>
         </div>
     </div>
     
-    <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #666;">
-        This admission form is generated on {{ generated_date }}
+    <div class="footer-note">
+        This document is an official admission record issued by {{ school.name }}. Document generated on {{ generated_date }}.
     </div>
-    
-    <script>
-        // Auto-print if specified in URL
-        if (window.location.search.includes('autoprint=true')) {
-            window.print();
-        }
-        
-        // Close window after print (optional)
-        window.onafterprint = function() {
-            if (window.location.search.includes('closeafterprint=true')) {
-                setTimeout(function() {
-                    window.close();
-                }, 500);
-            }
-        };
-    </script>
+
 </body>
 </html>

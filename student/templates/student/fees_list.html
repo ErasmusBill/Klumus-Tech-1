@@ -1,7 +1,7 @@
 {% extends 'student/base.html' %}
 {% load static %}
 
-{% block title %}Financial Statements | {{ student.user.get_full_name }}{% endblock %}
+{% block title %}Fees & Financial Statement | {{ student.user.get_full_name }}{% endblock %}
 
 {% block content %}
 <div class="page-wrapper">
@@ -11,205 +11,451 @@
         <div class="page-header mb-4">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title text-primary"><i class="fas fa-wallet me-2"></i>Fee Management</h3>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}">Home</a></li>
-                            <li class="breadcrumb-item active">Financial Records</li>
-                        </ol>
-                    </nav>
+                    <h3 class="page-title text-primary font-weight-bold mb-1">
+                        <i class="fas fa-wallet mr-2"></i>Fees & Financial Records
+                    </h3>
+                    <ul class="breadcrumb mb-0 bg-transparent p-0">
+                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}"><i class="fas fa-home mr-1"></i>Dashboard</a></li>
+                        <li class="breadcrumb-item active">Financial Statement</li>
+                    </ul>
                 </div>
-                {% if request.user.role == "admin" %}
-                <div class="col-auto">
-                    <a href="{% url 'adminservices:manage-fees' student.id %}" class="btn btn-primary shadow-sm px-4">
-                        <i class="fas fa-edit me-2"></i>Update Records
+                <div class="col-auto d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm mr-2" onclick="window.print()">
+                        <i class="fas fa-print mr-1"></i> Print Statement
+                    </button>
+                    {% if request.user.role == 'admin' %}
+                    <a href="{% url 'adminservices:list-fees' %}?q={{ student.student_id }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+                        <i class="fas fa-cog mr-1"></i> Admin Fee Ledger
                     </a>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
 
-        <!-- Financial Overview Cards -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm bg-primary text-white h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <p class="text-white-50 small mb-1 text-uppercase fw-bold">Student Identity</p>
-                                <h5 class="mb-0">{{ student.user.get_full_name }}</h5>
-                                <span class="badge bg-white text-primary mt-2">{{ student.student_id }}</span>
-                            </div>
-                            <i class="fas fa-user-circle fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
+        <!-- Student Financial Summary Banner -->
+        <div class="card border-0 shadow-sm rounded-lg mb-4 bg-gradient-brand text-white overflow-hidden">
+            <div class="card-body p-4 position-relative">
+                <div class="row align-items-center">
+                    <div class="col-lg-8 mb-3 mb-lg-0">
                         <div class="d-flex align-items-center">
-                            <div class="stat-icon bg-success-light text-success me-3">
-                                <i class="fas fa-check-circle"></i>
+                            <div class="avatar-lg rounded-circle bg-white text-primary d-flex align-items-center justify-content-center font-weight-bold mr-3 shadow" style="width: 58px; height: 58px; font-size: 1.4rem;">
+                                {{ student.user.first_name|first|default:"S" }}{{ student.user.last_name|first|default:"" }}
                             </div>
                             <div>
-                                <p class="text-muted small mb-0">Record Count</p>
-                                <h4 class="fw-bold mb-0">{{ fees.count }} Total</h4>
+                                <h4 class="text-white font-weight-bold mb-1">{{ student.user.get_full_name }}</h4>
+                                <div class="d-flex flex-wrap align-items-center gap-2 text-white-50 small">
+                                    <span class="badge badge-light text-dark font-weight-bold px-2 py-1 mr-2">ID: {{ student.student_id }}</span>
+                                    <span class="mr-2"><i class="fas fa-graduation-cap mr-1"></i>Class: {{ student.student_class.name|default:"Not Assigned" }}</span>
+                                    <span><i class="fas fa-school mr-1"></i>{{ school.name }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon bg-info-light text-info me-3">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <div>
-                                <p class="text-muted small mb-0">Current Session</p>
-                                <h4 class="fw-bold mb-0">Academic Year 2026</h4>
-                            </div>
+                    <div class="col-lg-4 text-lg-right">
+                        <div class="bg-white-15 rounded-lg p-3 text-center text-lg-right d-inline-block w-100 w-lg-auto">
+                            <small class="text-uppercase tracking-wider text-white-50 font-weight-bold d-block">Outstanding Balance</small>
+                            <span class="h3 font-weight-bolder mb-0 d-block {% if total_balance > 0 %}text-warning{% else %}text-white{% endif %}">
+                                GHS {{ total_balance|floatformat:2 }}
+                            </span>
+                            {% if total_balance <= 0 %}
+                                <span class="badge badge-success px-2 py-1 mt-1 small font-weight-bold"><i class="fas fa-check-circle mr-1"></i>All Cleared</span>
+                            {% else %}
+                                <span class="badge badge-danger px-2 py-1 mt-1 small font-weight-bold"><i class="fas fa-clock mr-1"></i>Payment Due</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Detailed Transaction Table -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 border-0">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-dark">Statement of Account</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="fas fa-print me-1"></i> Print</button>
+        <!-- 4 KPI Stat Tiles -->
+        <div class="row mb-4">
+            <!-- Total Billed -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-3 mb-xl-0">
+                <div class="card border-0 shadow-sm rounded-lg h-100">
+                    <div class="card-body p-3 d-flex align-items-center">
+                        <div class="stat-icon-wrapper bg-primary-light text-primary rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-file-invoice-dollar fa-lg"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase font-weight-bold d-block">Total Billed</small>
+                            <h5 class="font-weight-bold text-dark mb-0">GHS {{ total_billed|floatformat:2 }}</h5>
+                            <small class="text-muted">{{ fees|length }} charge item{{ fees|length|pluralize }}</small>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Total Paid -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-3 mb-xl-0">
+                <div class="card border-0 shadow-sm rounded-lg h-100">
+                    <div class="card-body p-3 d-flex align-items-center">
+                        <div class="stat-icon-wrapper bg-success-light text-success rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-check-circle fa-lg"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase font-weight-bold d-block">Total Paid</small>
+                            <h5 class="font-weight-bold text-success mb-0">GHS {{ total_paid|floatformat:2 }}</h5>
+                            <small class="text-muted">{{ settled_count }} bill{{ settled_count|pluralize }} settled</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Balance -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-3 mb-xl-0">
+                <div class="card border-0 shadow-sm rounded-lg h-100">
+                    <div class="card-body p-3 d-flex align-items-center">
+                        <div class="stat-icon-wrapper {% if total_balance > 0 %}bg-danger-light text-danger{% else %}bg-success-light text-success{% endif %} rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-balance-scale fa-lg"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase font-weight-bold d-block">Current Balance</small>
+                            <h5 class="font-weight-bold {% if total_balance > 0 %}text-danger{% else %}text-success{% endif %} mb-0">GHS {{ total_balance|floatformat:2 }}</h5>
+                            <small class="text-muted">{{ pending_count }} pending bill{{ pending_count|pluralize }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overdue Status -->
+            <div class="col-xl-3 col-sm-6 col-12 mb-3 mb-xl-0">
+                <div class="card border-0 shadow-sm rounded-lg h-100">
+                    <div class="card-body p-3 d-flex align-items-center">
+                        <div class="stat-icon-wrapper {% if overdue_count > 0 %}bg-warning-light text-warning{% else %}bg-info-light text-info{% endif %} rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                            <i class="fas {% if overdue_count > 0 %}fa-exclamation-triangle{% else %}fa-shield-alt{% endif %} fa-lg"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted text-uppercase font-weight-bold d-block">Status Alert</small>
+                            {% if overdue_count > 0 %}
+                                <h5 class="font-weight-bold text-warning mb-0">{{ overdue_count }} Overdue</h5>
+                                <small class="text-danger font-weight-bold">Requires immediate payment</small>
+                            {% else %}
+                                <h5 class="font-weight-bold text-info mb-0">In Good Standing</h5>
+                                <small class="text-success font-weight-bold">No overdue charges</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Instructions Callout -->
+        {% if total_balance > 0 %}
+        <div class="alert alert-info border-0 shadow-sm rounded-lg mb-4 p-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-white rounded-circle p-2 text-info mr-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-info-circle fa-lg"></i>
+                </div>
+                <div>
+                    <h6 class="font-weight-bold mb-0 text-dark">Payment Information & Channels</h6>
+                    <small class="text-muted">Payments can be completed via the School Accounts Office (Cash/Cheque) or authorized Mobile Money merchant accounts. Official printed receipts are issued upon payment verification.</small>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-info rounded-pill px-3 font-weight-bold shadow-sm" data-toggle="modal" data-target="#paymentInstructionsModal">
+                    <i class="fas fa-university mr-1"></i> View Payment Details
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Detailed Statements & Invoices Table -->
+        <div class="card border-0 shadow-sm rounded-lg overflow-hidden mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h5 class="card-title font-weight-bold mb-0 text-dark d-flex align-items-center">
+                        <i class="fas fa-list-alt text-primary mr-2"></i> Statement of Accounts & Invoices
+                    </h5>
+                    <small class="text-muted">Itemized breakdown of all termly tuition, administrative fees, and payment history.</small>
+                </div>
+                <!-- Search & Filter Controls -->
+                <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                    <input type="text" id="feeSearchInput" class="form-control form-control-sm rounded-pill px-3" placeholder="Search description, year..." style="min-width: 200px;">
+                    <select id="feeStatusFilter" class="form-control form-control-sm rounded-pill px-2">
+                        <option value="all">All Records</option>
+                        <option value="unpaid">Pending / Unpaid</option>
+                        <option value="paid">Settled</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <div class="table-responsive">
                     {% if fees %}
-                    <table class="table table-hover align-middle mb-0 custom-table">
-                        <thead class="bg-light">
+                    <table class="table table-hover align-middle mb-0" id="feesTable">
+                        <thead class="bg-light text-muted text-uppercase small font-weight-bold">
                             <tr>
-                                <th class="ps-4 border-0">Fee Classification</th>
-                                <th class="border-0">Amount</th>
-                                <th class="border-0">Deadline</th>
-                                <th class="border-0">Status</th>
-                                <th class="border-0">Transaction Date</th>
-                                <th class="text-end pe-4 border-0">Action</th>
+                                <th class="py-3 px-4 border-0">Fee Description</th>
+                                <th class="py-3 border-0 text-right">Total Bill</th>
+                                <th class="py-3 border-0 text-right">Amount Paid</th>
+                                <th class="py-3 border-0 text-right">Balance</th>
+                                <th class="py-3 border-0 text-center">Due Date</th>
+                                <th class="py-3 border-0 text-center">Status</th>
+                                <th class="py-3 border-0 text-right px-4">Receipt / Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="text-dark">
                             {% for fee in fees %}
-                            <tr>
-                                <td class="ps-4">
+                            <tr class="fee-row" data-status="{% if fee.is_paid_in_full %}paid{% else %}unpaid{% endif %}">
+                                <!-- Fee Description -->
+                                <td class="py-3 px-4">
                                     <div class="d-flex align-items-center">
-                                        <div class="fee-type-dot {% if fee.paid %}bg-success{% else %}bg-danger{% endif %} me-2"></div>
-                                        <span class="fw-bold text-dark">{{ fee.fee_type|default:"General Tuition" }}</span>
+                                        <div class="fee-status-indicator mr-2 {% if fee.is_paid_in_full %}bg-success{% elif fee.status == 'partial' %}bg-warning{% else %}bg-danger{% endif %}"></div>
+                                        <div>
+                                            <span class="font-weight-bold text-dark d-block">
+                                                {{ fee.display_name|default:"Tuition & General Levy" }}
+                                            </span>
+                                            <div class="small text-muted">
+                                                <span>{{ fee.academic_year|default:"Current Year" }}</span>
+                                                {% if fee.term %}&bull; Term {{ fee.term }}{% endif %}
+                                                {% if fee.receipt_number %}
+                                                    &bull; <span class="text-primary font-weight-semibold"><i class="fas fa-receipt mr-1"></i>{{ fee.receipt_number }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="fw-bold text-dark">₵{{ fee.amount|floatformat:2 }}</td>
-                                <td>
-                                    <div class="small">
-                                        <span class="d-block text-dark">{{ fee.due_date|date:"M d, Y" }}</span>
-                                        <span class="text-muted x-small">Official Deadline</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if fee.paid %}
-                                        <span class="badge bg-success-light text-success px-3 rounded-pill">
-                                            <i class="fas fa-check me-1"></i> Settled
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-danger-light text-danger px-3 rounded-pill">
-                                            <i class="fas fa-clock me-1"></i> Outstanding
-                                        </span>
+
+                                <!-- Total Bill -->
+                                <td class="py-3 text-right font-weight-semibold">
+                                    GHS {{ fee.total_bill|floatformat:2 }}
+                                    {% if fee.discount > 0 %}
+                                        <small class="d-block text-success" title="Discount Applied">-GHS {{ fee.discount|floatformat:2 }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+
+                                <!-- Amount Paid -->
+                                <td class="py-3 text-right font-weight-semibold text-success">
+                                    GHS {{ fee.amount_paid|floatformat:2 }}
                                     {% if fee.payment_date %}
-                                        <span class="text-dark small">{{ fee.payment_date|date:"M d, Y" }}</span>
-                                    {% else %}
-                                        <span class="text-muted italic small">Not Processed</span>
+                                        <small class="d-block text-muted">{{ fee.payment_date|date:"M d, Y" }}</small>
                                     {% endif %}
                                 </td>
-                                <td class="text-end pe-4">
-                                    {% if fee.paid %}
-                                        <button class="btn btn-sm btn-light rounded-pill"><i class="fas fa-file-invoice text-primary"></i> Receipt</button>
+
+                                <!-- Balance -->
+                                <td class="py-3 text-right font-weight-bold {% if fee.balance > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    GHS {{ fee.balance|floatformat:2 }}
+                                </td>
+
+                                <!-- Due Date -->
+                                <td class="py-3 text-center small">
+                                    <span class="d-block font-weight-medium">{{ fee.due_date|date:"M d, Y"|default:"Immediate" }}</span>
+                                    {% if fee.is_overdue %}
+                                        <span class="badge badge-danger-light text-danger font-weight-bold px-2 py-0 text-xs">Overdue</span>
                                     {% else %}
-                                        <button class="btn btn-sm btn-outline-primary rounded-pill">Pay Now</button>
+                                        <span class="text-muted text-xs">Due</span>
                                     {% endif %}
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="py-3 text-center">
+                                    {% if fee.is_paid_in_full or fee.status == 'paid' %}
+                                        <span class="badge badge-pill badge-success-light text-success font-weight-bold px-3 py-1">
+                                            <i class="fas fa-check-circle mr-1"></i> Settled
+                                        </span>
+                                    {% elif fee.status == 'partial' %}
+                                        <span class="badge badge-pill badge-warning-light text-warning font-weight-bold px-3 py-1">
+                                            <i class="fas fa-adjust mr-1"></i> Partial
+                                        </span>
+                                    {% elif fee.status == 'overdue' or fee.is_overdue %}
+                                        <span class="badge badge-pill badge-danger-light text-danger font-weight-bold px-3 py-1">
+                                            <i class="fas fa-clock mr-1"></i> Overdue
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-pill badge-danger-light text-danger font-weight-bold px-3 py-1">
+                                            <i class="fas fa-hourglass-start mr-1"></i> Unpaid
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Action / Receipt -->
+                                <td class="py-3 text-right px-4">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if fee.amount_paid > 0 or fee.receipt_number %}
+                                        <a href="{% url 'adminservices:print-fee-receipt' fee.id %}" target="_blank" class="btn btn-light border rounded-pill px-3 font-weight-bold text-primary shadow-sm" title="Print Official Receipt">
+                                            <i class="fas fa-file-invoice mr-1"></i> Receipt
+                                        </a>
+                                        {% else %}
+                                        <button type="button" class="btn btn-light border rounded-pill px-3 font-weight-bold text-muted shadow-sm" data-toggle="modal" data-target="#paymentInstructionsModal">
+                                            <i class="fas fa-credit-card mr-1"></i> Pay
+                                        </button>
+                                        {% endif %}
+                                        {% if request.user.role == 'admin' %}
+                                        <a href="{% url 'adminservices:edit-fees' fee.id %}" class="btn btn-outline-secondary ml-1 rounded-pill" title="Edit Fee Record">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="text-center py-5">
-                        <img src="{% static 'assets/img/no-billing.svg' %}" alt="No Data" class="mb-3" style="width: 120px; opacity: 0.5;">
-                        <h5 class="text-muted">No Billing History Found</h5>
-                        <p class="text-muted x-small">All financial accounts for this student are currently clear.</p>
+                    <!-- Empty State -->
+                    <div class="text-center py-5 px-3">
+                        <div class="avatar-lg bg-light text-muted rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 72px; height: 72px;">
+                            <i class="fas fa-folder-open fa-2x text-primary-light"></i>
+                        </div>
+                        <h5 class="font-weight-bold text-dark mb-1">No Financial Records Found</h5>
+                        <p class="text-muted small mb-3">There are no active billing or fee charges registered on this account.</p>
+                        <a href="{% url 'student:student-dashboard' %}" class="btn btn-primary btn-sm rounded-pill px-4">
+                            Return to Dashboard
+                        </a>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Helpful Disclaimer -->
-        <div class="alert mt-4 bg-white border-0 shadow-sm d-flex align-items-center">
-            <i class="fas fa-info-circle text-info me-3 fa-2x"></i>
-            <div>
-                <p class="mb-0 text-dark small fw-bold">Payment Policy Note</p>
-                <p class="mb-0 text-muted x-small">All digital payments are reflected in real-time. For bank transfers, please allow 24-48 hours for the administrative team to update the "Settled" status.</p>
+        <!-- Institutional Payment Policy Footer Card -->
+        <div class="card border-0 shadow-sm rounded-lg bg-white">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="rounded-circle bg-light text-primary p-3 mr-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <i class="fas fa-shield-alt fa-lg"></i>
+                </div>
+                <div>
+                    <h6 class="font-weight-bold mb-1 text-dark">Financial Records & Reconciliation Policy</h6>
+                    <p class="text-muted small mb-0" style="line-height: 1.5;">
+                        Electronic records on this statement are updated upon clearance of cashier receipts or verified bank deposits. For any billing adjustments, sibling discount queries, or scholarship assistance, please reach out directly to the Accounts and Finance Office.
+                    </p>
+                </div>
             </div>
         </div>
 
     </div>
 </div>
 
+<!-- Payment Instructions Modal -->
+<div class="modal fade" id="paymentInstructionsModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg rounded-lg">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title font-weight-bold" id="paymentModalLabel">
+                    <i class="fas fa-wallet mr-2"></i>School Fee Payment Instructions
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center mb-3 p-3 bg-light rounded-lg border">
+                    <i class="fas fa-user-graduate text-primary fa-2x mr-3"></i>
+                    <div>
+                        <div class="font-weight-bold text-dark">{{ student.user.get_full_name }}</div>
+                        <small class="text-muted">Student ID: <strong>{{ student.student_id }}</strong></small>
+                    </div>
+                </div>
+
+                <h6 class="font-weight-bold text-dark mb-2">Payment Methods:</h6>
+                <div class="list-group list-group-flush mb-3">
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <div class="font-weight-bold text-dark"><i class="fas fa-building text-primary mr-2"></i>1. School Cashier Office</div>
+                        <small class="text-muted pl-4 d-block">Pay at the school bursar desk during school hours (8:00 AM - 4:00 PM).</small>
+                    </div>
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <div class="font-weight-bold text-dark"><i class="fas fa-mobile-alt text-success mr-2"></i>2. Mobile Money / Digital Transfer</div>
+                        <small class="text-muted pl-4 d-block">Use your student ID as reference when initiating transfer.</small>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    <strong>Important:</strong> Always present your deposit slip or transaction ID at the accounts desk to collect your stamped physical receipt.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    /* Styling Palette */
-    .bg-success-light { background: rgba(25, 135, 84, 0.1); }
-    .bg-danger-light { background: rgba(220, 53, 69, 0.1); }
-    .bg-info-light { background: rgba(13, 202, 240, 0.1); }
+/* Modern styling palette */
+.bg-gradient-brand {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+}
+.bg-white-15 {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+}
+.stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.bg-primary-light { background-color: rgba(37, 99, 235, 0.1); }
+.bg-success-light { background-color: rgba(16, 185, 129, 0.12); }
+.bg-danger-light { background-color: rgba(239, 68, 68, 0.12); }
+.bg-warning-light { background-color: rgba(245, 158, 11, 0.15); }
+.bg-info-light { background-color: rgba(14, 165, 233, 0.12); }
 
-    .stat-icon {
-        width: 45px;
-        height: 45px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        font-size: 1.2rem;
+.fee-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.text-xs {
+    font-size: 0.72rem;
+}
+
+/* Card hover animation */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Print styles */
+@media print {
+    .header, .sidebar, .page-header, .btn, .modal, .alert-info, #feeSearchInput, #feeStatusFilter {
+        display: none !important;
     }
-
-    .custom-table thead th {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: #7d8490;
-        padding-top: 15px;
-        padding-bottom: 15px;
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
     }
-
-    .fee-type-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
+    .card {
+        border: none !important;
+        box-shadow: none !important;
     }
-
-    .x-small { font-size: 0.75rem; }
-    .italic { font-style: italic; }
-
-    /* Shadow Transitions */
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-2px); }
-
-    @media print {
-        .page-header, .stat-icon, .btn, .alert { display: none !important; }
-        .card { border: none !important; shadow: none !important; }
+    .bg-gradient-brand {
+        background: #1e3a8a !important;
+        color: #000 !important;
     }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('feeSearchInput');
+    const statusFilter = document.getElementById('feeStatusFilter');
+    const tableRows = document.querySelectorAll('.fee-row');
+
+    function filterTable() {
+        const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        const selectedStatus = statusFilter ? statusFilter.value : 'all';
+
+        tableRows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const rowStatus = row.getAttribute('data-status');
+
+            const matchesQuery = !query || rowText.includes(query);
+            const matchesStatus = (selectedStatus === 'all') || (rowStatus === selectedStatus);
+
+            if (matchesQuery && matchesStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    if (searchInput) searchInput.addEventListener('input', filterTable);
+    if (statusFilter) statusFilter.addEventListener('change', filterTable);
+});
+</script>
 {% endblock %}

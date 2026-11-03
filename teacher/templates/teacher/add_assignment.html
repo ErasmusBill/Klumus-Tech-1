@@ -1,122 +1,265 @@
 {% extends 'teacher/base.html' %}
 {% load static %}
 
-{% block title %}{{ title }} - KIDDO CARE{% endblock %}
+{% block title %}{{ title }} | Kiddo Care{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --as-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --as-surface: #ffffff;
+    --as-border: #e2e8f0;
+    --as-border-light: #f1f5f9;
+    --as-text: #0f172a;
+    --as-text-muted: #64748b;
+    --as-primary: #3b82f6;
+    --as-primary-light: #eff6ff;
+    --as-radius-lg: 16px;
+    --as-radius-md: 12px;
+    --as-radius-sm: 8px;
+    --as-shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+  }
+
+  .assignment-form-page {
+    font-family: var(--as-font);
+    color: var(--as-text);
+  }
+
+  .as-header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #38bdf8 100%);
+    border-radius: var(--as-radius-lg);
+    padding: 1.75rem 2rem;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  }
+  .as-header-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    color: #ffffff;
+  }
+  .as-header-subtitle {
+    font-size: 0.92rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+
+  .as-card {
+    background: var(--as-surface);
+    border: 1px solid var(--as-border);
+    border-radius: var(--as-radius-lg);
+    box-shadow: var(--as-shadow-sm);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .as-card-header {
+    padding: 1.15rem 1.35rem;
+    border-bottom: 1px solid var(--as-border);
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--as-text);
+  }
+  .as-card-body {
+    padding: 1.5rem;
+  }
+
+  .form-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--as-text);
+    margin-bottom: 0.35rem;
+  }
+  .form-control, .form-select {
+    border-radius: var(--as-radius-sm);
+    border: 1px solid var(--as-border);
+    padding: 0.55rem 0.85rem;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: var(--as-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8 offset-md-2">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">{{ title }}</h4>
-            </div>
-            <div class="card-body">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+<div class="assignment-form-page">
 
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {{ form.non_field_errors }}
-                    </div>
-                {% endif %}
-
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-
-                    <!-- Title -->
-                    <div class="mb-3">
-                        <label class="form-label">Title</label>
-                        {{ form.title }}
-                        {% if form.title.errors %}
-                            <div class="text-danger">{{ form.title.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Subject -->
-                    <div class="mb-3">
-                        <label class="form-label">Subject</label>
-                        {{ form.subject }}
-                        {% if form.subject.errors %}
-                            <div class="text-danger">{{ form.subject.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Class -->
-                    <div class="mb-3">
-                        <label class="form-label">Class</label>
-                        {{ form.student_class }}
-                        {% if form.student_class.errors %}
-                            <div class="text-danger">{{ form.student_class.errors }}</div>
-                        {% endif %}
-                        <small class="form-text text-muted">Select the class this assignment is for.</small>
-                    </div>
-
-                    <!-- Total Marks -->
-                    <div class="mb-3">
-                        <label class="form-label">Total Marks</label>
-                        {{ form.total_marks }}
-                        {% if form.total_marks.errors %}
-                            <div class="text-danger">{{ form.total_marks.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Due Date -->
-                    <div class="mb-3">
-                        <label class="form-label">Due Date</label>
-                        {{ form.due_date }}
-                        {% if form.due_date.errors %}
-                            <div class="text-danger">{{ form.due_date.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Description -->
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        {{ form.description }}
-                        {% if form.description.errors %}
-                            <div class="text-danger">{{ form.description.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Instructions (Optional) -->
-                    <div class="mb-3">
-                        <label class="form-label">Instructions (Optional)</label>
-                        {{ form.instructions }}
-                        {% if form.instructions.errors %}
-                            <div class="text-danger">{{ form.instructions.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Attachment -->
-                    <div class="mb-3">
-                        <label class="form-label">Attachment (Optional)</label>
-                        {{ form.attachment }}
-                        {% if form.attachment.errors %}
-                            <div class="text-danger">{{ form.attachment.errors }}</div>
-                        {% endif %}
-                        {% if form.instance.attachment %}
-                            <div class="mt-2">
-                                <a href="{{ form.instance.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-file-download"></i> View Current File
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Submit / Cancel -->
-                    <div class="text-end">
-                        <a href="{% url 'teacher:assignment-list' %}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">{{ title }}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+  <!-- ==================== PAGE HEADER ==================== -->
+  <div class="as-header-card">
+    <div class="row align-items-center">
+      <div class="col-lg-8 mb-2 mb-lg-0">
+        <h1 class="as-header-title">
+          <i class="fas fa-edit me-2"></i> {{ title }}
+        </h1>
+        <p class="as-header-subtitle">
+          Configure assignment details, instructions, grading marks, and due date
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end">
+        <a href="{% url 'teacher:assignment-list' %}" class="btn btn-light btn-sm fw-bold shadow-sm">
+          <i class="fas fa-arrow-left me-1"></i> Back to Assignments
+        </a>
+      </div>
     </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
+        <i class="fas fa-info-circle me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="assignmentForm">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger rounded-4 border-0 shadow-sm mb-4">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="row">
+      <!-- Left Column: Core Details -->
+      <div class="col-lg-8">
+        <div class="as-card">
+          <div class="as-card-header">
+            <i class="fas fa-file-alt text-primary"></i> 1. Assignment Overview & Content
+          </div>
+          <div class="as-card-body">
+            <!-- Title -->
+            <div class="mb-3">
+              <label class="form-label">Assignment Title <span class="text-danger">*</span></label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Subject & Class in row -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Subject <span class="text-danger">*</span></label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                  <div class="text-danger small mt-1">{{ form.subject.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Target Class <span class="text-danger">*</span></label>
+                {{ form.student_class }}
+                {% if form.student_class.errors %}
+                  <div class="text-danger small mt-1">{{ form.student_class.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label class="form-label">Description / Summary <span class="text-danger">*</span></label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+              {% endif %}
+              <div class="form-text small text-muted">Provide a clear overview of what students will accomplish.</div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="mb-0">
+              <label class="form-label">Submission Instructions (Optional)</label>
+              {{ form.instructions }}
+              {% if form.instructions.errors %}
+                <div class="text-danger small mt-1">{{ form.instructions.errors }}</div>
+              {% endif %}
+              <div class="form-text small text-muted">E.g., "Submit as PDF, show all calculations, citations required."</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Settings & Attachment -->
+      <div class="col-lg-4">
+        <!-- Assessment Settings -->
+        <div class="as-card">
+          <div class="as-card-header">
+            <i class="fas fa-sliders-h text-success"></i> 2. Grading & Due Date
+          </div>
+          <div class="as-card-body">
+            <!-- Due Date -->
+            <div class="mb-3">
+              <label class="form-label">Due Date <span class="text-danger">*</span></label>
+              {{ form.due_date }}
+              {% if form.due_date.errors %}
+                <div class="text-danger small mt-1">{{ form.due_date.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Total Marks -->
+            <div class="mb-3">
+              <label class="form-label">Total Marks <span class="text-danger">*</span></label>
+              {{ form.total_marks }}
+              {% if form.total_marks.errors %}
+                <div class="text-danger small mt-1">{{ form.total_marks.errors }}</div>
+              {% endif %}
+              <div class="form-text small text-muted">Standard total score points (e.g. 50, 100).</div>
+            </div>
+
+            <!-- Attachment -->
+            <div class="mb-0">
+              <label class="form-label">File Attachment (Optional)</label>
+              {{ form.attachment }}
+              {% if form.attachment.errors %}
+                <div class="text-danger small mt-1">{{ form.attachment.errors }}</div>
+              {% endif %}
+              <div class="form-text small text-muted">Attach PDF worksheets, prompts, or rubrics.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Publishing Notice & Action -->
+        <div class="card p-3 rounded-4 bg-light border-0 shadow-sm text-center">
+          <div class="mb-3 text-muted small">
+            <i class="fas fa-bell text-primary me-1"></i> Saving this assignment publishes it to all actively enrolled students in the selected class.
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary fw-bold py-2 shadow-sm" id="submitBtn">
+              <i class="fas fa-paper-plane me-1"></i> Save & Publish Assignment
+            </button>
+            <a href="{% url 'teacher:assignment-list' %}" class="btn btn-outline-secondary btn-sm">
+              Cancel
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('assignmentForm');
+  if (form) {
+    form.addEventListener('submit', () => {
+      const btn = document.getElementById('submitBtn');
+      if (btn) {
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving...`;
+        btn.disabled = true;
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,205 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Timetable{% endblock %}
+
+{% block content %}
+<div class="timetable-form-page py-3">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title text-primary font-weight-bold mb-1">
+                    <i class="fas fa-calendar-plus mr-2"></i>{{ title }}
+                </h3>
+                <ul class="breadcrumb mb-0 bg-transparent p-0">
+                    <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'adminservices:timetable-list' %}">Timetables</a></li>
+                    <li class="breadcrumb-item active">{{ title }}</li>
+                </ul>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'adminservices:timetable-list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Timetables
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm border-0" role="alert">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %} mr-2"></i>
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Left: Form -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm rounded-lg overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                    <div class="avatar-badge bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-clock fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title font-weight-bold mb-0 text-dark">Period Schedule Details</h5>
+                        <small class="text-muted">Assign subject, class, instructor, and timing. Real-time conflict checks will run automatically.</small>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger py-2 px-3 small border-0 shadow-sm mb-4">
+                                {% for error in form.non_field_errors %}
+                                    <div><i class="fas fa-exclamation-circle mr-1"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Target Class -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_student_class" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Target Class <span class="text-danger">*</span>
+                                </label>
+                                {{ form.student_class }}
+                                {% if form.student_class.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.student_class.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Subject -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_subject" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Subject <span class="text-danger">*</span>
+                                </label>
+                                {{ form.subject }}
+                                {% if form.subject.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.subject.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Teacher -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_teacher" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Assigned Teacher / Instructor <span class="text-danger">*</span>
+                                </label>
+                                {{ form.teacher }}
+                                {% if form.teacher.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.teacher.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Day of Week -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_day_of_week" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Day of the Week <span class="text-danger">*</span>
+                                </label>
+                                {{ form.day_of_week }}
+                                {% if form.day_of_week.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.day_of_week.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Start Time -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_start_time" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Start Time <span class="text-danger">*</span>
+                                </label>
+                                {{ form.start_time }}
+                                {% if form.start_time.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.start_time.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- End Time -->
+                            <div class="col-md-6 mb-3">
+                                <label for="id_end_time" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    End Time <span class="text-danger">*</span>
+                                </label>
+                                {{ form.end_time }}
+                                {% if form.end_time.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.end_time.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Room / Location -->
+                            <div class="col-md-8 mb-3">
+                                <label for="id_room_number" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Room / Location <span class="text-muted font-weight-normal">(Optional)</span>
+                                </label>
+                                {{ form.room_number }}
+                                {% if form.room_number.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.room_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Is Active -->
+                            <div class="col-md-4 mb-3 d-flex align-items-center pt-4">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label font-weight-bold text-dark ml-2" for="id_is_active">
+                                        Active in Schedule
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex align-items-center justify-content-between">
+                            <a href="{% url 'adminservices:timetable-list' %}" class="btn btn-light border rounded-pill px-4 font-weight-semibold">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm font-weight-bold">
+                                <i class="fas fa-save mr-2"></i>{{ button_text|default:"Save Schedule Entry" }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Tips & Information -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-lg mb-4 bg-white">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="card-title font-weight-bold mb-0 text-dark">
+                        <i class="fas fa-lightbulb text-warning mr-2"></i> Smart Scheduling Tips
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <ul class="list-unstyled mb-0 small text-muted" style="line-height: 1.7;">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success mr-2"></i>
+                            <strong>Conflict Detection:</strong> The system automatically verifies that neither the class nor the teacher has an overlapping commitment.
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success mr-2"></i>
+                            <strong>Immediate Live Sync:</strong> Once saved, this period instantly appears on the designated Teacher's dashboard and all enrolled Students' dashboards.
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check-circle text-success mr-2"></i>
+                            <strong>Department Linking:</strong> The entry is linked to the subject's department for centralized academic oversight.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-primary-light { background-color: rgba(37, 99, 235, 0.1); }
+</style>
+{% endblock %}

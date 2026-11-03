@@ -1,0 +1,890 @@
+{% extends "adminservices/base.html" %}
+{% load static media_tags %}
+
+{% block title %}Department Details | {{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dept-detail-page {
+    padding: 24px 0 40px;
+  }
+
+  .dept-detail-shell {
+    max-width: 1400px;
+  }
+
+  .dept-detail-header {
+    margin-bottom: 20px;
+  }
+
+  .dept-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .dept-detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .dept-detail-chip i {
+    color: #64748b;
+  }
+
+  .dept-hero,
+  .dept-panel,
+  .dept-sidebar-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+  }
+
+  .dept-hero {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .dept-hero-main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dept-identity {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .dept-icon-badge {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.25);
+  }
+
+  .dept-role {
+    margin: 0 0 6px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #2563eb;
+  }
+
+  .dept-name {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+  }
+
+  .dept-subtitle {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .dept-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .dept-action-row .btn {
+    min-width: 130px;
+    height: 40px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+
+  .dept-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .dept-stat-tile {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  }
+
+  .dept-stat-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .dept-stat-icon-blue {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .dept-stat-icon-emerald {
+    background: #ecfdf5;
+    color: #059669;
+  }
+
+  .dept-stat-icon-amber {
+    background: #fffbeb;
+    color: #d97706;
+  }
+
+  .dept-stat-icon-purple {
+    background: #faf5ff;
+    color: #7c3aed;
+  }
+
+  .dept-stat-value {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  .dept-stat-label {
+    margin: 3px 0 0;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .dept-panel {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .dept-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .dept-panel-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dept-panel-title i {
+    color: #2563eb;
+  }
+
+  .dept-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 24px;
+  }
+
+  .dept-info-item label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .dept-info-item .value {
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .dept-table-wrap {
+    overflow-x: auto;
+  }
+
+  .dept-table {
+    min-width: 600px;
+    margin-bottom: 0;
+  }
+
+  .dept-table thead th {
+    border-top: 0;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    background: #f8fafc;
+    padding: 12px 16px;
+    font-weight: 700;
+  }
+
+  .dept-table tbody td {
+    padding: 14px 16px;
+    vertical-align: middle;
+  }
+
+  .dept-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 32px 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.92rem;
+  }
+
+  .dept-empty i {
+    font-size: 2.2rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .dept-sidebar-panel {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .hod-card {
+    text-align: center;
+  }
+
+  .hod-avatar-wrap {
+    margin-bottom: 16px;
+  }
+
+  .hod-avatar-fallback {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  }
+
+  .hod-name {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .hod-title {
+    margin: 0 0 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .hod-meta-list {
+    text-align: left;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 14px;
+  }
+
+  .hod-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #334155;
+    font-size: 0.88rem;
+  }
+
+  .hod-meta-item i {
+    width: 18px;
+    color: #64748b;
+    text-align: center;
+  }
+
+  .badge-class-teacher {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .badge-subject-class {
+    background: #f1f5f9;
+    color: #334155;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 991.98px) {
+    .dept-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .dept-stat-grid {
+      grid-template-columns: 1fr;
+    }
+    .dept-info-grid {
+      grid-template-columns: 1fr;
+    }
+    .dept-hero-main {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .dept-action-row {
+      width: 100%;
+    }
+    .dept-action-row .btn,
+    .dept-action-row form {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dept-detail-page">
+  <div class="dept-detail-shell container-fluid px-0">
+
+    <!-- Breadcrumb & Header -->
+    <div class="page-header dept-detail-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">{{ department.name }}</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-departments' %}">Departments</a></li>
+            <li class="breadcrumb-item active">{{ department.name }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="dept-detail-meta">
+        <span class="dept-detail-chip">
+          <i class="fas fa-hashtag"></i>
+          Code: {{ department.code|default:"N/A" }}
+        </span>
+        <span class="dept-detail-chip">
+          <i class="fas fa-calendar-alt"></i>
+          Founded: {% if department.department_start_date %}{{ department.department_start_date|date:"M Y" }}{% else %}N/A{% endif %}
+        </span>
+        <span class="dept-detail-chip">
+          <i class="fas fa-user-tie"></i>
+          HOD: {{ department.head_of_department|default:"Not Assigned" }}
+        </span>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Hero Card -->
+    <div class="dept-hero">
+      <div class="dept-hero-main">
+        <div class="dept-identity">
+          <div class="dept-icon-badge">
+            <i class="fas fa-building"></i>
+          </div>
+          <div>
+            <div class="dept-role">Academic Department</div>
+            <h1 class="dept-name">{{ department.name }}</h1>
+            <p class="dept-subtitle">
+              {% if department.description %}
+                {{ department.description }}
+              {% else %}
+                Manage teachers, subjects, and academic operations under the {{ department.name }} department.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <div class="dept-action-row">
+          <a href="{% url 'adminservices:list-departments' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+          <a href="{% url 'adminservices:edit-department' department.id %}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit Department
+          </a>
+          <form method="post" action="{% url 'adminservices:delete-department' department.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this department? All associated subjects will also be affected.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger">
+              <i class="fas fa-trash-alt"></i> Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="dept-stat-grid">
+      <div class="dept-stat-tile">
+        <div class="dept-stat-icon-wrap dept-stat-icon-blue">
+          <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div>
+          <h4 class="dept-stat-value">{{ total_teachers|default:0 }}</h4>
+          <div class="dept-stat-label">Faculty Members</div>
+        </div>
+      </div>
+
+      <div class="dept-stat-tile">
+        <div class="dept-stat-icon-wrap dept-stat-icon-emerald">
+          <i class="fas fa-book-open"></i>
+        </div>
+        <div>
+          <h4 class="dept-stat-value">{{ total_subjects|default:0 }}</h4>
+          <div class="dept-stat-label">Subjects Offered</div>
+        </div>
+      </div>
+
+      <div class="dept-stat-tile">
+        <div class="dept-stat-icon-wrap dept-stat-icon-amber">
+          <i class="fas fa-user-graduate"></i>
+        </div>
+        <div>
+          <h4 class="dept-stat-value">{{ total_students|default:0 }}</h4>
+          <div class="dept-stat-label">Enrolled Students</div>
+        </div>
+      </div>
+
+      <div class="dept-stat-tile">
+        <div class="dept-stat-icon-wrap dept-stat-icon-purple">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div>
+          <h4 class="dept-stat-value">
+            {% if department.department_start_date %}
+              {{ department.department_start_date.year }}
+            {% else %}
+              Active
+            {% endif %}
+          </h4>
+          <div class="dept-stat-label">Established Year</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="row">
+      <!-- Left Column: Department Details & Lists -->
+      <div class="col-lg-8">
+
+        <!-- Department Overview Panel -->
+        <div class="dept-panel">
+          <div class="dept-panel-head">
+            <h5 class="dept-panel-title">
+              <i class="fas fa-info-circle"></i> Department Overview
+            </h5>
+          </div>
+          <div class="dept-info-grid">
+            <div class="dept-info-item">
+              <label>Department Name</label>
+              <div class="value">{{ department.name }}</div>
+            </div>
+            <div class="dept-info-item">
+              <label>Department Code</label>
+              <div class="value">{{ department.code|default:"Not specified" }}</div>
+            </div>
+            <div class="dept-info-item">
+              <label>Head of Department</label>
+              <div class="value">{{ department.head_of_department|default:"Not assigned" }}</div>
+            </div>
+            <div class="dept-info-item">
+              <label>Start Date</label>
+              <div class="value">
+                {% if department.department_start_date %}
+                  {{ department.department_start_date|date:"F d, Y" }}
+                {% else %}
+                  Not specified
+                {% endif %}
+              </div>
+            </div>
+            <div class="dept-info-item">
+              <label>Associated School</label>
+              <div class="value">{{ department.school.name }}</div>
+            </div>
+            <div class="dept-info-item">
+              <label>Created On</label>
+              <div class="value">{{ department.created_at|date:"F d, Y H:i" }}</div>
+            </div>
+            <div class="dept-info-item" style="grid-column: 1 / -1;">
+              <label>Description</label>
+              <div class="value text-muted" style="white-space: pre-line;">
+                {{ department.description|default:"No description provided for this department." }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subjects in Department Panel -->
+        <div class="dept-panel">
+          <div class="dept-panel-head">
+            <h5 class="dept-panel-title">
+              <i class="fas fa-book"></i> Subjects in Department ({{ total_subjects|default:0 }})
+            </h5>
+            <a href="{% url 'adminservices:add-subject' %}" class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-plus"></i> Add Subject
+            </a>
+          </div>
+
+          {% if subjects %}
+            <div class="dept-table-wrap">
+              <table class="table table-hover dept-table">
+                <thead>
+                  <tr>
+                    <th>Subject Name</th>
+                    <th>Class</th>
+                    <th>Assigned Teacher</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for subject in subjects %}
+                    <tr>
+                      <td>
+                        <strong>
+                          <a href="{% url 'adminservices:subject-detail' subject.id %}" class="text-primary">
+                            {{ subject.name }}
+                          </a>
+                        </strong>
+                      </td>
+                      <td>
+                        <span class="badge-subject-class">
+                          <i class="fas fa-layer-group text-muted mr-1"></i>
+                          {{ subject.subject_class.name|default:subject.get_subject_class_display|default:"All Classes" }}
+                        </span>
+                      </td>
+                      <td>
+                        {% if subject.teacher %}
+                          <div class="d-flex align-items-center">
+                            <span class="avatar avatar-xs mr-2">
+                              {% if subject.teacher.user.profile_picture %}
+                                <img class="avatar-img rounded-circle" src="{{ subject.teacher.user.profile_picture.url }}" alt="{{ subject.teacher.user.get_full_name }}">
+                              {% elif subject.teacher.image %}
+                                <img class="avatar-img rounded-circle" src="{{ subject.teacher.image.url }}" alt="{{ subject.teacher.user.get_full_name }}">
+                              {% else %}
+                                <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold" style="font-size: 0.65rem;">
+                                  {{ subject.teacher.user.initials }}
+                                </span>
+                              {% endif %}
+                            </span>
+                            <a href="{% url 'adminservices:teacher-detail' subject.teacher.id %}">
+                              {{ subject.teacher.user.get_full_name|default:subject.teacher.user.username }}
+                            </a>
+                          </div>
+                        {% else %}
+                          <span class="text-muted"><i class="fas fa-user-slash mr-1"></i> Unassigned</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-right">
+                        <a href="{% url 'adminservices:subject-detail' subject.id %}" class="btn btn-sm btn-outline-primary" title="View Subject">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'adminservices:edit-subject' subject.id %}" class="btn btn-sm bg-success-light" title="Edit Subject">
+                          <i class="fas fa-pen"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="dept-empty">
+              <i class="fas fa-book-open"></i>
+              <h6>No subjects currently assigned</h6>
+              <p class="mb-3">Add subjects to this department to organize course curriculum and assign teachers.</p>
+              <a href="{% url 'adminservices:add-subject' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus mr-1"></i> Add Subject Now
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Teachers in Department Panel -->
+        <div class="dept-panel">
+          <div class="dept-panel-head">
+            <h5 class="dept-panel-title">
+              <i class="fas fa-chalkboard-teacher"></i> Faculty & Teachers ({{ total_teachers|default:0 }})
+            </h5>
+            <a href="{% url 'adminservices:add-teacher' %}" class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-plus"></i> Add Teacher
+            </a>
+          </div>
+
+          {% if teachers %}
+            <div class="dept-table-wrap">
+              <table class="table table-hover dept-table">
+                <thead>
+                  <tr>
+                    <th>Teacher</th>
+                    <th>Specialization</th>
+                    <th>Class Teacher</th>
+                    <th>Contact</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for t in teachers %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="avatar avatar-sm mr-2">
+                            {% if t.user.profile_picture %}
+                              <img class="avatar-img rounded-circle" src="{{ t.user.profile_picture.url }}" alt="{{ t.user.get_full_name }}">
+                            {% elif t.image %}
+                              <img class="avatar-img rounded-circle" src="{{ t.image.url }}" alt="{{ t.user.get_full_name }}">
+                            {% else %}
+                              <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold">
+                                {{ t.user.initials }}
+                              </span>
+                            {% endif %}
+                          </div>
+                          <div>
+                            <strong>
+                              <a href="{% url 'adminservices:teacher-detail' t.id %}" class="text-dark">
+                                {{ t.user.get_full_name|default:t.user.username }}
+                              </a>
+                            </strong>
+                            <div class="small text-muted">{{ t.qualification|default:"Faculty" }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{{ t.specialization|default:"General" }}</td>
+                      <td>
+                        {% if t.is_class_teacher %}
+                          <span class="badge-class-teacher">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            {{ t.class_teacher_class.name|default:t.get_class_teacher_class_display|default:"Yes" }}
+                          </span>
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="small"><i class="fas fa-envelope text-muted mr-1"></i> {{ t.user.email }}</div>
+                        {% if t.user.phone_number %}
+                          <div class="small text-muted"><i class="fas fa-phone text-muted mr-1"></i> {{ t.user.phone_number }}</div>
+                        {% endif %}
+                      </td>
+                      <td class="text-right">
+                        <a href="{% url 'adminservices:teacher-detail' t.id %}" class="btn btn-sm btn-outline-primary" title="View Teacher">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'adminservices:edit-teacher' t.id %}" class="btn btn-sm bg-success-light" title="Edit Teacher">
+                          <i class="fas fa-pen"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="dept-empty">
+              <i class="fas fa-user-friends"></i>
+              <h6>No teachers in this department</h6>
+              <p class="mb-3">Assign teachers to this department when creating or editing teacher profiles.</p>
+              <a href="{% url 'adminservices:add-teacher' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-user-plus mr-1"></i> Add Teacher Now
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- Right Column: HOD & Quick Actions -->
+      <div class="col-lg-4">
+
+        <!-- Head of Department Card -->
+        <div class="dept-sidebar-panel hod-card">
+          <div class="dept-panel-head justify-content-center">
+            <h5 class="dept-panel-title">Head of Department</h5>
+          </div>
+
+          <div class="hod-avatar-wrap">
+            {% if hod_teacher %}
+              {% if hod_teacher.user.profile_picture %}
+                <img class="rounded-circle shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" src="{{ hod_teacher.user.profile_picture.url }}" alt="{{ hod_teacher.user.get_full_name }}">
+              {% elif hod_teacher.image %}
+                <img class="rounded-circle shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" src="{{ hod_teacher.image.url }}" alt="{{ hod_teacher.user.get_full_name }}">
+              {% else %}
+                <div class="hod-avatar-fallback">
+                  {{ hod_teacher.user.initials }}
+                </div>
+              {% endif %}
+            {% elif department.head_of_department %}
+              <div class="hod-avatar-fallback">
+                {{ department.head_of_department|user_initials }}
+              </div>
+            {% else %}
+              <div class="hod-avatar-fallback" style="background: #e2e8f0; color: #64748b;">
+                <i class="fas fa-user-tie"></i>
+              </div>
+            {% endif %}
+          </div>
+
+          <h5 class="hod-name">
+            {% if hod_teacher %}
+              {{ hod_teacher.user.get_full_name }}
+            {% elif department.head_of_department %}
+              {{ department.head_of_department }}
+            {% else %}
+              Not Assigned
+            {% endif %}
+          </h5>
+          <div class="hod-title">Department Head</div>
+
+          {% if hod_teacher %}
+            <ul class="hod-meta-list">
+              <li class="hod-meta-item">
+                <i class="fas fa-envelope"></i>
+                <span>{{ hod_teacher.user.email }}</span>
+              </li>
+              {% if hod_teacher.user.phone_number %}
+                <li class="hod-meta-item">
+                  <i class="fas fa-phone"></i>
+                  <span>{{ hod_teacher.user.phone_number }}</span>
+                </li>
+              {% endif %}
+              {% if hod_teacher.qualification %}
+                <li class="hod-meta-item">
+                  <i class="fas fa-graduation-cap"></i>
+                  <span>{{ hod_teacher.qualification }}</span>
+                </li>
+              {% endif %}
+              {% if hod_teacher.specialization %}
+                <li class="hod-meta-item">
+                  <i class="fas fa-star"></i>
+                  <span>{{ hod_teacher.specialization }}</span>
+                </li>
+              {% endif %}
+            </ul>
+            <a href="{% url 'adminservices:teacher-detail' hod_teacher.id %}" class="btn btn-outline-primary btn-block btn-sm">
+              <i class="fas fa-user mr-1"></i> View Full Profile
+            </a>
+          {% elif department.head_of_department %}
+            <p class="small text-muted mb-3">
+              Recorded as HOD for this department. No linked faculty profile detected.
+            </p>
+            <a href="{% url 'adminservices:edit-department' department.id %}" class="btn btn-outline-secondary btn-block btn-sm">
+              <i class="fas fa-edit mr-1"></i> Update HOD
+            </a>
+          {% else %}
+            <p class="small text-muted mb-3">
+              No head of department has been assigned yet. Edit this department to assign one.
+            </p>
+            <a href="{% url 'adminservices:edit-department' department.id %}" class="btn btn-outline-primary btn-block btn-sm">
+              <i class="fas fa-user-plus mr-1"></i> Assign HOD
+            </a>
+          {% endif %}
+        </div>
+
+        <!-- Quick Links Card -->
+        <div class="dept-sidebar-panel">
+          <div class="dept-panel-head">
+            <h5 class="dept-panel-title">
+              <i class="fas fa-link"></i> Department Actions
+            </h5>
+          </div>
+          <div class="d-flex flex-column" style="gap: 10px;">
+            <a href="{% url 'adminservices:edit-department' department.id %}" class="btn btn-outline-primary btn-block text-left d-flex align-items-center justify-content-between">
+              <span><i class="fas fa-edit mr-2"></i> Edit Department Details</span>
+              <i class="fas fa-chevron-right small"></i>
+            </a>
+            <a href="{% url 'adminservices:add-subject' %}" class="btn btn-outline-secondary btn-block text-left d-flex align-items-center justify-content-between">
+              <span><i class="fas fa-plus mr-2"></i> Add New Subject</span>
+              <i class="fas fa-chevron-right small"></i>
+            </a>
+            <a href="{% url 'adminservices:add-teacher' %}" class="btn btn-outline-secondary btn-block text-left d-flex align-items-center justify-content-between">
+              <span><i class="fas fa-user-plus mr-2"></i> Add New Teacher</span>
+              <i class="fas fa-chevron-right small"></i>
+            </a>
+            <a href="{% url 'adminservices:list-departments' %}" class="btn btn-outline-secondary btn-block text-left d-flex align-items-center justify-content-between">
+              <span><i class="fas fa-list mr-2"></i> View All Departments</span>
+              <i class="fas fa-chevron-right small"></i>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

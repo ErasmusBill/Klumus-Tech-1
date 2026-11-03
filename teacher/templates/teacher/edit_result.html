@@ -1,0 +1,377 @@
+{% extends "teacher/base.html" %}
+{% load static media_tags %}
+
+{% block title %}Edit Result - {{ result.student.user.get_full_name }} ({{ result.subject.name }}){% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --grade-a-bg: #ecfdf5;
+    --grade-a-color: #065f46;
+    --grade-a-border: #a7f3d0;
+    --grade-b-bg: #eff6ff;
+    --grade-b-color: #1e40af;
+    --grade-b-border: #bfdbfe;
+    --grade-c-bg: #fffbeb;
+    --grade-c-color: #92400e;
+    --grade-c-border: #fde68a;
+    --grade-d-bg: #fff7ed;
+    --grade-d-color: #9a3412;
+    --grade-d-border: #fed7aa;
+    --grade-f-bg: #fef2f2;
+    --grade-f-color: #991b1b;
+    --grade-f-border: #fecaca;
+  }
+
+  .edit-result-card {
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  }
+
+  .student-profile-strip {
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .score-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.2s ease;
+  }
+  .score-card:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  .score-big-input {
+    font-size: 1.6rem;
+    font-weight: 700;
+    text-align: center;
+    border: none;
+    background: transparent;
+    color: #0f172a;
+    width: 100%;
+  }
+  .score-big-input:focus {
+    outline: none;
+  }
+
+  .live-summary-card {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .grade-badge-lg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    padding: 6px 16px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    border-radius: 10px;
+  }
+  .grade-A { background: var(--grade-a-bg); color: var(--grade-a-color); border: 1px solid var(--grade-a-border); }
+  .grade-B { background: var(--grade-b-bg); color: var(--grade-b-color); border: 1px solid var(--grade-b-border); }
+  .grade-C { background: var(--grade-c-bg); color: var(--grade-c-color); border: 1px solid var(--grade-c-border); }
+  .grade-D { background: var(--grade-d-bg); color: var(--grade-d-color); border: 1px solid var(--grade-d-border); }
+  .grade-F { background: var(--grade-f-bg); color: var(--grade-f-color); border: 1px solid var(--grade-f-border); }
+
+  .quick-chip {
+    font-size: 0.75rem;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 4px 10px;
+    cursor: pointer;
+    display: inline-block;
+    margin: 3px 2px;
+    transition: all 0.15s ease;
+  }
+  .quick-chip:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+  <div class="row align-items-center">
+    <div class="col">
+      <h3 class="page-title mb-1 font-weight-bold">Edit Academic Result</h3>
+      <ul class="breadcrumb mb-0 bg-transparent p-0">
+        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'teacher:list-result' %}">Results</a></li>
+        <li class="breadcrumb-item active">{{ result.student.user.get_full_name }}</li>
+      </ul>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'teacher:list-result' %}?subject={{ result.subject.id }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Results
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row">
+  <!-- Left Side: Student Strip & Score Inputs -->
+  <div class="col-lg-8">
+    <div class="card edit-result-card mb-4">
+      <div class="card-body p-4">
+        <!-- Student Info Strip -->
+        <div class="student-profile-strip d-flex align-items-center mb-4">
+          <div class="avatar avatar-lg mr-3 flex-shrink-0">
+            {% if result.student.user.profile_picture %}
+              <img class="avatar-img rounded-circle" src="{{ result.student.user.profile_picture.url }}" alt="{{ result.student.user.get_full_name }}" style="width: 52px; height: 52px; object-fit: cover;">
+            {% elif result.student.student_image %}
+              <img class="avatar-img rounded-circle" src="{{ result.student.student_image.url }}" alt="{{ result.student.user.get_full_name }}" style="width: 52px; height: 52px; object-fit: cover;">
+            {% else %}
+              <span class="avatar-title rounded-circle bg-primary text-white font-weight-bold" style="width: 52px; height: 52px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                {{ result.student.user.initials }}
+              </span>
+            {% endif %}
+          </div>
+          <div>
+            <h5 class="font-weight-bold mb-1 text-dark">{{ result.student.user.get_full_name }}</h5>
+            <div class="text-muted small">
+              <span class="mr-3"><i class="fas fa-id-badge mr-1"></i> ID: {{ result.student.student_id|default:result.student.admission_number|default:"-" }}</span>
+              <span class="mr-3"><i class="fas fa-book mr-1"></i> {{ result.subject.name }}</span>
+              <span><i class="fas fa-chalkboard mr-1"></i> {{ result.student.get_student_class_display|default:result.subject.get_subject_class_display }}</span>
+            </div>
+            <div class="text-muted small mt-1">
+              <span class="badge badge-info mr-2">{{ result.get_term_display }}</span>
+              <span class="text-muted">{{ result.academic_year }}</span>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST" id="editResultForm">
+          {% csrf_token %}
+
+          <h6 class="text-uppercase font-weight-bold text-muted small mb-3">Score Assessment Components</h6>
+
+          <div class="row mb-4">
+            <!-- Class Score (20%) -->
+            <div class="col-md-4 mb-3 mb-md-0">
+              <div class="score-card text-center">
+                <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">Class Score</span>
+                <input type="number" 
+                       name="class_score" 
+                       id="id_class_score" 
+                       class="score-big-input" 
+                       min="0" 
+                       max="20" 
+                       step="0.01" 
+                       value="{{ form.class_score.value|default:result.class_score }}">
+                <div class="small text-muted border-top pt-1 mt-1 font-weight-semibold">Max: 20 marks</div>
+                {% if form.class_score.errors %}
+                  <div class="text-danger small mt-1">{{ form.class_score.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Mid-Semester (30%) -->
+            <div class="col-md-4 mb-3 mb-md-0">
+              <div class="score-card text-center">
+                <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">Mid-Semester</span>
+                <input type="number" 
+                       name="mid_semester" 
+                       id="id_mid_semester" 
+                       class="score-big-input" 
+                       min="0" 
+                       max="30" 
+                       step="0.01" 
+                       value="{{ form.mid_semester.value|default:result.mid_semester }}">
+                <div class="small text-muted border-top pt-1 mt-1 font-weight-semibold">Max: 30 marks</div>
+                {% if form.mid_semester.errors %}
+                  <div class="text-danger small mt-1">{{ form.mid_semester.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- End of Term Exams (50%) -->
+            <div class="col-md-4">
+              <div class="score-card text-center">
+                <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">End of Term</span>
+                <input type="number" 
+                       name="end_of_term_exams" 
+                       id="id_end_of_term_exams" 
+                       class="score-big-input" 
+                       min="0" 
+                       max="50" 
+                       step="0.01" 
+                       value="{{ form.end_of_term_exams.value|default:result.end_of_term_exams }}">
+                <div class="small text-muted border-top pt-1 mt-1 font-weight-semibold">Max: 50 marks</div>
+                {% if form.end_of_term_exams.errors %}
+                  <div class="text-danger small mt-1">{{ form.end_of_term_exams.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Teacher Comment -->
+          <div class="form-group mb-4">
+            <label class="font-weight-bold text-muted small text-uppercase">Teacher's Remark & Comments</label>
+            {{ form.teacher_comment }}
+            <div class="mt-2">
+              <span class="small text-muted mr-1">Quick feedback suggestions:</span>
+              <span class="quick-chip" onclick="insertFeedback('Exemplary subject comprehension and excellent classroom conduct.')">+ Exemplary</span>
+              <span class="quick-chip" onclick="insertFeedback('Consistent effort and notable progress shown this term.')">+ Notable Progress</span>
+              <span class="quick-chip" onclick="insertFeedback('Active participation; recommended to dedicate more time to exam prep.')">+ Exam Revision</span>
+              <span class="quick-chip" onclick="insertFeedback('Inconsistent attendance impacting assessment performance.')">+ Attendance Focus</span>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+            <a href="{% url 'teacher:list-result' %}?subject={{ result.subject.id }}" class="btn btn-light border rounded-pill px-4">
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm font-weight-bold">
+              <i class="fas fa-save mr-1"></i> Update Result
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Live Calculated Evaluation Card -->
+  <div class="col-lg-4">
+    <div class="card live-summary-card mb-4 shadow-sm">
+      <h6 class="text-uppercase text-white-50 font-weight-bold small mb-3">
+        <i class="fas fa-calculator mr-1"></i> Live Assessment Preview
+      </h6>
+
+      <div class="mb-4">
+        <span class="text-white-50 small">Computed Total Marks</span>
+        <div class="d-flex align-items-baseline">
+          <h1 class="display-4 font-weight-bold text-white mb-0" id="liveTotal">{{ result.total_marks|floatformat:1 }}</h1>
+          <span class="text-white-50 ml-2" style="font-size: 1.1rem;">/ 100</span>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-6">
+          <span class="text-white-50 small d-block mb-1">Percentage</span>
+          <h4 class="font-weight-bold text-info mb-0" id="livePercentage">{{ result.percentage|floatformat:1 }}%</h4>
+        </div>
+        <div class="col-6">
+          <span class="text-white-50 small d-block mb-1">Grade Letter</span>
+          <span class="grade-badge-lg 
+            {% if 'A' in result.grade %}grade-A
+            {% elif 'B' in result.grade %}grade-B
+            {% elif 'C' in result.grade %}grade-C
+            {% elif 'D' in result.grade %}grade-D
+            {% else %}grade-F{% endif %}" id="liveGradeBadge">
+            {{ result.grade }}
+          </span>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.08);">
+        <div class="d-flex align-items-center justify-content-between">
+          <span class="text-white-50 small">Official Remark:</span>
+          <strong class="text-white" id="liveRemarkText" style="text-transform: capitalize;">{{ result.get_remark_display }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-3">
+        <h6 class="font-weight-bold mb-2 small text-dark"><i class="fas fa-info-circle text-primary mr-1"></i> Grading Formula</h6>
+        <p class="text-muted small mb-0">
+          Total is the direct sum of Class Score (0-20), Mid-Semester (0-30), and End of Term Exams (0-50). Percentages $\ge 75\%$ qualify for Distinction (A-, A, A+).
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateEditPreview() {
+  const classInput = document.getElementById('id_class_score');
+  const midInput = document.getElementById('id_mid_semester');
+  const endInput = document.getElementById('id_end_of_term_exams');
+
+  const c = parseFloat(classInput ? classInput.value : 0) || 0;
+  const m = parseFloat(midInput ? midInput.value : 0) || 0;
+  const e = parseFloat(endInput ? endInput.value : 0) || 0;
+
+  const total = c + m + e;
+  const percentage = total;
+
+  const totalEl = document.getElementById('liveTotal');
+  const percEl = document.getElementById('livePercentage');
+  const gradeEl = document.getElementById('liveGradeBadge');
+  const remarkEl = document.getElementById('liveRemarkText');
+
+  if (totalEl) totalEl.textContent = total.toFixed(1);
+  if (percEl) percEl.textContent = percentage.toFixed(1) + '%';
+
+  let grade = 'F';
+  let remark = 'Fail';
+  let gradeClass = 'grade-F';
+
+  if (percentage >= 90) { grade = 'A+'; remark = 'Excellent'; gradeClass = 'grade-A'; }
+  else if (percentage >= 80) { grade = 'A'; remark = 'Excellent'; gradeClass = 'grade-A'; }
+  else if (percentage >= 75) { grade = 'A-'; remark = 'Excellent'; gradeClass = 'grade-A'; }
+  else if (percentage >= 70) { grade = 'B+'; remark = 'Very Good'; gradeClass = 'grade-B'; }
+  else if (percentage >= 65) { grade = 'B'; remark = 'Very Good'; gradeClass = 'grade-B'; }
+  else if (percentage >= 60) { grade = 'B-'; remark = 'Very Good'; gradeClass = 'grade-B'; }
+  else if (percentage >= 55) { grade = 'C+'; remark = 'Good'; gradeClass = 'grade-C'; }
+  else if (percentage >= 50) { grade = 'C'; remark = 'Good'; gradeClass = 'grade-C'; }
+  else if (percentage >= 45) { grade = 'C-'; remark = 'Good'; gradeClass = 'grade-C'; }
+  else if (percentage >= 40) { grade = 'D'; remark = 'Fair'; gradeClass = 'grade-D'; }
+
+  if (gradeEl) {
+    gradeEl.textContent = grade;
+    gradeEl.className = `grade-badge-lg ${gradeClass}`;
+  }
+  if (remarkEl) {
+    remarkEl.textContent = remark;
+  }
+}
+
+function insertFeedback(text) {
+  const commentBox = document.getElementById('id_teacher_comment');
+  if (!commentBox) return;
+  if (commentBox.value.trim().length > 0) {
+    commentBox.value += ' ' + text;
+  } else {
+    commentBox.value = text;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  ['id_class_score', 'id_mid_semester', 'id_end_of_term_exams'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updateEditPreview);
+    }
+  });
+  updateEditPreview();
+});
+</script>
+{% endblock %}

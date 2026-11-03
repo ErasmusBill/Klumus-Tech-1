@@ -1,0 +1,274 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Class Timetables | {{ selected_class.name|default:"All Classes" }}{% endblock %}
+
+{% block content %}
+<div class="timetable-management-page py-3">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title text-primary font-weight-bold mb-1">
+                    <i class="fas fa-calendar-alt mr-2"></i>Class Timetables &amp; Schedules
+                </h3>
+                <ul class="breadcrumb mb-0 bg-transparent p-0">
+                    <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Timetables</li>
+                </ul>
+            </div>
+            <div class="col-auto d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 mr-2 shadow-sm" onclick="window.print()">
+                    <i class="fas fa-print mr-1"></i> Print Schedule
+                </button>
+                <a href="{% url 'adminservices:add-timetable' %}{% if selected_class %}?class_id={{ selected_class.id }}{% endif %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm font-weight-bold">
+                    <i class="fas fa-plus mr-1"></i> Add Schedule Entry
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm border-0" role="alert">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %} mr-2"></i>
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Class Selector Bar -->
+    <div class="card border-0 shadow-sm rounded-lg mb-4 bg-white">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="text-muted font-weight-bold small text-uppercase mr-2">
+                        <i class="fas fa-layer-group text-primary mr-1"></i> Select Class:
+                    </span>
+                    {% for c in classes %}
+                        <a href="?class_id={{ c.id }}" class="btn btn-sm rounded-pill px-3 font-weight-semibold {% if selected_class and selected_class.id == c.id %}btn-primary shadow-sm{% else %}btn-light border text-dark{% endif %}">
+                            {{ c.name }}
+                        </a>
+                    {% empty %}
+                        <span class="text-muted small">No active classes found.</span>
+                    {% endfor %}
+                </div>
+                {% if selected_class %}
+                <div>
+                    <span class="badge badge-soft-primary px-3 py-2 font-weight-bold" style="font-size: 0.85rem;">
+                        Active View: {{ selected_class.name }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if selected_class %}
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm rounded-lg h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon-wrap bg-primary-light text-primary rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-chalkboard fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Target Class</small>
+                        <h5 class="font-weight-bold text-dark mb-0">{{ selected_class.name }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm rounded-lg h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon-wrap bg-success-light text-success rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-clock fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Weekly Periods</small>
+                        <h5 class="font-weight-bold text-success mb-0">{{ total_entries }} Periods</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm rounded-lg h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon-wrap bg-info-light text-info rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-user-tie fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Assigned Teachers</small>
+                        <h5 class="font-weight-bold text-info mb-0">{{ total_teachers }} Teachers</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card border-0 shadow-sm rounded-lg h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon-wrap bg-purple-light text-purple rounded-lg mr-3 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-book-open fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Subjects Covered</small>
+                        <h5 class="font-weight-bold text-purple mb-0">{{ total_subjects }} Subjects</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Timetable Grid (Monday to Friday) -->
+    <div class="weekly-schedule-grid">
+        <div class="row">
+            {% for day_code, day_info in days_schedule.items %}
+            <div class="col-lg mb-4">
+                <div class="card day-column-card border-0 shadow-sm rounded-lg h-100">
+                    <!-- Day Header -->
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="font-weight-bold text-dark mb-0">{{ day_info.label }}</h6>
+                            <small class="text-muted">{{ day_info.entries|length }} period{{ day_info.entries|length|pluralize }}</small>
+                        </div>
+                        <a href="{% url 'adminservices:add-timetable' %}?class_id={{ selected_class.id }}&day={{ day_code }}" class="btn btn-xs btn-outline-primary rounded-circle" title="Add Period to {{ day_info.label }}" style="width: 28px; height: 28px; padding: 0; line-height: 26px;">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+
+                    <!-- Day Lessons Body -->
+                    <div class="card-body p-2 bg-light-subtle">
+                        {% if day_info.entries %}
+                            {% for entry in day_info.entries %}
+                            <div class="period-card bg-white p-3 rounded-lg border shadow-sm mb-2 position-relative">
+                                <!-- Time Badge -->
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge badge-primary-soft text-primary font-weight-bold px-2 py-1">
+                                        <i class="fas fa-clock mr-1"></i>{{ entry.start_time|time:"H:i" }} - {{ entry.end_time|time:"H:i" }}
+                                    </span>
+                                    {% if entry.room_number %}
+                                        <span class="badge badge-light border text-muted px-2 py-0 small">
+                                            <i class="fas fa-door-open mr-1"></i>{{ entry.room_number }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Subject Name -->
+                                <h6 class="font-weight-bold text-dark mb-1">
+                                    {{ entry.subject.name }}
+                                </h6>
+
+                                <!-- Teacher Info -->
+                                <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-xs bg-light text-primary rounded-circle d-flex align-items-center justify-content-center font-weight-bold mr-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                            {{ entry.teacher.user.first_name|first|default:"T" }}
+                                        </div>
+                                        <span class="small text-muted font-weight-medium text-truncate" style="max-width: 110px;">
+                                            {{ entry.teacher.user.get_full_name }}
+                                        </span>
+                                    </div>
+                                    <!-- Action Buttons -->
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'adminservices:edit-timetable' entry.id %}" class="btn btn-light btn-sm text-primary px-2" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'adminservices:delete-timetable' entry.id %}" class="d-inline" onsubmit="return confirm('Delete this {{ entry.subject.name }} schedule period?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-light btn-sm text-danger px-2" title="Delete">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4 px-2 text-muted">
+                                <i class="fas fa-calendar-minus fa-2x text-muted opacity-50 mb-2"></i>
+                                <p class="small mb-2">No periods scheduled</p>
+                                <a href="{% url 'adminservices:add-timetable' %}?class_id={{ selected_class.id }}&day={{ day_code }}" class="btn btn-outline-primary btn-xs rounded-pill px-3">
+                                    + Add Lesson
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm rounded-lg p-5 text-center bg-white">
+        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+        <h5 class="font-weight-bold text-dark">No Class Selected</h5>
+        <p class="text-muted small mb-3">Please select a class above or create new classes to manage schedules.</p>
+        <div>
+            <a href="{% url 'adminservices:add-class' %}" class="btn btn-primary rounded-pill px-4">
+                <i class="fas fa-plus mr-1"></i> Create Class
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.stat-icon-wrap {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.bg-primary-light { background-color: rgba(37, 99, 235, 0.1); }
+.bg-success-light { background-color: rgba(16, 185, 129, 0.1); }
+.bg-info-light { background-color: rgba(14, 165, 233, 0.1); }
+.bg-purple-light { background-color: rgba(139, 92, 246, 0.1); }
+.text-purple { color: #8b5cf6; }
+
+.badge-primary-soft {
+    background-color: #eff6ff;
+    color: #2563eb;
+}
+.badge-soft-primary {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+.bg-light-subtle {
+    background-color: #f8fafc;
+}
+.period-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.period-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+@media print {
+    .header, .sidebar, .page-header, .btn, form button, .alert {
+        display: none !important;
+    }
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .weekly-schedule-grid .col-lg {
+        flex: 1 0 20% !important;
+        max-width: 20% !important;
+    }
+    .card {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

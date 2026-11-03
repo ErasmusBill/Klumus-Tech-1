@@ -1,0 +1,104 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Add Class{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid">
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="page-title">Add Class</h3>
+          <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-classes' %}">Classes</a></li>
+            <li class="breadcrumb-item active">Add Class</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-12">
+                  <h5 class="form-title"><span>Class Details</span></h5>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Class Name <span class="text-danger">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger mt-1">{{ form.name.errors }}</div>{% endif %}
+                    <small class="form-text text-muted">e.g. Primary 1, Nursery 1, JHS 1, Kindergarten 2</small>
+                  </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Class Code</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<div class="text-danger mt-1">{{ form.code.errors }}</div>{% endif %}
+                    <small class="form-text text-muted">Optional short code (auto-generated if empty)</small>
+                  </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label>Progression Order</label>
+                    {{ form.order }}
+                    {% if form.order.errors %}<div class="text-danger mt-1">{{ form.order.errors }}</div>{% endif %}
+                    <small class="form-text text-muted">Lower numbers come first (e.g. Creche=1, Primary 1=4, JHS 1=10)</small>
+                  </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                  <div class="form-group">
+                    <label class="d-block">Status</label>
+                    <div class="form-check mt-2">
+                      {{ form.is_active }}
+                      <label class="form-check-label ms-2" for="{{ form.is_active.id_for_label }}">
+                        Active
+                      </label>
+                    </div>
+                    {% if form.is_active.errors %}<div class="text-danger mt-1">{{ form.is_active.errors }}</div>{% endif %}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <div class="form-group">
+                    <label>Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger mt-1">{{ form.description.errors }}</div>{% endif %}
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <button type="submit" class="btn btn-primary">Create Class</button>
+                  <a href="{% url 'adminservices:list-classes' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

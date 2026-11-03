@@ -1,0 +1,901 @@
+{% extends "adminservices/base.html" %}
+{% load static media_tags %}
+
+{% block title %}Subject Details | {{ subject.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .subject-detail-page {
+    padding: 24px 0 40px;
+  }
+
+  .subject-detail-shell {
+    max-width: 1400px;
+  }
+
+  .subject-detail-header {
+    margin-bottom: 20px;
+  }
+
+  .subject-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .subject-detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .subject-detail-chip i {
+    color: #64748b;
+  }
+
+  .subject-hero,
+  .subject-panel,
+  .subject-sidebar-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+  }
+
+  .subject-hero {
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .subject-hero-main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .subject-identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .subject-avatar-wrap {
+    flex: 0 0 auto;
+  }
+
+  .subject-avatar-fallback {
+    width: 96px;
+    height: 96px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #38bdf8;
+    font-size: 2.2rem;
+    font-weight: 800;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  }
+
+  .subject-role {
+    margin: 0 0 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #2563eb;
+  }
+
+  .subject-name {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  .subject-subtitle {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .subject-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .subject-action-row .btn {
+    min-width: 140px;
+    height: 42px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+
+  .subject-mini-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .subject-mini-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    background: #f8fafc;
+  }
+
+  .subject-mini-card span {
+    color: #64748b;
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .subject-mini-card strong {
+    font-size: 1.1rem;
+    color: #0f172a;
+  }
+
+  .subject-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .subject-stat-tile {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    padding: 18px;
+  }
+
+  .subject-stat-value {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .subject-stat-label {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: #64748b;
+  }
+
+  .subject-panel,
+  .subject-sidebar-panel {
+    padding: 20px;
+  }
+
+  .subject-panel + .subject-panel {
+    margin-top: 20px;
+  }
+
+  .subject-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .subject-panel-title {
+    margin: 0;
+    font-size: 0.84rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+
+  .subject-panel-note {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .subject-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+  }
+
+  .subject-info-item label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .subject-info-item .value {
+    color: #0f172a;
+    font-weight: 600;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .subject-table-wrap {
+    overflow-x: auto;
+  }
+
+  .subject-table {
+    min-width: 640px;
+    margin-bottom: 0;
+  }
+
+  .subject-table thead th {
+    border-top: 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    background: #f8fafc;
+  }
+
+  .subject-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .subject-badge-active {
+    background: #dcfce7;
+    color: #15803d;
+  }
+
+  .subject-badge-inactive {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .subject-badge-published {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+
+  .subject-badge-draft {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  .subject-badge-closed {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .subject-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 24px;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.92rem;
+  }
+
+  .subject-empty i {
+    font-size: 2rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .subject-sidebar-panel {
+    position: sticky;
+    top: 24px;
+  }
+
+  .subject-sidebar-block + .subject-sidebar-block {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .subject-sidebar-title {
+    margin: 0 0 12px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+  }
+
+  .subject-sidebar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .subject-sidebar-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff;
+  }
+
+  .subject-sidebar-item span {
+    color: #64748b;
+    font-size: 0.82rem;
+    display: block;
+    line-height: 1.3;
+  }
+
+  .subject-sidebar-item strong {
+    color: #0f172a;
+    display: block;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    text-align: right;
+  }
+
+  .teacher-card-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+
+  .teacher-card-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+  }
+
+  .teacher-card-fallback {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 991.98px) {
+    .subject-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .subject-mini-stats {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .subject-stat-grid {
+      grid-template-columns: 1fr;
+    }
+    .subject-info-grid {
+      grid-template-columns: 1fr;
+    }
+    .subject-action-row {
+      width: 100%;
+      justify-content: stretch;
+    }
+    .subject-action-row .btn {
+      flex: 1 1 auto;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid subject-detail-page">
+    <div class="subject-detail-shell mx-auto">
+
+      <!-- Breadcrumbs & Actions Header -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 subject-detail-header">
+        <div>
+          <h3 class="page-title">Subject Details</h3>
+          <ul class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-subjects' %}">Subjects</a></li>
+            <li class="breadcrumb-item active">{{ subject.name }}</li>
+          </ul>
+
+          <div class="subject-detail-meta">
+            <span class="subject-detail-chip">
+              <i class="fas fa-school"></i>
+              {{ subject.school.name|default:"School" }}
+            </span>
+            <span class="subject-detail-chip">
+              <i class="fas fa-layer-group"></i>
+              {{ subject.get_subject_class_display|default:subject.subject_class }}
+            </span>
+            <span class="subject-detail-chip">
+              <i class="fas fa-building"></i>
+              {{ subject.department.name|default:"General Department" }}
+            </span>
+            <span class="subject-detail-chip">
+              <i class="fas fa-user-graduate"></i>
+              {{ enrolled_count }} Enrolled Student{{ enrolled_count|pluralize }}
+            </span>
+          </div>
+        </div>
+
+        <div class="subject-action-row">
+          <a href="{% url 'adminservices:list-subjects' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to List
+          </a>
+          <a href="{% url 'adminservices:edit-subject' subject.id %}" class="btn btn-primary">
+            <i class="fas fa-pen"></i>
+            Edit Subject
+          </a>
+          <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSubjectModal" data-toggle="modal" data-target="#deleteSubjectModal">
+            <i class="fas fa-trash-alt"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="mb-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" data-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Hero Header Card -->
+      <div class="subject-hero">
+        <div class="subject-hero-main">
+          <div class="subject-identity">
+            <div class="subject-avatar-wrap">
+              <div class="subject-avatar-fallback">
+                <i class="fas fa-book-open"></i>
+              </div>
+            </div>
+
+            <div>
+              <p class="subject-role">Academic Subject</p>
+              <h4 class="subject-name">{{ subject.name }}</h4>
+              <p class="subject-subtitle">
+                Department: <strong>{{ subject.department.name|default:"General" }}</strong> &middot;
+                Level: <strong>{{ subject.get_subject_class_display|default:subject.subject_class }}</strong> &middot;
+                Created {{ subject.created_at|date:"M d, Y" }}
+              </p>
+
+              <div class="subject-detail-meta">
+                <span class="subject-detail-chip">
+                  <i class="fas fa-chalkboard-teacher"></i>
+                  {% if subject.teacher %}
+                    {{ subject.teacher.user.get_full_name|default:subject.teacher.user.username }}
+                  {% else %}
+                    Teacher Not Assigned
+                  {% endif %}
+                </span>
+                <span class="subject-detail-chip">
+                  <i class="fas fa-tasks"></i>
+                  {{ assignments_count }} Assignment{{ assignments_count|pluralize }}
+                </span>
+                <span class="subject-detail-chip">
+                  <i class="fas fa-calendar-alt"></i>
+                  {{ timetables_count }} Weekly Period{{ timetables_count|pluralize }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="subject-mini-stats">
+            <div class="subject-mini-card">
+              <span>Class Level</span>
+              <strong>{{ subject.get_subject_class_display|default:subject.subject_class }}</strong>
+            </div>
+            <div class="subject-mini-card">
+              <span>Department</span>
+              <strong>{{ subject.department.name|default:"General" }}</strong>
+            </div>
+            <div class="subject-mini-card">
+              <span>Enrolled Students</span>
+              <strong>{{ enrolled_count }}</strong>
+            </div>
+            <div class="subject-mini-card">
+              <span>Assessments</span>
+              <strong>{{ results_count }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat Tiles Row -->
+      <div class="subject-stat-grid">
+        <div class="subject-stat-tile">
+          <p class="subject-stat-value">{{ enrolled_count }}</p>
+          <p class="subject-stat-label">Enrolled Students</p>
+        </div>
+        <div class="subject-stat-tile">
+          <p class="subject-stat-value">{{ assignments_count }}</p>
+          <p class="subject-stat-label">Assignments & Homework</p>
+        </div>
+        <div class="subject-stat-tile">
+          <p class="subject-stat-value">{{ timetables_count }}</p>
+          <p class="subject-stat-label">Weekly Schedule Periods</p>
+        </div>
+        <div class="subject-stat-tile">
+          <p class="subject-stat-value">{{ results_count }}</p>
+          <p class="subject-stat-label">Recorded Results</p>
+        </div>
+      </div>
+
+      <!-- Main Layout -->
+      <div class="row g-4 align-items-start">
+        <!-- Main Column (Left) -->
+        <div class="col-xl-8 col-lg-7">
+
+          <!-- Enrolled Students Panel -->
+          <section class="subject-panel">
+            <div class="subject-panel-head">
+              <div>
+                <h4 class="subject-panel-title">Enrolled Students</h4>
+                <p class="subject-panel-note">Students actively taking this course.</p>
+              </div>
+              <span class="subject-detail-chip">
+                <i class="fas fa-user-graduate"></i>
+                {{ enrolled_count }} active
+              </span>
+            </div>
+
+            {% if enrollments %}
+              <div class="subject-table-wrap">
+                <table class="table table-hover subject-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Student ID</th>
+                      <th>Class</th>
+                      <th>Gender</th>
+                      <th>Enrolled On</th>
+                      <th class="text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for enrollment in enrollments %}
+                      <tr>
+                        <td>
+                          <strong>
+                            <a href="{% url 'adminservices:student-detail' enrollment.student.id %}" class="text-primary text-decoration-none">
+                              {{ enrollment.student.user.get_full_name|default:enrollment.student.user.username }}
+                            </a>
+                          </strong>
+                        </td>
+                        <td>
+                          <span class="badge bg-light text-dark">{{ enrollment.student.student_id|default:"-" }}</span>
+                        </td>
+                        <td>{{ enrollment.student.get_student_class_display|default:enrollment.student.student_class }}</td>
+                        <td>{{ enrollment.student.user.get_gender_display|default:"-" }}</td>
+                        <td>{{ enrollment.enrollment_date|date:"M d, Y" }}</td>
+                        <td class="text-end">
+                          <a href="{% url 'adminservices:student-detail' enrollment.student.id %}" class="btn btn-sm btn-outline-primary" title="View Student">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="subject-empty">
+                <i class="fas fa-user-graduate"></i>
+                <h6 class="fw-bold mb-1">No Students Enrolled Yet</h6>
+                <p class="mb-0 text-muted small">
+                  Students enrolled in <strong>{{ subject.get_subject_class_display|default:subject.subject_class }}</strong> will appear here once registered.
+                </p>
+              </div>
+            {% endif %}
+          </section>
+
+          <!-- Assignments Panel -->
+          <section class="subject-panel">
+            <div class="subject-panel-head">
+              <div>
+                <h4 class="subject-panel-title">Assignments & Coursework</h4>
+                <p class="subject-panel-note">Recent assignments posted for this subject.</p>
+              </div>
+              <span class="subject-detail-chip">
+                <i class="fas fa-tasks"></i>
+                {{ assignments_count }} total
+              </span>
+            </div>
+
+            {% if assignments %}
+              <div class="subject-table-wrap">
+                <table class="table table-hover subject-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Class</th>
+                      <th>Due Date</th>
+                      <th>Total Marks</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for assignment in assignments %}
+                      <tr>
+                        <td>
+                          <strong>{{ assignment.title }}</strong>
+                          {% if assignment.description %}
+                            <div class="text-muted small text-truncate" style="max-width: 250px;">
+                              {{ assignment.description|truncatewords:10 }}
+                            </div>
+                          {% endif %}
+                        </td>
+                        <td>{{ assignment.get_student_class_display|default:assignment.student_class }}</td>
+                        <td>
+                          <i class="far fa-calendar-alt text-muted me-1"></i>
+                          {{ assignment.due_date|date:"M d, Y" }}
+                        </td>
+                        <td>{{ assignment.total_marks }} pts</td>
+                        <td>
+                          {% if assignment.status == 'published' %}
+                            <span class="subject-badge subject-badge-published"><i class="fas fa-check-circle"></i> Published</span>
+                          {% elif assignment.status == 'draft' %}
+                            <span class="subject-badge subject-badge-draft"><i class="fas fa-clock"></i> Draft</span>
+                          {% else %}
+                            <span class="subject-badge subject-badge-closed"><i class="fas fa-lock"></i> Closed</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="subject-empty">
+                <i class="fas fa-tasks"></i>
+                <h6 class="fw-bold mb-1">No Assignments Posted Yet</h6>
+                <p class="mb-0 text-muted small">The assigned teacher has not created any assignments for this subject yet.</p>
+              </div>
+            {% endif %}
+          </section>
+
+          <!-- Weekly Timetable Panel -->
+          <section class="subject-panel">
+            <div class="subject-panel-head">
+              <div>
+                <h4 class="subject-panel-title">Weekly Schedule & Periods</h4>
+                <p class="subject-panel-note">Classroom sessions and schedule times.</p>
+              </div>
+              <span class="subject-detail-chip">
+                <i class="fas fa-clock"></i>
+                {{ timetables_count }} scheduled
+              </span>
+            </div>
+
+            {% if timetables %}
+              <div class="subject-table-wrap">
+                <table class="table table-hover subject-table">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Time</th>
+                      <th>Room</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for timetable in timetables %}
+                      <tr>
+                        <td>
+                          <strong>{{ timetable.get_day_of_week_display|default:timetable.day_of_week|title }}</strong>
+                        </td>
+                        <td>{{ timetable.start_time|time:"H:i" }} &ndash; {{ timetable.end_time|time:"H:i" }}</td>
+                        <td>{{ timetable.room_number|default:"Not Assigned" }}</td>
+                        <td>
+                          {% if timetable.is_active %}
+                            <span class="subject-badge subject-badge-active">Active</span>
+                          {% else %}
+                            <span class="subject-badge subject-badge-inactive">Inactive</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <div class="subject-empty">
+                <i class="fas fa-calendar-times"></i>
+                <h6 class="fw-bold mb-1">No Schedule Periods Configured</h6>
+                <p class="mb-0 text-muted small">No timetable entries have been set for this subject in the school calendar yet.</p>
+              </div>
+            {% endif %}
+          </section>
+
+        </div>
+
+        <!-- Sidebar Column (Right) -->
+        <div class="col-xl-4 col-lg-5">
+          <aside class="subject-sidebar-panel">
+
+            <!-- Subject Information -->
+            <div class="subject-sidebar-block">
+              <h5 class="subject-sidebar-title">Subject Summary</h5>
+              <ul class="subject-sidebar-list">
+                <li class="subject-sidebar-item">
+                  <span>Subject ID</span>
+                  <strong>{{ subject.id|slice:":8"|upper }}</strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>Subject Name</span>
+                  <strong>{{ subject.name }}</strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>Class Level</span>
+                  <strong>{{ subject.get_subject_class_display|default:subject.subject_class }}</strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>Department</span>
+                  <strong>
+                    {% if subject.department %}
+                      <a href="{% url 'adminservices:department-detail' subject.department.id %}" class="text-primary text-decoration-none">
+                        {{ subject.department.name }}
+                      </a>
+                    {% else %}
+                      Not Assigned
+                    {% endif %}
+                  </strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>School</span>
+                  <strong>{{ subject.school.name|default:"Current School" }}</strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>Date Created</span>
+                  <strong>{{ subject.created_at|date:"M d, Y" }}</strong>
+                </li>
+                <li class="subject-sidebar-item">
+                  <span>Last Updated</span>
+                  <strong>{{ subject.updated_at|date:"M d, Y" }}</strong>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Assigned Teacher -->
+            <div class="subject-sidebar-block">
+              <h5 class="subject-sidebar-title">Assigned Teacher</h5>
+              {% if subject.teacher %}
+                <div class="teacher-card-inner">
+                  {% if subject.teacher.user.profile_picture %}
+                    <img src="{{ subject.teacher.user.profile_picture.url }}" alt="{{ subject.teacher.user.get_full_name }}" class="teacher-card-avatar">
+                  {% elif subject.teacher.image %}
+                    <img src="{{ subject.teacher.image.url }}" alt="{{ subject.teacher.user.get_full_name }}" class="teacher-card-avatar">
+                  {% else %}
+                    <div class="teacher-card-fallback">
+                      {{ subject.teacher.user.initials }}
+                    </div>
+                  {% endif %}
+                  <div class="overflow-hidden">
+                    <strong class="d-block text-truncate">{{ subject.teacher.user.get_full_name|default:subject.teacher.user.username }}</strong>
+                    <span class="text-muted small d-block">{{ subject.teacher.qualification|default:"Subject Instructor" }}</span>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <div class="small text-muted mb-1"><i class="fas fa-envelope me-2"></i>{{ subject.teacher.user.email|default:"No email on file" }}</div>
+                  <div class="small text-muted mb-3"><i class="fas fa-phone me-2"></i>{{ subject.teacher.user.phone_number|default:"No phone on file" }}</div>
+                  <a href="{% url 'adminservices:teacher-detail' subject.teacher.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="fas fa-user me-1"></i>
+                    View Teacher Profile
+                  </a>
+                </div>
+              {% else %}
+                <div class="subject-empty p-3">
+                  <i class="fas fa-user-slash fs-4 text-warning mb-2"></i>
+                  <p class="small text-muted mb-2">No instructor has been assigned to teach this subject yet.</p>
+                  <a href="{% url 'adminservices:edit-subject' subject.id %}" class="btn btn-sm btn-primary w-100">
+                    <i class="fas fa-user-plus me-1"></i>
+                    Assign Teacher
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Quick Management Actions -->
+            <div class="subject-sidebar-block">
+              <h5 class="subject-sidebar-title">Manage Subject</h5>
+              <div class="d-grid gap-2">
+                <a href="{% url 'adminservices:edit-subject' subject.id %}" class="btn btn-outline-primary btn-sm text-start">
+                  <i class="fas fa-edit me-2"></i> Edit Subject Details
+                </a>
+                <a href="{% url 'adminservices:list-subjects' %}" class="btn btn-outline-secondary btn-sm text-start">
+                  <i class="fas fa-list me-2"></i> Browse All Subjects
+                </a>
+                <button type="button" class="btn btn-outline-danger btn-sm text-start" data-bs-toggle="modal" data-bs-target="#deleteSubjectModal" data-toggle="modal" data-target="#deleteSubjectModal">
+                  <i class="fas fa-trash-alt me-2"></i> Delete This Subject
+                </button>
+              </div>
+            </div>
+
+          </aside>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Delete Subject Confirmation Modal -->
+<div class="modal fade" id="deleteSubjectModal" tabindex="-1" aria-labelledby="deleteSubjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteSubjectModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i> Confirm Subject Deletion
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="mb-2">Are you sure you want to delete the subject: <strong>{{ subject.name }}</strong>?</p>
+        <p class="text-muted small mb-0">
+          This subject belongs to class <strong>{{ subject.get_subject_class_display|default:subject.subject_class }}</strong>.
+          Deleting it will remove all related subject associations. This action cannot be undone.
+        </p>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">
+          Cancel
+        </button>
+        <form method="POST" action="{% url 'adminservices:delete-subject' subject.id %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt me-1"></i> Yes, Delete Subject
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

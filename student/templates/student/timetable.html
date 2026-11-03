@@ -1,0 +1,163 @@
+{% extends "student/base.html" %}
+{% load static %}
+
+{% block title %}Class Timetable | {{ student_class.name|default:"My Schedule" }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+
+        <!-- Page Header -->
+        <div class="page-header mb-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title text-primary font-weight-bold mb-1">
+                        <i class="fas fa-calendar-alt mr-2"></i>Class Timetable
+                    </h3>
+                    <ul class="breadcrumb mb-0 bg-transparent p-0">
+                        <li class="breadcrumb-item"><a href="{% url 'student:student-dashboard' %}"><i class="fas fa-home mr-1"></i>Dashboard</a></li>
+                        <li class="breadcrumb-item active">Weekly Timetable</li>
+                    </ul>
+                </div>
+                <div class="col-auto d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm mr-2" onclick="window.print()">
+                        <i class="fas fa-print mr-1"></i> Print Timetable
+                    </button>
+                    <a href="{% url 'student:student-dashboard' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm font-weight-bold">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner Card -->
+        <div class="card border-0 shadow-sm rounded-lg mb-4 bg-gradient-brand text-white overflow-hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="badge badge-light text-dark font-weight-bold px-3 py-1 mb-2">
+                            <i class="fas fa-graduation-cap mr-1"></i>{{ student_class.name|default:"Assigned Class" }}
+                        </span>
+                        <h4 class="text-white font-weight-bold mb-1">Weekly Academic Schedule</h4>
+                        <p class="text-white-50 small mb-0">Official timetable of periods, subjects, and classroom locations for {{ school.name }}.</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="bg-white-15 rounded-lg p-3 text-center d-inline-block">
+                            <small class="text-uppercase tracking-wider text-white-50 font-weight-bold d-block">Weekly Load</small>
+                            <span class="h4 font-weight-bolder mb-0 text-white">{{ total_periods }} Periods</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Timetable Columns -->
+        <div class="weekly-timetable-container">
+            <div class="row">
+                {% for day_code, day_info in days_schedule.items %}
+                <div class="col-lg mb-4">
+                    <div class="card border-0 shadow-sm rounded-lg h-100 {% if day_code == today_day %}border-top-primary{% endif %}">
+                        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-0">{{ day_info.label }}</h6>
+                                <small class="text-muted">{{ day_info.entries|length }} class{{ day_info.entries|length|pluralize:"es" }}</small>
+                            </div>
+                            {% if day_code == today_day %}
+                                <span class="badge badge-primary-soft text-primary font-weight-bold px-2 py-1 small">Today</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body p-2 bg-light-subtle">
+                            {% if day_info.entries %}
+                                {% for entry in day_info.entries %}
+                                <div class="period-card bg-white p-3 rounded-lg border shadow-sm mb-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge badge-primary-soft text-primary font-weight-bold px-2 py-1 small">
+                                            <i class="fas fa-clock mr-1"></i>{{ entry.start_time|time:"H:i" }} - {{ entry.end_time|time:"H:i" }}
+                                        </span>
+                                        {% if entry.room_number %}
+                                            <span class="badge badge-light border text-muted px-2 py-0 small">
+                                                <i class="fas fa-door-open mr-1"></i>{{ entry.room_number }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <h6 class="font-weight-bold text-dark mb-1">{{ entry.subject.name }}</h6>
+
+                                    <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-xs bg-light text-primary rounded-circle d-flex align-items-center justify-content-center font-weight-bold mr-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                                {{ entry.teacher.user.first_name|first|default:"T" }}
+                                            </div>
+                                            <span class="small text-muted font-weight-medium text-truncate" style="max-width: 120px;">
+                                                {{ entry.teacher.user.get_full_name }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-book-reader fa-2x mb-2 text-muted opacity-50"></i>
+                                    <div class="small">No classes scheduled</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+.bg-gradient-brand {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+}
+.bg-white-15 {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+}
+.border-top-primary {
+    border-top: 4px solid #2563eb !important;
+}
+.badge-primary-soft {
+    background-color: #eff6ff;
+    color: #2563eb;
+}
+.bg-light-subtle {
+    background-color: #f8fafc;
+}
+.period-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.period-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+@media print {
+    .header, .sidebar, .page-header, .btn {
+        display: none !important;
+    }
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .weekly-timetable-container .col-lg {
+        flex: 1 0 20% !important;
+        max-width: 20% !important;
+    }
+    .card {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+    }
+    .bg-gradient-brand {
+        background: #1e3a8a !important;
+        color: #000 !important;
+    }
+}
+</style>
+{% endblock %}

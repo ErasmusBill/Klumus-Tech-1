@@ -1,0 +1,154 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}Class Schedule - {{ teacher.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="teacher-timetable-page py-3">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title text-primary font-weight-bold mb-1">
+                    <i class="fas fa-calendar-alt me-2"></i>My Weekly Teaching Schedule
+                </h3>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 bg-transparent p-0">
+                        <li class="breadcrumb-item"><a href="{% url 'teacher:teacher-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Weekly Timetable</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="col-auto d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm me-2" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Print Timetable
+                </button>
+                <a href="{% url 'teacher:teacher-dashboard' %}" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm font-weight-bold">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm border-0" role="alert">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Top KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon bg-primary-subtle text-primary rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Weekly Teaching Load</div>
+                        <h4 class="fw-bold text-dark mb-0">{{ total_periods }} Periods</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon bg-success-subtle text-success rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                        <i class="fas fa-chalkboard"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Assigned Classes</div>
+                        <h4 class="fw-bold text-success mb-0">{{ distinct_classes }} Classes</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-body p-3 d-flex align-items-center">
+                    <div class="stat-icon bg-info-subtle text-info rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-bold">Institution</div>
+                        <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 200px;">{{ school.name }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Schedule Grid -->
+    <div class="row g-3">
+        {% for day_code, day_info in days_schedule.items %}
+        <div class="col-lg mb-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 {% if day_code == today_day %}border-top border-4 border-primary{% endif %}">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">{{ day_info.label }}</h6>
+                        <small class="text-muted">{{ day_info.entries|length }} lesson{{ day_info.entries|length|pluralize }}</small>
+                    </div>
+                    {% if day_code == today_day %}
+                        <span class="badge bg-primary rounded-pill px-2 py-1 small">Today</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-2 bg-light-subtle">
+                    {% if day_info.entries %}
+                        {% for entry in day_info.entries %}
+                        <div class="card border p-3 rounded-3 mb-2 shadow-sm bg-white">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-primary-subtle text-primary fw-bold">
+                                    <i class="fas fa-clock me-1"></i>{{ entry.start_time|time:"H:i" }} - {{ entry.end_time|time:"H:i" }}
+                                </span>
+                                {% if entry.room_number %}
+                                    <span class="badge bg-light text-muted border small">
+                                        <i class="fas fa-door-open me-1"></i>{{ entry.room_number }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <h6 class="fw-bold text-dark mb-1">{{ entry.subject.name }}</h6>
+                            <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top">
+                                <span class="badge bg-secondary-subtle text-dark fw-semibold">
+                                    <i class="fas fa-graduation-cap me-1"></i>{{ entry.student_class }}
+                                </span>
+                                <small class="text-muted">{{ entry.department.name|default:"" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-coffee fa-2x mb-2 opacity-50"></i>
+                            <div class="small">No lessons scheduled</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+@media print {
+    .header, .sidebar, .page-header, .btn, .stat-icon {
+        display: none !important;
+    }
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .col-lg {
+        flex: 1 0 20% !important;
+        max-width: 20% !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}School Profile &amp; Brand Settings | {{ school.name }}{% endblock %}
+
+{% block content %}
+<div class="school-settings-page py-3">
+    <!-- Page Header -->
+    <div class="page-header mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <h3 class="page-title text-primary font-weight-bold mb-1">
+                    <i class="fas fa-university mr-2"></i>School Profile &amp; Brand Identity
+                </h3>
+                <ul class="breadcrumb mb-0 bg-transparent p-0">
+                    <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">School Settings</li>
+                </ul>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'adminservices:admin-dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm border-0" role="alert">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %} mr-2"></i>
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="schoolSettingsForm" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+            <!-- Left Column: Logo & Details -->
+            <div class="col-lg-8 mb-4">
+                <!-- Logo Upload Card -->
+                <div class="card border-0 shadow-sm rounded-lg mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                        <div class="avatar-badge bg-primary-light text-primary rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px;">
+                            <i class="fas fa-image fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title font-weight-bold mb-0 text-dark">School Logo</h5>
+                            <small class="text-muted">Upload your institution's official badge or crest to appear next to the school name.</small>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <!-- Current Logo & Preview -->
+                            <div class="col-md-4 text-center mb-3 mb-md-0">
+                                <div class="logo-preview-box mx-auto p-2 rounded-lg border bg-light shadow-sm d-flex align-items-center justify-content-center position-relative" style="width: 140px; height: 140px;">
+                                    {% if school.logo %}
+                                        <img src="{{ school.logo.url }}" alt="{{ school.name }}" id="logoPreviewImg" class="img-fluid rounded" style="max-height: 120px; max-width: 120px; object-fit: contain;">
+                                    {% else %}
+                                        <div id="logoPlaceholder" class="text-center text-muted">
+                                            <i class="fas fa-university fa-3x text-primary opacity-50 mb-1"></i>
+                                            <div class="small font-weight-bold">No Logo</div>
+                                        </div>
+                                        <img src="" alt="Preview" id="logoPreviewImg" class="img-fluid rounded d-none" style="max-height: 120px; max-width: 120px; object-fit: contain;">
+                                    {% endif %}
+                                </div>
+                                {% if school.logo %}
+                                    <button type="submit" name="remove_logo" value="1" class="btn btn-outline-danger btn-xs mt-2 rounded-pill px-3" onclick="return confirm('Are you sure you want to remove the school logo?');">
+                                        <i class="fas fa-trash-alt mr-1"></i> Remove Logo
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            <!-- Upload Input & Live Mockup -->
+                            <div class="col-md-8">
+                                <label class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Select Image File <span class="text-muted font-weight-normal">(PNG, JPG, SVG, WebP &bull; Max 5MB)</span>
+                                </label>
+                                <div class="custom-file mb-3">
+                                    {{ form.logo }}
+                                </div>
+                                {% if form.logo.errors %}
+                                    <div class="text-danger small font-weight-semibold mb-2">{{ form.logo.errors.0 }}</div>
+                                {% endif %}
+
+                                <!-- Real-time Top Navbar Mockup -->
+                                <div class="header-mockup-wrap p-3 rounded-lg border bg-light mt-3">
+                                    <small class="text-uppercase font-weight-bold text-muted d-block mb-2" style="font-size: 0.72rem;">
+                                        <i class="fas fa-desktop mr-1 text-primary"></i> Live Header Preview (Top-Left Screen Display):
+                                    </small>
+                                    <div class="d-flex align-items-center p-2 rounded bg-white border shadow-sm" style="max-width: 320px;">
+                                        {% if school.logo %}
+                                            <img src="{{ school.logo.url }}" alt="Logo" id="mockupLogoImg" class="school-brand-logo mr-2">
+                                        {% else %}
+                                            <img src="" alt="Logo" id="mockupLogoImg" class="school-brand-logo mr-2 d-none">
+                                            <div id="mockupLogoPlaceholder" class="school-brand-placeholder mr-2">
+                                                <i class="fas fa-graduation-cap"></i>
+                                            </div>
+                                        {% endif %}
+                                        <span class="font-weight-bold text-dark text-truncate" id="mockupSchoolName" style="font-size: 0.95rem;">
+                                            {{ school.name|default:"Kiddo Care" }}
+                                        </span>
+                                    </div>
+                                    <small class="text-muted d-block mt-2" style="font-size: 0.72rem;">
+                                        The logo will appear in this exact format across Admin, Teacher, and Student portals.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic School Information -->
+                <div class="card border-0 shadow-sm rounded-lg mb-4">
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                        <div class="avatar-badge bg-info-light text-info rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px;">
+                            <i class="fas fa-id-card fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title font-weight-bold mb-0 text-dark">Institution Profile</h5>
+                            <small class="text-muted">Update the official school name, location, and contact channels.</small>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="id_name" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Official School Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="id_phone_number" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Official Telephone <span class="text-danger">*</span>
+                                </label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.phone_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="id_email" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Official Email Address
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="id_location" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    City / Municipality <span class="text-danger">*</span>
+                                </label>
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.location.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="id_website" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    School Website
+                                </label>
+                                {{ form.website }}
+                                {% if form.website.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.website.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-8 mb-3">
+                                <label for="id_address" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Physical Street Address
+                                </label>
+                                {{ form.address }}
+                                {% if form.address.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="id_postal_code" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Postal Code / Box
+                                </label>
+                                {{ form.postal_code }}
+                                {% if form.postal_code.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.postal_code.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Calendar Period -->
+                <div class="card border-0 shadow-sm rounded-lg mb-4">
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                        <div class="avatar-badge bg-success-light text-success rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 40px; height: 40px;">
+                            <i class="fas fa-calendar-alt fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title font-weight-bold mb-0 text-dark">Academic Session Dates</h5>
+                            <small class="text-muted">Defines current school year limits for reporting and fee generation.</small>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_academic_year_start" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Academic Year Start Date
+                                </label>
+                                {{ form.academic_year_start }}
+                                {% if form.academic_year_start.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.academic_year_start.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="id_academic_year_end" class="font-weight-bold text-dark small text-uppercase mb-2">
+                                    Academic Year End Date
+                                </label>
+                                {{ form.academic_year_end }}
+                                {% if form.academic_year_end.errors %}
+                                    <div class="text-danger small mt-1 font-weight-semibold">{{ form.academic_year_end.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="d-flex align-items-center justify-content-between pt-2">
+                    <a href="{% url 'adminservices:admin-dashboard' %}" class="btn btn-light border rounded-pill px-4 font-weight-semibold">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm font-weight-bold">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Brand Guidelines -->
+            <div class="col-lg-4 mb-4">
+                <div class="card border-0 shadow-sm rounded-lg mb-4 bg-white">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="card-title font-weight-bold mb-0 text-dark">
+                            <i class="fas fa-shield-alt text-primary mr-2"></i> Brand Placement
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="small text-muted mb-3">Once uploaded, your school logo automatically appears across the entire KiddoCore platform:</p>
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="badge badge-primary-soft text-primary p-2 rounded mr-3 mt-1">
+                                <i class="fas fa-desktop"></i>
+                            </div>
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-0 small">Top-Left Brand Header</h6>
+                                <small class="text-muted">Positioned prominently on the left side of the navigation bar with your school name.</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="badge badge-success-soft text-success p-2 rounded mr-3 mt-1">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-0 small">Official Receipts &amp; Invoices</h6>
+                                <small class="text-muted">Included on printable fee receipts and student billing statements.</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start mb-0">
+                            <div class="badge badge-info-soft text-info p-2 rounded mr-3 mt-1">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-0 small">Teacher &amp; Student Portals</h6>
+                                <small class="text-muted">Reinforces school identity for faculty, students, and parents.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-lg bg-light text-dark">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-lightbulb text-warning fa-lg mr-3 mt-1"></i>
+                            <div>
+                                <h6 class="font-weight-bold mb-1 text-dark small text-uppercase">Best Logo Practices</h6>
+                                <ul class="small text-muted pl-3 mb-0" style="line-height: 1.6;">
+                                    <li>Use a square or circular logo (aspect ratio 1:1) for optimal display.</li>
+                                    <li>Transparent PNG or SVG formats look crisp on light navigation bars.</li>
+                                    <li>Avoid busy micro-text inside the image for readability.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.bg-primary-light { background-color: rgba(37, 99, 235, 0.1); }
+.bg-info-light { background-color: rgba(14, 165, 233, 0.1); }
+.bg-success-light { background-color: rgba(16, 185, 129, 0.1); }
+.badge-primary-soft { background-color: #eff6ff; color: #2563eb; }
+.badge-success-soft { background-color: #ecfdf5; color: #059669; }
+.badge-info-soft { background-color: #f0f9ff; color: #0284c7; }
+
+.school-brand-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.school-brand-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    border: 1px solid rgba(37, 99, 235, 0.15);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const logoInput = document.getElementById('schoolLogoInput');
+    const previewImg = document.getElementById('logoPreviewImg');
+    const placeholder = document.getElementById('logoPlaceholder');
+    const mockupImg = document.getElementById('mockupLogoImg');
+    const mockupPlaceholder = document.getElementById('mockupLogoPlaceholder');
+    const schoolNameInput = document.getElementById('id_name');
+    const mockupName = document.getElementById('mockupSchoolName');
+
+    if (logoInput) {
+        logoInput.addEventListener('change', function (e) {
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    const result = ev.target.result;
+                    // Update preview box
+                    if (previewImg) {
+                        previewImg.src = result;
+                        previewImg.classList.remove('d-none');
+                    }
+                    if (placeholder) {
+                        placeholder.classList.add('d-none');
+                    }
+
+                    // Update live header mockup
+                    if (mockupImg) {
+                        mockupImg.src = result;
+                        mockupImg.classList.remove('d-none');
+                    }
+                    if (mockupPlaceholder) {
+                        mockupPlaceholder.classList.add('d-none');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (schoolNameInput && mockupName) {
+        schoolNameInput.addEventListener('input', function () {
+            mockupName.textContent = this.value || 'Kiddo Care';
+        });
+    }
+});
+</script>
+{% endblock %}

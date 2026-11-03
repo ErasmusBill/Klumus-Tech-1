@@ -1,0 +1,283 @@
+{% extends "adminservices/base.html" %}
+{% load static %}
+
+{% block title %}Edit Subject | {{ subject.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .edit-subject-page {
+    padding: 24px 0 40px;
+  }
+
+  .edit-subject-shell {
+    max-width: 1100px;
+  }
+
+  .edit-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  }
+
+  .form-section-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0f172a;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-section-title i {
+    color: #2563eb;
+  }
+
+  .form-group label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #334155;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .form-group .form-control,
+  .form-group select {
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .form-group .form-control:focus,
+  .form-group select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  .subject-sidebar-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  }
+
+  .subject-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.88rem;
+  }
+
+  .subject-info-item:last-child {
+    border-bottom: none;
+  }
+
+  .subject-info-label {
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .subject-info-val {
+    color: #0f172a;
+    font-weight: 700;
+    text-align: right;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="content container-fluid edit-subject-page">
+    <div class="edit-subject-shell mx-auto">
+
+      <!-- Page Header -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+          <h3 class="page-title">Edit Subject</h3>
+          <ul class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:list-subjects' %}">Subjects</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'adminservices:subject-detail' subject.id %}">{{ subject.name }}</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+          </ul>
+        </div>
+        <div>
+          <a href="{% url 'adminservices:subject-detail' subject.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Details
+          </a>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        <div class="mb-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" data-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+          <div class="card edit-card">
+            <div class="card-body p-4">
+              <form method="post" novalidate>
+                {% csrf_token %}
+
+                <div class="form-section-title">
+                  <i class="fas fa-book"></i> Subject Details
+                </div>
+
+                <div class="row">
+                  <!-- Subject Name -->
+                  <div class="col-md-12 mb-3">
+                    <div class="form-group">
+                      <label for="{{ form.name.id_for_label }}">
+                        {{ form.name.label }} <span class="text-danger">*</span>
+                      </label>
+                      {{ form.name }}
+                      {% if form.name.errors %}
+                        <div class="text-danger small mt-1">
+                          {% for error in form.name.errors %}{{ error }}{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <!-- Subject Class -->
+                  <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                      <label for="{{ form.subject_class.id_for_label }}">
+                        {{ form.subject_class.label }} <span class="text-danger">*</span>
+                      </label>
+                      {{ form.subject_class }}
+                      {% if form.subject_class.errors %}
+                        <div class="text-danger small mt-1">
+                          {% for error in form.subject_class.errors %}{{ error }}{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <!-- Department -->
+                  <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                      <label for="{{ form.department.id_for_label }}">
+                        {{ form.department.label }} <span class="text-danger">*</span>
+                      </label>
+                      {{ form.department }}
+                      {% if form.department.errors %}
+                        <div class="text-danger small mt-1">
+                          {% for error in form.department.errors %}{{ error }}{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <!-- Teacher -->
+                  <div class="col-md-12 mb-4">
+                    <div class="form-group">
+                      <label for="{{ form.teacher.id_for_label }}">
+                        {{ form.teacher.label }}
+                      </label>
+                      {{ form.teacher }}
+                      <small class="form-text text-muted">Assign an instructor responsible for this course.</small>
+                      {% if form.teacher.errors %}
+                        <div class="text-danger small mt-1">
+                          {% for error in form.teacher.errors %}{{ error }}{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Submit / Cancel Buttons -->
+                <div class="d-flex align-items-center gap-2 pt-3 border-top">
+                  <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-save me-1"></i> Save Changes
+                  </button>
+                  <a href="{% url 'adminservices:subject-detail' subject.id %}" class="btn btn-outline-secondary px-4">
+                    Cancel
+                  </a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar Info Column -->
+        <div class="col-lg-4">
+          <div class="card subject-sidebar-card">
+            <div class="card-body p-4">
+              <h5 class="form-section-title">
+                <i class="fas fa-info-circle"></i> Subject Summary
+              </h5>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Subject ID</span>
+                <span class="subject-info-val">{{ subject.id|slice:":8"|upper }}</span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Current Name</span>
+                <span class="subject-info-val">{{ subject.name }}</span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Class Level</span>
+                <span class="subject-info-val">{{ subject.get_subject_class_display|default:subject.subject_class }}</span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Department</span>
+                <span class="subject-info-val">{{ subject.department.name|default:"General" }}</span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Instructor</span>
+                <span class="subject-info-val">
+                  {% if subject.teacher %}
+                    {{ subject.teacher.user.get_full_name|default:subject.teacher.user.username }}
+                  {% else %}
+                    <span class="text-warning">Unassigned</span>
+                  {% endif %}
+                </span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Enrolled Students</span>
+                <span class="subject-info-val">{{ subject.enrollments.count }}</span>
+              </div>
+
+              <div class="subject-info-item">
+                <span class="subject-info-label">Date Created</span>
+                <span class="subject-info-val">{{ subject.created_at|date:"M d, Y" }}</span>
+              </div>
+
+              <div class="mt-4 pt-3 border-top">
+                <a href="{% url 'adminservices:subject-detail' subject.id %}" class="btn btn-sm btn-outline-primary w-100">
+                  <i class="fas fa-eye me-1"></i> View Full Details
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

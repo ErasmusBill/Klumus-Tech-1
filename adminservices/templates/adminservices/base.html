@@ -334,9 +334,9 @@
             <a href="javascript:void(0);" id="toggle_btn"><i class="fas fa-align-left"></i></a>
 
             <div class="top-nav-search">
-                <form method="POST">
+                <form method="POST" action="{% url 'adminservices:admin-dashboard' %}">
                     {% csrf_token %}
-                    <input type="text" class="form-control rounded-pill border-0 bg-light" placeholder="Search data..." name="search">
+                    <input type="text" class="form-control rounded-pill" placeholder="Search student, staff, class..." name="search" autocomplete="off">
                     <button class="btn" type="submit"><i class="fas fa-search"></i></button>
                 </form>
             </div>
@@ -490,9 +490,11 @@
                         </li>
                         <li><a href="{% url 'account:change-password' %}"><i class="fas fa-shield-alt"></i> <span>Security</span></a></li>
                         <li>
-                            <form method="post" action="{% url 'account:logout' %}" class="d-inline">
+                            <form method="post" action="{% url 'account:logout' %}" class="sidebar-logout-form">
                                 {% csrf_token %}
-                                <button type="submit" class="text-danger border-0 bg-transparent p-0 ms-3"><i class="fas fa-power-off"></i> <span class="ms-2 font-bold">Sign Out</span></button>
+                                <button type="submit" class="sidebar-logout-btn text-danger">
+                                    <i class="fas fa-power-off"></i> <span>Sign Out</span>
+                                </button>
                             </form>
                         </li>
                     </ul>

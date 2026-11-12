@@ -418,7 +418,7 @@ class AddStudentForm(forms.ModelForm):
     )
     father_email = forms.EmailField(
         required=False,
-        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Father's Email"})
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Father's Email (Optional)"})
     )
 
     # Parent / Mother fields
@@ -439,7 +439,7 @@ class AddStudentForm(forms.ModelForm):
     )
     mother_email = forms.EmailField(
         required=False,
-        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Mother's Email"})
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Mother's Email (Optional)"})
     )
 
     # Guardian fields
@@ -460,7 +460,7 @@ class AddStudentForm(forms.ModelForm):
     )
     guardian_email = forms.EmailField(
         required=False,
-        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Guardian's Email Address"})
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': "Guardian's Email Address (Optional)"})
     )
     guardian_occupation = forms.CharField(
         max_length=100,
@@ -616,13 +616,15 @@ class AddStudentForm(forms.ModelForm):
         return cleaned_data
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if not email and self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
-            return self.instance.user.email
+        email = (self.cleaned_data.get('email') or '').strip()
+        if not email:
+            if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
+                return self.instance.user.email or ""
+            return ""
         exclude_kwargs = {}
         if self.instance.pk and hasattr(self.instance, 'user') and self.instance.user:
             exclude_kwargs['id'] = self.instance.user.id
-        if CustomUser.objects.exclude(**exclude_kwargs).filter(email=email).exists():
+        if CustomUser.objects.exclude(**exclude_kwargs).filter(email__iexact=email).exists():
             raise forms.ValidationError("A user with this email already exists.")
         return email
 

@@ -12,7 +12,8 @@
                 <div class="col">
                     <h3 class="page-title">Add Student</h3>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'adminservices:admin-dashboard' %}">Dashboard</a>
+                        </li>
                         <li class="breadcrumb-item"><a href="{% url 'adminservices:list-students' %}">Students</a></li>
                         <li class="breadcrumb-item active">Add Student</li>
                     </ul>
@@ -22,25 +23,25 @@
 
         <!-- Messages -->
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endfor %}
         {% endif %}
 
         {% if form.non_field_errors %}
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {% for error in form.non_field_errors %}
-                    <p class="mb-0">{{ error }}</p>
-                {% endfor %}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+            {% endfor %}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
         {% endif %}
 
         <!-- Student Form -->
@@ -62,7 +63,7 @@
                                         <label>First Name <span class="text-danger">*</span></label>
                                         {{ form.first_name }}
                                         {% if form.first_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.first_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.first_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -71,16 +72,17 @@
                                         <label>Last Name <span class="text-danger">*</span></label>
                                         {{ form.last_name }}
                                         {% if form.last_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.last_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.last_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Email Address</label>
+                                        <label>Email Address <span
+                                                class="text-muted font-weight-normal small">(Optional)</span></label>
                                         {{ form.email }}
                                         {% if form.email.errors %}
-                                            <div class="text-danger mt-1">{{ form.email.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -89,7 +91,7 @@
                                         <label>Username <span class="text-danger">*</span></label>
                                         {{ form.username }}
                                         {% if form.username.errors %}
-                                            <div class="text-danger mt-1">{{ form.username.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.username.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -98,10 +100,11 @@
                                         <label>Password</label>
                                         {{ form.password }}
                                         {% if form.password.help_text %}
-                                            <small class="text-muted d-block mt-1">{{ form.password.help_text|safe }}</small>
+                                        <small class="text-muted d-block mt-1">{{ form.password.help_text|safe
+                                            }}</small>
                                         {% endif %}
                                         {% if form.password.errors %}
-                                            <div class="text-danger mt-1">{{ form.password.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.password.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -110,7 +113,7 @@
                                         <label>Gender <span class="text-danger">*</span></label>
                                         {{ form.gender }}
                                         {% if form.gender.errors %}
-                                            <div class="text-danger mt-1">{{ form.gender.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.gender.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -119,7 +122,7 @@
                                         <label>Date of Birth <span class="text-danger">*</span></label>
                                         {{ form.date_of_birth }}
                                         {% if form.date_of_birth.errors %}
-                                            <div class="text-danger mt-1">{{ form.date_of_birth.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.date_of_birth.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -128,7 +131,7 @@
                                         <label>Student Mobile Number</label>
                                         {{ form.phone_number }}
                                         {% if form.phone_number.errors %}
-                                            <div class="text-danger mt-1">{{ form.phone_number.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.phone_number.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -137,7 +140,7 @@
                                         <label>Student Residential Address <span class="text-danger">*</span></label>
                                         {{ form.address }}
                                         {% if form.address.errors %}
-                                            <div class="text-danger mt-1">{{ form.address.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.address.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -146,7 +149,7 @@
                                         <label>Passport / Profile Picture</label>
                                         {{ form.profile_picture }}
                                         {% if form.profile_picture.errors %}
-                                            <div class="text-danger mt-1">{{ form.profile_picture.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.profile_picture.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -160,7 +163,7 @@
                                         <label>Class Level <span class="text-danger">*</span></label>
                                         {{ form.student_class }}
                                         {% if form.student_class.errors %}
-                                            <div class="text-danger mt-1">{{ form.student_class.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.student_class.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -169,7 +172,7 @@
                                         <label>Admission / Joining Date <span class="text-danger">*</span></label>
                                         {{ form.joining_date }}
                                         {% if form.joining_date.errors %}
-                                            <div class="text-danger mt-1">{{ form.joining_date.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.joining_date.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -178,7 +181,7 @@
                                         <label>Previous School Attended</label>
                                         {{ form.previous_school }}
                                         {% if form.previous_school.errors %}
-                                            <div class="text-danger mt-1">{{ form.previous_school.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.previous_school.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -187,7 +190,7 @@
                                         <label>Previous Class Completed</label>
                                         {{ form.previous_class }}
                                         {% if form.previous_class.errors %}
-                                            <div class="text-danger mt-1">{{ form.previous_class.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.previous_class.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -201,7 +204,7 @@
                                         <label>Father's Name</label>
                                         {{ form.father_name }}
                                         {% if form.father_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.father_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.father_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -210,16 +213,17 @@
                                         <label>Father's Phone Number</label>
                                         {{ form.father_phone }}
                                         {% if form.father_phone.errors %}
-                                            <div class="text-danger mt-1">{{ form.father_phone.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.father_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Father's Email</label>
+                                        <label>Father's Email <span
+                                                class="text-muted font-weight-normal small">(Optional)</span></label>
                                         {{ form.father_email }}
                                         {% if form.father_email.errors %}
-                                            <div class="text-danger mt-1">{{ form.father_email.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.father_email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -228,7 +232,7 @@
                                         <label>Father's Occupation</label>
                                         {{ form.father_occupation }}
                                         {% if form.father_occupation.errors %}
-                                            <div class="text-danger mt-1">{{ form.father_occupation.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.father_occupation.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -242,7 +246,7 @@
                                         <label>Mother's Name</label>
                                         {{ form.mother_name }}
                                         {% if form.mother_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.mother_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -251,16 +255,17 @@
                                         <label>Mother's Phone Number</label>
                                         {{ form.mother_phone }}
                                         {% if form.mother_phone.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_phone.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.mother_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mother's Email</label>
+                                        <label>Mother's Email <span
+                                                class="text-muted font-weight-normal small">(Optional)</span></label>
                                         {{ form.mother_email }}
                                         {% if form.mother_email.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_email.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.mother_email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -269,7 +274,7 @@
                                         <label>Mother's Occupation</label>
                                         {{ form.mother_occupation }}
                                         {% if form.mother_occupation.errors %}
-                                            <div class="text-danger mt-1">{{ form.mother_occupation.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.mother_occupation.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -283,7 +288,7 @@
                                         <label>Guardian's Full Name</label>
                                         {{ form.guardian_name }}
                                         {% if form.guardian_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.guardian_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.guardian_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -292,7 +297,7 @@
                                         <label>Relationship to Student</label>
                                         {{ form.guardian_relation }}
                                         {% if form.guardian_relation.errors %}
-                                            <div class="text-danger mt-1">{{ form.guardian_relation.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.guardian_relation.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -301,16 +306,17 @@
                                         <label>Guardian's Phone Number</label>
                                         {{ form.guardian_phone }}
                                         {% if form.guardian_phone.errors %}
-                                            <div class="text-danger mt-1">{{ form.guardian_phone.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.guardian_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Guardian's Email Address</label>
+                                        <label>Guardian's Email Address <span
+                                                class="text-muted font-weight-normal small">(Optional)</span></label>
                                         {{ form.guardian_email }}
                                         {% if form.guardian_email.errors %}
-                                            <div class="text-danger mt-1">{{ form.guardian_email.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.guardian_email.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -319,7 +325,7 @@
                                         <label>Guardian's Occupation</label>
                                         {{ form.guardian_occupation }}
                                         {% if form.guardian_occupation.errors %}
-                                            <div class="text-danger mt-1">{{ form.guardian_occupation.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.guardian_occupation.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -333,7 +339,7 @@
                                         <label>Emergency Contact Person</label>
                                         {{ form.emergency_contact_name }}
                                         {% if form.emergency_contact_name.errors %}
-                                            <div class="text-danger mt-1">{{ form.emergency_contact_name.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.emergency_contact_name.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -342,7 +348,7 @@
                                         <label>Emergency Contact Phone</label>
                                         {{ form.emergency_contact_phone }}
                                         {% if form.emergency_contact_phone.errors %}
-                                            <div class="text-danger mt-1">{{ form.emergency_contact_phone.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.emergency_contact_phone.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -351,7 +357,7 @@
                                         <label>Relationship</label>
                                         {{ form.emergency_contact_relation }}
                                         {% if form.emergency_contact_relation.errors %}
-                                            <div class="text-danger mt-1">{{ form.emergency_contact_relation.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.emergency_contact_relation.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -360,7 +366,7 @@
                                         <label>Parent / Guardian Residential Address</label>
                                         {{ form.present_address }}
                                         {% if form.present_address.errors %}
-                                            <div class="text-danger mt-1">{{ form.present_address.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.present_address.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -369,7 +375,7 @@
                                         <label>Permanent Home Address</label>
                                         {{ form.permanent_address }}
                                         {% if form.permanent_address.errors %}
-                                            <div class="text-danger mt-1">{{ form.permanent_address.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.permanent_address.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -383,7 +389,7 @@
                                         <label>Known Allergies</label>
                                         {{ form.allergies }}
                                         {% if form.allergies.errors %}
-                                            <div class="text-danger mt-1">{{ form.allergies.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.allergies.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -392,7 +398,7 @@
                                         <label>Medical Conditions</label>
                                         {{ form.medical_conditions }}
                                         {% if form.medical_conditions.errors %}
-                                            <div class="text-danger mt-1">{{ form.medical_conditions.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.medical_conditions.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -401,7 +407,7 @@
                                         <label>Additional Notes / Special Instructions</label>
                                         {{ form.notes }}
                                         {% if form.notes.errors %}
-                                            <div class="text-danger mt-1">{{ form.notes.errors }}</div>
+                                        <div class="text-danger mt-1">{{ form.notes.errors }}</div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -411,7 +417,8 @@
                                     <button type="submit" class="btn btn-primary px-4 py-2">
                                         <i class="fas fa-check-circle mr-1"></i> Register Student
                                     </button>
-                                    <a href="{% url 'adminservices:list-students' %}" class="btn btn-secondary ml-2 px-4 py-2">
+                                    <a href="{% url 'adminservices:list-students' %}"
+                                        class="btn btn-secondary ml-2 px-4 py-2">
                                         Cancel
                                     </a>
                                 </div>
@@ -427,9 +434,9 @@
 
 {% block extra_js %}
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const firstField = document.querySelector("input, textarea");
-    if (firstField) firstField.focus();
-  });
+    document.addEventListener("DOMContentLoaded", function () {
+        const firstField = document.querySelector("input, textarea");
+        if (firstField) firstField.focus();
+    });
 </script>
 {% endblock %}

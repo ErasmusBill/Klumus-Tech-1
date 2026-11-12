@@ -550,14 +550,21 @@ def logout_user(request):
     return redirect("account:home")
 
 
+def _safe_redirect_target(request, target, fallback="account:home"):
+    if target and url_has_allowed_host_and_scheme(target, {request.get_host()}):
+        return target
+    ref = request.META.get("HTTP_REFERER")
+    if ref and url_has_allowed_host_and_scheme(ref, {request.get_host()}):
+        return ref
+    return fallback
+
+
 @login_required(login_url="account:login")
 def notification_go(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.mark_as_read()
     target = notification.link or request.META.get("HTTP_REFERER")
-    if target and url_has_allowed_host_and_scheme(target, {request.get_host()}):
-        return redirect(target)
-    return redirect("account:home")
+    return redirect(_safe_redirect_target(request, target, fallback="account:home"))
 
 
 @login_required(login_url="account:login")
@@ -565,7 +572,7 @@ def notification_go(request, notification_id):
 def notifications_clear(request):
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:home")
+    return redirect(_safe_redirect_target(request, request.POST.get("next"), fallback="account:home"))
 
 
 @login_required(login_url="account:login")
@@ -616,7 +623,7 @@ def notification_mark_read(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.mark_as_read()
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+    return redirect(_safe_redirect_target(request, request.POST.get("next"), fallback="account:notifications-list"))
 
 
 @login_required(login_url="account:login")
@@ -628,7 +635,7 @@ def notification_mark_unread(request, notification_id):
         notification.read_at = None
         notification.save(update_fields=["is_read", "read_at"])
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+    return redirect(_safe_redirect_target(request, request.POST.get("next"), fallback="account:notifications-list"))
 
 
 @login_required(login_url="account:login")
@@ -637,7 +644,7 @@ def notification_delete(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.delete()
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+    return redirect(_safe_redirect_target(request, request.POST.get("next"), fallback="account:notifications-list"))
 
 
 @login_required(login_url="account:login")
@@ -645,7 +652,7 @@ def notification_delete(request, notification_id):
 def notifications_delete_all(request):
     Notification.objects.filter(user=request.user).delete()
     bump_user_cache_version(request.user.id, "notifications")
-    return redirect(request.POST.get("next") or request.META.get("HTTP_REFERER") or "account:notifications-list")
+    return redirect(_safe_redirect_target(request, request.POST.get("next"), fallback="account:notifications-list"))
 
 @login_required(login_url="account:login")
 def change_password(request):

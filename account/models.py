@@ -115,26 +115,7 @@ class RequestPasswordReset(models.Model):
 
     def is_valid(self):
         """Check if token is still valid"""
-    """Model to handle password reset requests"""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="password_resets")
-    email = models.EmailField()
-    token = models.CharField(max_length=50, default=generate_generalized_integer, unique=True, db_index=True)
-    is_used = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Password Reset for {self.user.username} ({'Used' if self.is_used else 'Pending'})"
-
-    def save(self, *args, **kwargs):
-        """Automatically set expiry time if not already set"""
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(hours=1) 
-        super().save(*args, **kwargs)
-
-    def is_valid(self):
-        """Check if token is still valid"""
-        return not self.is_used and self.expires_at > timezone.now()
+        return not self.is_used and self.expires_at is not None and self.expires_at > timezone.now()
 
     def send_reset_email(self, domain=None):
         """Send password reset email with token link"""

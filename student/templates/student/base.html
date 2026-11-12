@@ -251,6 +251,14 @@
                         <li>
                             <a href="{% url 'account:change-password' %}"><i class="fas fa-lock"></i> <span>Change Password</span></a>
                         </li>
+                        <li>
+                            <form method="post" action="{% url 'account:logout' %}" class="sidebar-logout-form">
+                                {% csrf_token %}
+                                <button type="submit" class="sidebar-logout-btn">
+                                    <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                                </button>
+                            </form>
+                        </li>
                     </ul>
                 </div>
             </div>

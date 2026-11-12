@@ -1,8 +1,58 @@
+import base64
+import mimetypes
+import os
 from django import template
 from django.core.files.storage import default_storage
 from django.templatetags.static import static
 
 register = template.Library()
+
+
+@register.filter
+def as_data_uri(value):
+    """
+    Convert an ImageField/FileField, or image path into a base64 data URI (data:image/...;base64,...).
+    Ensures WeasyPrint / wkhtmltopdf can render images offline without network loopback or missing file errors.
+    """
+    if not value:
+        return ""
+    try:
+        content = None
+        mime_type = None
+
+        # 1. FieldFile (e.g. user.profile_picture, student.student_image)
+        if hasattr(value, "open"):
+            try:
+                with value.open("rb") as f:
+                    content = f.read()
+                name = getattr(value, "name", "image.jpg")
+                mime_type, _ = mimetypes.guess_type(name)
+            except Exception:
+                path = getattr(value, "path", None)
+                if path and os.path.exists(path):
+                    with open(path, "rb") as f:
+                        content = f.read()
+                    mime_type, _ = mimetypes.guess_type(path)
+
+        # 2. Local filesystem path string
+        elif isinstance(value, str):
+            if os.path.exists(value):
+                with open(value, "rb") as f:
+                    content = f.read()
+                mime_type, _ = mimetypes.guess_type(value)
+
+        if content:
+            mime_type = mime_type or "image/jpeg"
+            encoded = base64.b64encode(content).decode("ascii")
+            return f"data:{mime_type};base64,{encoded}"
+    except Exception:
+        pass
+
+    # Fallback to normal URL if base64 conversion failed
+    try:
+        return value.url
+    except Exception:
+        return str(value) if value else ""
 
 
 @register.filter

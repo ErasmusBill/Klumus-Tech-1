@@ -312,7 +312,7 @@
     <div class="header">
         {% if school.logo %}
             <div>
-                <img src="{{ school.logo|safe_media_url:'assets/img/logo.png' }}" alt="{{ school.name }} Logo" class="school-logo">
+                <img src="{{ school.logo|as_data_uri }}" alt="{{ school.name }} Logo" class="school-logo">
             </div>
         {% endif %}
         <div class="school-name">{{ school.name }}</div>
@@ -345,9 +345,9 @@
                 </td>
                 <td rowspan="5" class="photo-area">
                     {% if student.user.profile_picture %}
-                        <img src="{{ student.user.profile_picture.url }}" alt="Student Photo" class="photo-img">
+                        <img src="{{ student.user.profile_picture|as_data_uri }}" alt="Student Photo" class="photo-img">
                     {% elif student.student_image %}
-                        <img src="{{ student.student_image.url }}" alt="Student Photo" class="photo-img">
+                        <img src="{{ student.student_image|as_data_uri }}" alt="Student Photo" class="photo-img">
                     {% else %}
                         <div class="photo-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <div style="font-size: 22px; font-weight: 800; color: #1e293b; background: #e2e8f0; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">{{ student.user.initials }}</div>

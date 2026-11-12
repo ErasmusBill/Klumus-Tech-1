@@ -469,9 +469,9 @@
 
                         <!-- Logout -->
                         <li>
-                            <form method="post" action="{% url 'account:logout' %}">
+                            <form method="post" action="{% url 'account:logout' %}" class="sidebar-logout-form">
                                 {% csrf_token %}
-                                <button type="submit" class="border-0 bg-transparent p-0 text-start">
+                                <button type="submit" class="sidebar-logout-btn">
                                     <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
                                 </button>
                             </form>

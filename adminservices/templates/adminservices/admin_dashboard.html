@@ -132,28 +132,38 @@
 
   .hero-search input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
     border-radius: 999px;
     padding: 0.75rem 1.25rem 0.75rem 2.85rem;
-    font-size: 0.88rem;
-    color: var(--text-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #0f172a;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: all 0.2s ease;
+  }
+
+  .hero-search input::placeholder {
+    color: #64748b;
+    opacity: 1;
   }
 
   .hero-search input:focus {
     outline: none;
     background: #ffffff;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(61, 94, 225, 0.2), 0 6px 16px rgba(0, 0, 0, 0.12);
   }
 
   .hero-search i {
     position: absolute;
     left: 1.15rem;
     color: var(--primary);
-    font-size: 0.95rem;
+    font-size: 1rem;
     pointer-events: none;
+    z-index: 2;
   }
 
   /* ===== QUICK ACTIONS BAR ===== */

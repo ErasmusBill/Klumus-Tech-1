@@ -727,11 +727,15 @@ def list_departments(request):
 @login_required(login_url='account:login')
 def edit_department(request, department_id):
     """Edit department information"""
-    if request.user.role != "admin":
+    if getattr(request.user, 'role', None) != "admin":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("adminservices:list-departments")
     
-    school = request.user.managed_school
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "No school linked to your account.")
+        return redirect("adminservices:list-departments")
+
     department = get_object_or_404(Department, id=department_id, school=school)
     
     if request.method == "POST":
@@ -750,7 +754,7 @@ def edit_department(request, department_id):
     else:
         form = AddDepartmentForm(instance=department, school=school)
 
-    return render(request, "adminservices/edit_department.html", {"form": form})
+    return render(request, "adminservices/edit_department.html", {"form": form, "department": department})
 
 @login_required(login_url='account:login')
 def delete_department(request, department_id):
@@ -1889,8 +1893,9 @@ def download_fee_receipt_pdf(request, fee_id):
         return redirect('adminservices:print-fee-receipt', fee_id=fee_id)
 
     try:
+        base_url = request.build_absolute_uri('/')
         html_string = render_to_string('adminservices/fee_receipt.html', context)
-        pdf_file = HTML(string=html_string).write_pdf()
+        pdf_file = HTML(string=html_string, base_url=base_url).write_pdf()
 
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="fee_receipt_{receipt_number}.pdf"'
@@ -1904,11 +1909,15 @@ def download_fee_receipt_pdf(request, fee_id):
 @login_required(login_url='account:login')
 def download_admission_form_pdf(request, student_id):
     """Generate and download a PDF version of the admission form."""
-    if request.user.role != "admin":
+    if getattr(request.user, 'role', None) != "admin":
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("adminservices:list-students")
 
-    school = request.user.managed_school
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
+        messages.error(request, "No school linked to your account.")
+        return redirect("adminservices:list-students")
+
     student = get_object_or_404(
         Student.objects.select_related('user', 'parent', 'school', 'student_class', 'previous_class'),
         id=student_id,
@@ -1933,8 +1942,9 @@ def download_admission_form_pdf(request, student_id):
         return redirect('adminservices:print-admission-form', student_id=student_id)
 
     try:
+        base_url = request.build_absolute_uri('/')
         html_string = render_to_string('adminservices/admission_form.html', context)
-        pdf_file = HTML(string=html_string).write_pdf()
+        pdf_file = HTML(string=html_string, base_url=base_url).write_pdf()
 
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="admission_form_{form_number}.pdf"'

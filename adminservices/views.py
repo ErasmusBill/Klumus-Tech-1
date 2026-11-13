@@ -87,20 +87,21 @@ def should_cache(request) -> bool:
 # ===== DASHBOARD VIEWS =====
 
 @login_required(login_url='account:login')
+@login_required(login_url='account:login')
 def admin_dashboard(request):
     """Admin dashboard with school overview, key metrics, and student search"""
-    if request.user.role != "admin":
+    if getattr(request.user, 'role', None) != "admin":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("account:login")
     
-    try:
-        school = request.user.managed_school
-    except School.DoesNotExist: 
+    school = getattr(request.user, 'managed_school', None)
+    if not school:
         messages.error(request, "You haven't registered for a school")
         return redirect("account:login")
 
+    search_query = (request.GET.get("search") or request.POST.get("search") or "").strip()
     cache_key = make_cache_key("admin_dashboard", school.id, "default")
-    if request.method != "POST" and should_cache(request):
+    if not search_query and request.method != "POST" and should_cache(request):
         cached_response = cache.get(cache_key)
         if cached_response:
             return cached_response
@@ -150,24 +151,19 @@ def admin_dashboard(request):
 
     # Student search
     students = Student.objects.filter(school=school).select_related('user')
-    search_query = None
     search_results_count = None
 
-    if request.method == "POST":
-        search_query = request.POST.get("search")
-        if search_query:
-            students = students.filter(
-                Q(user__first_name__icontains=search_query) |
-                Q(user__last_name__icontains=search_query) |
-                Q(student_id__icontains=search_query) |
-                Q(admission_number__icontains=search_query) |
-                Q(student_class__name__icontains=search_query)
-            )
-            if not students.exists():
-                messages.info(request, f"No students found matching '{search_query}'")
-            search_results_count = students.count()
-        else:
-            messages.error(request, "Please enter a search term")
+    if search_query:
+        students = students.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(student_id__icontains=search_query) |
+            Q(admission_number__icontains=search_query) |
+            Q(student_class__name__icontains=search_query)
+        )
+        if not students.exists():
+            messages.info(request, f"No students found matching '{search_query}'")
+        search_results_count = students.count()
 
     recent_students = (
         Student.objects.filter(school=school)

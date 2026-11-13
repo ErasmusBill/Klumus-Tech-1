@@ -273,17 +273,17 @@ def my_subjects(request):
         cache.set(cache_key, response, 180)
     return response
 
-@login_required
+@login_required(login_url='account:login')
 def enter_bulk_grades(request, subject_id):
     """Teacher enters grades for all students in a subject with manual entry of all three scores."""
-    if not request.user.is_authenticated or request.user.role != "teacher":
+    if not request.user.is_authenticated or getattr(request.user, 'role', None) != "teacher":
         messages.error(request, "You are not authorized.")
         return redirect("account:login")
 
     try:
         teacher = request.user.teacher_profile
         school = teacher.school
-    except Teacher.DoesNotExist:
+    except (Teacher.DoesNotExist, AttributeError):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
@@ -308,122 +308,139 @@ def enter_bulk_grades(request, subject_id):
 
     if request.method == "POST":
         form = BulkResultForm(request.POST, students=students)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    exam_date = form.cleaned_data['exam_date']
-                    academic_year = form.cleaned_data['academic_year']
-                    term = form.cleaned_data['term']
+        # Normalize term: "1", "2", or "3"
+        raw_term = str(form.cleaned_data.get('term') if hasattr(form, 'cleaned_data') and form.cleaned_data else request.POST.get('term', selected_term) or "1").strip()
+        if "2" in raw_term or "second" in raw_term.lower():
+            term = "2"
+        elif "3" in raw_term or "third" in raw_term.lower():
+            term = "3"
+        else:
+            term = "1"
 
-                    created_count = 0
-                    updated_count = 0
-                    emails_sent = 0
-                    results_created = []
+        academic_year = str((form.cleaned_data.get('academic_year') if hasattr(form, 'cleaned_data') and form.cleaned_data else None) or request.POST.get('academic_year') or selected_academic_year).strip()[:20]
+        
+        # Parse exam_date safely
+        exam_date = form.cleaned_data.get('exam_date') if hasattr(form, 'cleaned_data') and form.cleaned_data else None
+        if not exam_date:
+            raw_date = request.POST.get('exam_date') or request.POST.get('exam_date_display')
+            if raw_date:
+                try:
+                    exam_date = datetime.strptime(str(raw_date).strip()[:10], '%Y-%m-%d').date()
+                except Exception:
+                    exam_date = timezone.now().date()
+            else:
+                exam_date = timezone.now().date()
 
-                    for student in students:
-                        class_score_str = request.POST.get(f'class_score_{student.id}', '0') or '0'
-                        mid_semester_str = request.POST.get(f'mid_semester_{student.id}', '0') or '0'
-                        end_of_term_exams_str = request.POST.get(f'end_of_term_exams_{student.id}', '0') or '0'
-                        comment = request.POST.get(f'comment_{student.id}', '').strip()
+        created_count = 0
+        updated_count = 0
+        results_created = []
 
-                        # Convert to Decimal with proper error handling
-                        try:
-                            class_score = Decimal(class_score_str) if class_score_str.strip() else Decimal('0')
-                        except (InvalidOperation, ValueError):
-                            class_score = Decimal('0')
-                            
-                        try:
-                            mid_semester = Decimal(mid_semester_str) if mid_semester_str.strip() else Decimal('0')
-                        except (InvalidOperation, ValueError):
-                            mid_semester = Decimal('0')
-                            
-                        try:
-                            end_of_term_exams = Decimal(end_of_term_exams_str) if end_of_term_exams_str.strip() else Decimal('0')
-                        except (InvalidOperation, ValueError):
-                            end_of_term_exams = Decimal('0')
+        try:
+            with transaction.atomic():
+                for student in students:
+                    class_score_str = request.POST.get(f'class_score_{student.id}', '0') or '0'
+                    mid_semester_str = request.POST.get(f'mid_semester_{student.id}', '0') or '0'
+                    end_of_term_exams_str = request.POST.get(f'end_of_term_exams_{student.id}', '0') or '0'
+                    comment = request.POST.get(f'comment_{student.id}', '').strip()
 
-                        # Clamp values
-                        class_score = max(Decimal('0'), min(Decimal('20'), class_score))
-                        mid_semester = max(Decimal('0'), min(Decimal('30'), mid_semester))
-                        end_of_term_exams = max(Decimal('0'), min(Decimal('50'), end_of_term_exams))
-
-                        has_scores = (class_score > 0 or mid_semester > 0 or end_of_term_exams > 0)
+                    # Convert to Decimal with proper error handling
+                    try:
+                        class_score = Decimal(str(class_score_str).strip()) if str(class_score_str).strip() else Decimal('0')
+                    except (InvalidOperation, ValueError):
+                        class_score = Decimal('0')
                         
-                        existing_res = ResultSheet.objects.filter(
+                    try:
+                        mid_semester = Decimal(str(mid_semester_str).strip()) if str(mid_semester_str).strip() else Decimal('0')
+                    except (InvalidOperation, ValueError):
+                        mid_semester = Decimal('0')
+                        
+                    try:
+                        end_of_term_exams = Decimal(str(end_of_term_exams_str).strip()) if str(end_of_term_exams_str).strip() else Decimal('0')
+                    except (InvalidOperation, ValueError):
+                        end_of_term_exams = Decimal('0')
+
+                    # Clamp values
+                    class_score = max(Decimal('0'), min(Decimal('20'), class_score))
+                    mid_semester = max(Decimal('0'), min(Decimal('30'), mid_semester))
+                    end_of_term_exams = max(Decimal('0'), min(Decimal('50'), end_of_term_exams))
+
+                    has_scores = (class_score > 0 or mid_semester > 0 or end_of_term_exams > 0)
+                    
+                    existing_res = ResultSheet.objects.filter(
+                        student=student,
+                        subject=subject,
+                        term=term,
+                        academic_year=academic_year
+                    ).first()
+
+                    # Only save if at least one score is provided or updating existing
+                    if has_scores or (existing_res and (comment or class_score == 0)):
+                        result, created = ResultSheet.objects.update_or_create(
                             student=student,
                             subject=subject,
                             term=term,
-                            academic_year=academic_year
-                        ).first()
-
-                        # Only save if at least one score is provided or updating existing
-                        if has_scores or (existing_res and (comment or class_score == 0)):
-                            result, created = ResultSheet.objects.update_or_create(
-                                student=student,
-                                subject=subject,
-                                term=term,
-                                academic_year=academic_year,
-                                defaults={
-                                    'class_score': class_score,
-                                    'mid_semester': mid_semester,
-                                    'end_of_term_exams': end_of_term_exams,
-                                    'exam_date': exam_date,
-                                    'teacher_comment': comment,
-                                }
-                            )
-                            
-                            results_created.append({
-                                'student': student,
-                                'result': result,
-                                'created': created
-                            })
-                            
-                            if created:
-                                created_count += 1
-                            else:
-                                updated_count += 1
-
-                    # Send email notifications to parents
-                    try:
-                        emails_sent = send_result_notifications(
-                            results_created, subject, term, academic_year, teacher
+                            academic_year=academic_year,
+                            defaults={
+                                'class_score': class_score,
+                                'mid_semester': mid_semester,
+                                'end_of_term_exams': end_of_term_exams,
+                                'exam_date': exam_date,
+                                'teacher_comment': comment,
+                            }
                         )
-                    except Exception as email_error:
-                        print(f"Email notification error: {email_error}")
+                        
+                        results_created.append({
+                            'student': student,
+                            'result': result,
+                            'created': created
+                        })
+                        
+                        if created:
+                            created_count += 1
+                        else:
+                            updated_count += 1
 
-                    # Create in-app notifications for students
-                    for item in results_created:
-                        try:
-                            st = item['student']
-                            result_obj = item['result']
-                            create_in_app_notification(
-                                user=st.user,
-                                title=f"Result posted: {subject.name}",
-                                message=f"Your {subject.name} result for {term} {academic_year} is available.",
-                                notification_type="result",
-                                related_object=result_obj,
-                                link=reverse("student:view-result", args=[st.id]),
-                            )
-                        except Exception:
-                            continue
+            # Send email notifications to parents (outside atomic transaction so network failures don't abort DB)
+            emails_sent = 0
+            try:
+                emails_sent = send_result_notifications(
+                    results_created, subject, term, academic_year, teacher
+                )
+            except Exception as email_error:
+                logger.warning(f"Email notification error: {email_error}")
 
-                    # Success message
-                    if created_count > 0 or updated_count > 0:
-                        messages.success(
-                            request,
-                            f"Grades successfully saved for {subject.name} (Term {term}, {academic_year})! "
-                            f"{created_count} added, {updated_count} updated. "
-                            f"{emails_sent} parent notification(s) sent."
-                        )
-                    else:
-                        messages.info(request, "No grades were changed (all scores were zero).")
+            # Create in-app notifications for students
+            for item in results_created:
+                try:
+                    st = item['student']
+                    result_obj = item['result']
+                    create_in_app_notification(
+                        user=st.user,
+                        title=f"Result posted: {subject.name}",
+                        message=f"Your {subject.name} result for Term {term} ({academic_year}) is available.",
+                        notification_type="result",
+                        related_object=result_obj,
+                        link=reverse("student:view-result", args=[st.id]),
+                    )
+                except Exception:
+                    continue
 
-                    return redirect(f"{reverse('teacher:list-result')}?subject={subject.id}&term={term}&academic_year={academic_year}")
+            # Success message
+            if created_count > 0 or updated_count > 0:
+                messages.success(
+                    request,
+                    f"Grades successfully saved for {subject.name} (Term {term}, {academic_year})! "
+                    f"{created_count} added, {updated_count} updated. "
+                    f"{emails_sent} parent notification(s) sent."
+                )
+            else:
+                messages.info(request, "No grades were changed (all scores were zero).")
 
-            except Exception as e:
-                messages.error(request, f"An error occurred while saving grades: {str(e)}")
-        else:
-            messages.error(request, "Please correct the errors in the form.")
+            return redirect(f"{reverse('teacher:list-result')}?subject={subject.id}&term={term}&academic_year={academic_year}")
+
+        except Exception as e:
+            logger.error(f"Error saving grades: {str(e)}", exc_info=True)
+            messages.error(request, f"An error occurred while saving grades: {str(e)}")
     else:
         # GET request - initialize form with selected term & year
         form = BulkResultForm(
@@ -559,14 +576,14 @@ def send_result_notifications(results_created, subject, term, academic_year, tea
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=parent_emails,
                     html_message=html_message,
-                    fail_silently=False,
+                    fail_silently=True,
                 )
                 
                 emails_sent += 1
-                print(f"✓ Result notification sent for {student.user.get_full_name()} to {parent_emails}")
+                logger.info(f"Result notification sent for {student.user.get_full_name()} to {parent_emails}")
                 
             except Exception as e:
-                print(f"✗ Failed to send email for {student.user.get_full_name()}: {str(e)}")
+                logger.warning(f"Failed to send email for {student.user.get_full_name()}: {str(e)}")
                 # Continue with other emails even if one fails
     
     return emails_sent
@@ -577,6 +594,8 @@ def get_parent_emails(parent):
     Extract parent email addresses from parent object.
     Returns a list of valid email addresses.
     """
+    if not parent:
+        return []
     emails = []
     
     # Add father's email if available and valid
@@ -590,6 +609,12 @@ def get_parent_emails(parent):
         email = parent.mother_email.strip()
         if email and '@' in email:
             emails.append(email)
+
+    # Add guardian's email if available and valid
+    if hasattr(parent, 'guardian_email') and parent.guardian_email:
+        email = parent.guardian_email.strip()
+        if email and '@' in email:
+            emails.append(email)
     
     # If no specific parent emails, try to get from user account
     if not emails and hasattr(parent, 'user') and parent.user and parent.user.email:
@@ -599,16 +624,17 @@ def get_parent_emails(parent):
     
     return list(set(emails))  
 
+@login_required(login_url='account:login')
 def edit_result(request, result_id):
     """Edit an existing result."""
-    if not request.user.is_authenticated or request.user.role != "teacher":
+    if not request.user.is_authenticated or getattr(request.user, 'role', None) != "teacher":
         messages.error(request, "You are not authorized to edit results.")
         return redirect("account:login")
 
     try:
         teacher = request.user.teacher_profile
         school = teacher.school
-    except Teacher.DoesNotExist:
+    except (Teacher.DoesNotExist, AttributeError):
         messages.error(request, "Teacher profile not found.")
         return redirect("account:login")
 
@@ -637,16 +663,17 @@ def edit_result(request, result_id):
     })
 
 
+@login_required(login_url='account:login')
 def list_result(request):
     """Modernized student results hub with rich filters, KPIs, and grading actions"""
-    if not request.user.is_authenticated or request.user.role != "teacher":
+    if not request.user.is_authenticated or getattr(request.user, 'role', None) != "teacher":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("account:login")
     
     try:
         teacher = request.user.teacher_profile
         school = teacher.school
-    except Teacher.DoesNotExist:
+    except (Teacher.DoesNotExist, AttributeError):
         messages.error(request, "Teacher profile not found")
         return redirect("account:login")
 
@@ -772,15 +799,16 @@ def list_result(request):
     return render(request, "teacher/list-result.html", context)
 
 
+@login_required(login_url='account:login')
 def delete_result(request, result_id):
-    if not request.user.is_authenticated or request.user.role != "teacher":
+    if not request.user.is_authenticated or getattr(request.user, 'role', None) != "teacher":
         messages.error(request, "You are not authorized to perform this action")
         return redirect("account:login")
     
     try:
         teacher = request.user.teacher_profile
         school = teacher.school
-    except Teacher.DoesNotExist:
+    except (Teacher.DoesNotExist, AttributeError):
         messages.error(request, "Teacher profile not found")
         return redirect("account:login")
     

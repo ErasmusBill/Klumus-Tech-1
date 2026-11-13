@@ -400,6 +400,16 @@ class AddStudentForm(forms.ModelForm):
         widget=forms.FileInput(attrs={'class': 'form-control'})
     )
 
+    # Sibling / Existing Parent Link field
+    existing_parent = forms.ModelChoiceField(
+        queryset=Parent.objects.none(),
+        required=False,
+        empty_label="-- New Parent (Or auto-match by phone/email) --",
+        widget=forms.Select(attrs={'class': 'form-control select2', 'id': 'id_existing_parent'}),
+        label="Link Existing Parent (For Siblings)",
+        help_text="If this student has siblings already in this school, select their parent here to link them together."
+    )
+
     # Parent / Father fields
     father_name = forms.CharField(
         max_length=100,
@@ -530,8 +540,14 @@ class AddStudentForm(forms.ModelForm):
             class_qs = SchoolClass.objects.filter(
                 Q(school=self.school) | Q(school__isnull=True), is_active=True
             ).order_by('order', 'name')
+            if 'existing_parent' in self.fields:
+                self.fields['existing_parent'].queryset = Parent.objects.filter(
+                    students__school=self.school
+                ).distinct().order_by('father_name', 'mother_name', 'guardian_name')
         else:
             class_qs = SchoolClass.objects.filter(is_active=True).order_by('order', 'name')
+            if 'existing_parent' in self.fields:
+                self.fields['existing_parent'].queryset = Parent.objects.all().order_by('father_name', 'mother_name', 'guardian_name')
 
         self.fields['student_class'].queryset = class_qs
         if 'previous_class' in self.fields:
@@ -575,6 +591,8 @@ class AddStudentForm(forms.ModelForm):
                 # Populate parent fields if parent exists
                 if hasattr(self.instance, 'parent') and self.instance.parent:
                     parent = self.instance.parent
+                    if 'existing_parent' in self.fields:
+                        self.fields['existing_parent'].initial = parent
                     self.fields['father_name'].initial = parent.father_name or ''
                     self.fields['mother_name'].initial = parent.mother_name or ''
                     self.fields['father_occupation'].initial = parent.father_occupation or ''
@@ -610,9 +628,18 @@ class AddStudentForm(forms.ModelForm):
         father_name = (cleaned_data.get('father_name') or '').strip()
         mother_name = (cleaned_data.get('mother_name') or '').strip()
         guardian_name = (cleaned_data.get('guardian_name') or '').strip()
+        existing_parent = cleaned_data.get('existing_parent')
 
-        if not (father_name or mother_name or guardian_name):
-            raise forms.ValidationError("Please provide contact details for at least one parent or guardian (Father, Mother, or Guardian).")
+        if not existing_parent and not (father_name or mother_name or guardian_name):
+            raise forms.ValidationError("Please provide contact details for at least one parent or guardian (Father, Mother, or Guardian), or select an existing parent for siblings.")
+
+        if existing_parent:
+            if not father_name and existing_parent.father_name:
+                cleaned_data['father_name'] = existing_parent.father_name
+            if not mother_name and existing_parent.mother_name:
+                cleaned_data['mother_name'] = existing_parent.mother_name
+            if not guardian_name and existing_parent.guardian_name:
+                cleaned_data['guardian_name'] = existing_parent.guardian_name
         return cleaned_data
 
     def clean_email(self):
@@ -648,17 +675,43 @@ class AddStudentForm(forms.ModelForm):
     def save(self, commit=True):
         # Check if student actually exists in database (not just has a UUID assigned)
         is_update = self.instance.pk and Student.objects.filter(pk=self.instance.pk).exists()
+        existing_parent = self.cleaned_data.get('existing_parent')
         
         if is_update:
             # Editing existing student
             student = self.instance
             user = student.user
-            parent = student.parent
+            parent = existing_parent or student.parent or Parent()
         else:
             # Creating new student - create user and parent first
             user = CustomUser(role='student')
-            parent = Parent()
-            parent.school = self.school
+            if existing_parent:
+                parent = existing_parent
+            else:
+                # Auto-match existing parent in this school if father_phone, mother_phone, guardian_phone, or father_email matches
+                f_phone = (self.cleaned_data.get('father_phone') or '').strip()
+                m_phone = (self.cleaned_data.get('mother_phone') or '').strip()
+                g_phone = (self.cleaned_data.get('guardian_phone') or '').strip()
+                f_email = (self.cleaned_data.get('father_email') or '').strip()
+
+                parent = None
+                match_q = Q()
+                if f_phone:
+                    match_q |= Q(father_phone=f_phone) | Q(mother_phone=f_phone) | Q(guardian_phone=f_phone)
+                if m_phone:
+                    match_q |= Q(father_phone=m_phone) | Q(mother_phone=m_phone) | Q(guardian_phone=m_phone)
+                if g_phone:
+                    match_q |= Q(guardian_phone=g_phone) | Q(father_phone=g_phone) | Q(mother_phone=g_phone)
+                if f_email:
+                    match_q |= Q(father_email__iexact=f_email) | Q(mother_email__iexact=f_email) | Q(guardian_email__iexact=f_email)
+
+                if match_q and self.school:
+                    matched_parents = Parent.objects.filter(students__school=self.school).filter(match_q).distinct()
+                    if matched_parents.exists():
+                        parent = matched_parents.first()
+
+                if not parent:
+                    parent = Parent()
 
         # Update user fields
         user.first_name = self.cleaned_data.get('first_name') or user.first_name
@@ -689,47 +742,45 @@ class AddStudentForm(forms.ModelForm):
             user.save()
             
             # Update and save parent
-            parent.father_name = self.cleaned_data.get('father_name') or ''
-            parent.father_phone = self.cleaned_data.get('father_phone') or ''
-            parent.father_occupation = self.cleaned_data.get('father_occupation') or ''
-            parent.father_email = self.cleaned_data.get('father_email') or ''
+            # If parent was already existing, only overwrite fields if a non-empty value was entered
+            is_parent_new = not parent.pk
+            for field in [
+                'father_name', 'father_phone', 'father_occupation', 'father_email',
+                'mother_name', 'mother_phone', 'mother_occupation', 'mother_email',
+                'guardian_name', 'guardian_relation', 'guardian_phone', 'guardian_email', 'guardian_occupation',
+                'present_address', 'permanent_address'
+            ]:
+                val = self.cleaned_data.get(field)
+                if val or is_parent_new:
+                    setattr(parent, field, val or '')
 
-            parent.mother_name = self.cleaned_data.get('mother_name') or ''
-            parent.mother_phone = self.cleaned_data.get('mother_phone') or ''
-            parent.mother_occupation = self.cleaned_data.get('mother_occupation') or ''
-            parent.mother_email = self.cleaned_data.get('mother_email') or ''
-
-            parent.guardian_name = self.cleaned_data.get('guardian_name') or ''
-            parent.guardian_relation = self.cleaned_data.get('guardian_relation') or ''
-            parent.guardian_phone = self.cleaned_data.get('guardian_phone') or ''
-            parent.guardian_email = self.cleaned_data.get('guardian_email') or ''
-            parent.guardian_occupation = self.cleaned_data.get('guardian_occupation') or ''
-
-            parent.emergency_contact_name = (
-                self.cleaned_data.get('emergency_contact_name')
-                or self.cleaned_data.get('guardian_name')
-                or self.cleaned_data.get('father_name')
-                or self.cleaned_data.get('mother_name')
-                or ''
-            )
-            parent.emergency_contact_phone = (
-                self.cleaned_data.get('emergency_contact_phone')
-                or self.cleaned_data.get('guardian_phone')
-                or self.cleaned_data.get('father_phone')
-                or self.cleaned_data.get('mother_phone')
-                or ''
-            )
-            parent.emergency_contact_relation = (
-                self.cleaned_data.get('emergency_contact_relation')
-                or self.cleaned_data.get('guardian_relation')
-                or ''
-            )
-            parent.present_address = (
-                self.cleaned_data.get('present_address')
-                or self.cleaned_data.get('address')
-                or ''
-            )
-            parent.permanent_address = self.cleaned_data.get('permanent_address') or ''
+            if self.cleaned_data.get('emergency_contact_name'):
+                parent.emergency_contact_name = self.cleaned_data.get('emergency_contact_name')
+            elif not parent.emergency_contact_name:
+                parent.emergency_contact_name = (
+                    self.cleaned_data.get('guardian_name')
+                    or self.cleaned_data.get('father_name')
+                    or self.cleaned_data.get('mother_name')
+                    or ''
+                )
+            if self.cleaned_data.get('emergency_contact_phone'):
+                parent.emergency_contact_phone = self.cleaned_data.get('emergency_contact_phone')
+            elif not parent.emergency_contact_phone:
+                parent.emergency_contact_phone = (
+                    self.cleaned_data.get('guardian_phone')
+                    or self.cleaned_data.get('father_phone')
+                    or self.cleaned_data.get('mother_phone')
+                    or ''
+                )
+            if self.cleaned_data.get('emergency_contact_relation'):
+                parent.emergency_contact_relation = self.cleaned_data.get('emergency_contact_relation')
+            elif not parent.emergency_contact_relation:
+                parent.emergency_contact_relation = (
+                    self.cleaned_data.get('guardian_relation')
+                    or ''
+                )
+            if not parent.present_address and self.cleaned_data.get('address'):
+                parent.present_address = self.cleaned_data.get('address')
             parent.save()
 
             previous_school = self.cleaned_data.get('previous_school') or ''
@@ -737,6 +788,7 @@ class AddStudentForm(forms.ModelForm):
 
             if is_update:
                 # Update existing student
+                student.parent = parent
                 student.student_class = self.cleaned_data.get('student_class') or student.student_class
                 if previous_class is not None:
                     student.previous_class = previous_class

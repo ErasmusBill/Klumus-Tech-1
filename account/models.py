@@ -282,7 +282,19 @@ class Parent(models.Model):
 
     def __str__(self):
         names = [n for n in [self.father_name, self.mother_name, self.guardian_name] if n]
-        return " & ".join(names) if names else "Parent/Guardian"
+        name_str = " & ".join(names) if names else "Parent/Guardian"
+        phone = self.primary_phone
+        try:
+            student_names = [s.user.get_full_name() for s in self.students.all()[:3] if hasattr(s, 'user') and s.user]
+            kids_str = f" [Child: {', '.join(student_names)}]" if student_names else ""
+        except Exception:
+            kids_str = ""
+        return f"{name_str} ({phone}){kids_str}" if phone else f"{name_str}{kids_str}"
+
+    @property
+    def children(self):
+        """Return all active students linked to this parent profile."""
+        return self.students.filter(is_active=True).select_related('user', 'student_class')
 
     @property
     def address(self):

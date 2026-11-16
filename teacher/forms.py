@@ -10,11 +10,13 @@ class BulkResultForm(forms.Form):
     """Form for teachers to bulk input student results."""
 
     exam_date = forms.DateField(
+        required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         label="Exam Date"
     )
 
     academic_year = forms.CharField(
+        required=False,
         max_length=20,
         initial=f"{datetime.now().year}/{datetime.now().year + 1}",
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2024/2025'}),
@@ -22,6 +24,7 @@ class BulkResultForm(forms.Form):
     )
 
     term = forms.ChoiceField(
+        required=False,
         choices=ResultSheet.TERM_CHOICES,
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Term"

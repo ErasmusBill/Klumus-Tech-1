@@ -334,10 +334,9 @@
             <a href="javascript:void(0);" id="toggle_btn"><i class="fas fa-align-left"></i></a>
 
             <div class="top-nav-search">
-                <form method="POST" action="{% url 'adminservices:admin-dashboard' %}">
-                    {% csrf_token %}
-                    <input type="text" class="form-control rounded-pill" placeholder="Search student, staff, class..." name="search" autocomplete="off">
-                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                <form method="GET" action="{% url 'adminservices:admin-dashboard' %}">
+                    <input type="text" class="form-control rounded-pill" placeholder="Search student, staff, class..." name="search" value="{{ request.GET.search|default:'' }}" autocomplete="off">
+                    <button class="btn" type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
                 </form>
             </div>
 

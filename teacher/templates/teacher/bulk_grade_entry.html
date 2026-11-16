@@ -309,7 +309,7 @@
         <i class="far fa-calendar-alt text-primary mr-1"></i> Official Exam Date:
       </label>
       <div style="max-width: 160px;">
-        <input type="date" name="exam_date_display" form="gradeForm" class="form-control form-control-sm font-weight-bold" value="{{ form.exam_date.value|date:'Y-m-d'|default:form.initial.exam_date|date:'Y-m-d' }}">
+        <input type="date" name="exam_date_display" form="gradeForm" class="form-control form-control-sm font-weight-bold" value="{% if form.exam_date.value %}{{ form.exam_date.value|date:'Y-m-d'|default:form.exam_date.value }}{% else %}{{ form.initial.exam_date|date:'Y-m-d'|default:today_date }}{% endif %}">
       </div>
     </div>
 
@@ -356,7 +356,7 @@
   <!-- Hidden Bound Fields -->
   <input type="hidden" name="term" value="{{ selected_term }}">
   <input type="hidden" name="academic_year" value="{{ selected_academic_year }}">
-  <input type="hidden" name="exam_date" id="hiddenExamDate" value="{{ form.exam_date.value|date:'Y-m-d'|default:form.initial.exam_date|date:'Y-m-d' }}">
+  <input type="hidden" name="exam_date" id="hiddenExamDate" value="{% if form.exam_date.value %}{{ form.exam_date.value|date:'Y-m-d'|default:form.exam_date.value }}{% else %}{{ form.initial.exam_date|date:'Y-m-d'|default:today_date }}{% endif %}">
   
   <div class="card grade-table-card mb-4">
     <!-- Sub-header Tips -->
@@ -755,12 +755,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Synchronize exam date before submitting
+  const gradeForm = document.getElementById('gradeForm');
+  if (gradeForm) {
+    gradeForm.addEventListener('submit', function() {
+      const displayDate = document.querySelector('input[name="exam_date_display"]');
+      const hiddenDate = document.getElementById('hiddenExamDate');
+      if (displayDate && hiddenDate && displayDate.value) {
+        hiddenDate.value = displayDate.value;
+      }
+    });
+  }
+
   // Ctrl + S shortcut to save
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'Enter')) {
       e.preventDefault();
       const form = document.getElementById('gradeForm');
-      if (form) form.submit();
+      if (form) {
+        const displayDate = document.querySelector('input[name="exam_date_display"]');
+        const hiddenDate = document.getElementById('hiddenExamDate');
+        if (displayDate && hiddenDate && displayDate.value) {
+          hiddenDate.value = displayDate.value;
+        }
+        form.submit();
+      }
     }
   });
 

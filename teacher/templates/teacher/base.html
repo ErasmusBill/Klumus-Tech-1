@@ -155,9 +155,9 @@
 
             <!-- Search Bar (Hidden on Mobile) -->
             <div class="top-nav-search d-none d-md-block">
-                <form>
-                    <input type="text" class="form-control" placeholder="Search here">
-                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                <form method="GET" action="{% url 'teacher:teacher-students' %}">
+                    <input type="text" name="search" class="form-control" placeholder="Search students, classes, subjects..." value="{{ request.GET.search|default:'' }}" autocomplete="off">
+                    <button class="btn" type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
                 </form>
             </div>
 

@@ -687,10 +687,9 @@
         </div>
         
         <div class="hero-search">
-          <form method="post" action="{% url 'adminservices:admin-dashboard' %}">
-            {% csrf_token %}
+          <form method="get" action="{% url 'adminservices:admin-dashboard' %}">
             <i class="fas fa-search"></i>
-            <input type="text" name="search" placeholder="Search student by name, ID or class..." value="{{ search_query|default:'' }}">
+            <input type="text" name="search" placeholder="Search student by name, ID or class..." value="{{ search_query|default:'' }}" autocomplete="off">
           </form>
         </div>
       </div>

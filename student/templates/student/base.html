@@ -108,9 +108,9 @@
                 <i class="fas fa-align-left"></i>
             </a>
             <div class="top-nav-search">
-                <form>
-                    <input type="text" class="form-control" placeholder="Search here">
-                    <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                <form method="GET" action="{% url 'student:enrolled-courses' %}">
+                    <input type="text" name="search" class="form-control" placeholder="Search courses..." value="{{ request.GET.search|default:'' }}" autocomplete="off">
+                    <button class="btn" type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
                 </form>
             </div>
             <a class="mobile_btn" id="mobile_btn">
